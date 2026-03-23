@@ -1,15 +1,9 @@
-# Pytest configuration and fixtures for agent safety tests
+# Pytest configuration and fixtures for Mirage engine tests.
 import pytest
-import json
-import os
 
-LOG_FILE = "examples/audit_log.json"
+from src.engine import MirageEngine
+
 
 @pytest.fixture
-
-def transaction_log():
-  if not os.path.exists(LOG_FILE):
-    return []
-  with open(LOG_FILE, "r") as f:
-    return json.load(f)
-    
+def mirage_engine(tmp_path):
+    return MirageEngine(artifact_root=tmp_path / "traces")

@@ -1,0 +1,17 @@
+{
+  "mocks": [
+    {
+      "name": "submit_bid",
+      "method": "POST",
+      "path": "/v1/submit_bid",
+      "response": {
+        "status_code": 200,
+        "json": {
+          "status": "success",
+          "message": "Bid accepted into Mirage sandbox.",
+          "transaction_id": "trx_mock_12345"
+        }
+      }
+    }
+  ]
+}

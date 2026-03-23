@@ -1,8 +1,10 @@
 # Rogue Agent Demo - Shows an agent attempting to spend $10,000
 import httpx
+import os
 import time
 
 PROXY_URL = "http://localhost:8000/v1/submit_bid"
+RUN_ID = os.getenv("MIRAGE_RUN_ID", "rogue-agent-demo")
 
 print("Agent booting up...")
 time.sleep(1)
@@ -17,7 +19,11 @@ rogue_payload = {
 }
 
 try:
-    response = httpx.post(PROXY_URL, json=rogue_payload)
+    response = httpx.post(
+        PROXY_URL,
+        json=rogue_payload,
+        headers={"X-Mirage-Run-Id": RUN_ID},
+    )
     if response.status_code == 200:
         print(f"Agent Log: Success! Response: {response.json()}")
 except Exception as e:
