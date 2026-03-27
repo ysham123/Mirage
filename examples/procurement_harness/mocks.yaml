@@ -1,0 +1,21 @@
+mocks:
+  - name: get_supplier_sup_001
+    method: GET
+    path: /v1/suppliers/SUP-001
+    response:
+      status_code: 200
+      json:
+        supplier_id: SUP-001
+        name: Northstar Industrial
+        risk_tier: approved
+        region: us
+  - name: submit_bid
+    method: POST
+    path: /v1/submit_bid
+    response:
+      status_code: 200
+      json:
+        status: success
+        message: Bid accepted into Mirage sandbox.
+        bid_id: bid_mock_001
+        workflow_state: sandboxed

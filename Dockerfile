@@ -1,12 +1,17 @@
 FROM python:3.11-slim
 
 WORKDIR /app
+ENV PYTHONUNBUFFERED=1
 
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY src/ src/
+COPY examples/ examples/
+COPY mocks.yaml .
+COPY policies.yaml .
 COPY tests/ tests/
+RUN mkdir -p artifacts/traces
 
 EXPOSE 8000
 

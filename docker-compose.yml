@@ -7,6 +7,9 @@ services:
       - "8000:8000"
     volumes:
       - ./src:/app/src
-      - ./tests:/app/tests
+      - ./examples:/app/examples
+      - ./artifacts:/app/artifacts
     environment:
       - PYTHONUNBUFFERED=1
+      - MIRAGE_MOCKS_PATH=/app/examples/procurement_harness/mocks.yaml
+      - MIRAGE_POLICIES_PATH=/app/examples/procurement_harness/policies.yaml

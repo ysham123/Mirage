@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mirage</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+
+body{
+  background:#050505;color:#e0e0e0;
+  font:13px/1.6 -apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;
+  -webkit-font-smoothing:antialiased;min-height:100vh;
+}
+
+.w{max-width:660px;margin:0 auto;padding:80px 28px 120px}
+
+header{margin-bottom:72px}
+h1{font-size:14px;font-weight:500;letter-spacing:5px;text-transform:uppercase}
+header p{font-size:12px;color:#3a3a3a;margin-top:6px}
+
+nav{display:flex;gap:8px;margin-bottom:64px}
+nav button{
+  flex:1;background:#0c0c0c;border:1px solid #1a1a1a;
+  border-radius:10px;padding:20px 18px;
+  color:#e0e0e0;font:inherit;cursor:pointer;
+  text-align:left;transition:border-color .15s;
+}
+nav button:hover{border-color:#2a2a2a}
+nav button:hover .nm{color:#fff}
+nav button.on{border-color:#444}
+.nm{font-weight:500;margin-bottom:4px;transition:color .15s}
+.ds{font-size:11px;color:#4a4a4a;line-height:1.5}
+
+#out .hd{
+  display:flex;justify-content:space-between;align-items:center;
+  padding-bottom:20px;margin-bottom:36px;
+  border-bottom:1px solid #161616;
+}
+#out .hd h2{font-size:13px;font-weight:500;color:#888}
+#out .hd code{
+  font:11px 'SF Mono',Menlo,Monaco,Consolas,monospace;color:#333;
+}
+
+.step{
+  padding-bottom:36px;margin-bottom:36px;
+  border-bottom:1px solid #111;
+}
+.step:last-of-type{border-bottom:none;margin-bottom:28px;padding-bottom:0}
+
+.step-hd{
+  display:flex;justify-content:space-between;
+  align-items:baseline;margin-bottom:20px;
+}
+.step-hd .t{font-weight:500}
+.step-hd .t em{font-style:normal;color:#3a3a3a;margin-right:8px}
+.oc{
+  font:500 11px/1 'SF Mono',Menlo,Monaco,Consolas,monospace;
+  letter-spacing:.3px;
+}
+.oc.allowed{color:#3ecf8e}
+.oc.policy_violation{color:#e5534b}
+.oc.unmatched_route{color:#d29922}
+
+.rq{
+  font:13px 'SF Mono',Menlo,Monaco,Consolas,monospace;
+  color:#888;margin-bottom:16px;
+}
+.rq b{color:#555;font-weight:600;margin-right:10px}
+
+pre{
+  font:12px/1.8 'SF Mono',Menlo,Monaco,Consolas,monospace;
+  color:#5a5a5a;background:#0a0a0a;
+  border-radius:8px;padding:16px 18px;
+  overflow-x:auto;margin-bottom:20px;
+}
+
+.mock{
+  font:12px 'SF Mono',Menlo,Monaco,Consolas,monospace;
+  color:#3a3a3a;margin-bottom:20px;
+}
+.mock span{color:#777}
+
+.lbl{
+  font-size:10px;text-transform:uppercase;
+  letter-spacing:1.5px;color:#333;
+  margin-bottom:10px;font-weight:500;
+}
+
+.pol-list{margin-bottom:20px}
+.pol{
+  display:flex;align-items:baseline;gap:10px;
+  padding:8px 0;font-size:12px;
+}
+.pol .k{font-size:12px;width:14px;text-align:center;flex-shrink:0}
+.k.pass{color:#3ecf8e}
+.k.fail{color:#e5534b}
+.pol .pn{
+  font-family:'SF Mono',Menlo,Monaco,Consolas,monospace;
+  color:#bbb;min-width:200px;flex-shrink:0;
+}
+.pol .pd{
+  font:11px 'SF Mono',Menlo,Monaco,Consolas,monospace;
+  color:#444;
+}
+.pd .v{color:#888}
+.pd .v.bad{color:#e5534b}
+
+.msg{
+  font-size:12px;padding:10px 14px;
+  border-left:2px solid #222;
+  margin-bottom:20px;color:#555;
+}
+.msg.vio{border-left-color:#e5534b;color:#c44}
+.msg.unm{border-left-color:#d29922;color:#b88520}
+
+.http{
+  font:600 11px 'SF Mono',Menlo,Monaco,Consolas,monospace;
+  margin-bottom:8px;
+}
+.http.ok{color:#3ecf8e}
+.http.warn{color:#d29922}
+
+.tbtn{
+  background:none;border:1px solid #151515;
+  border-radius:8px;color:#333;
+  font:11px 'SF Mono',Menlo,Monaco,Consolas,monospace;
+  padding:10px 14px;cursor:pointer;
+  width:100%;text-align:left;
+  transition:color .12s,border-color .12s;
+}
+.tbtn:hover{color:#555;border-color:#222}
+.tbtn .ar{display:inline-block;transition:transform .12s;margin-right:6px}
+.tbtn.open .ar{transform:rotate(90deg)}
+.tpnl{display:none;margin-top:8px}
+.tpnl.open{display:block}
+
+.muted{color:#2a2a2a;font-size:12px}
+
+@media(max-width:520px){
+  nav{flex-direction:column}
+  .w{padding:48px 16px 80px}
+  .pol .pn{min-width:auto}
+}
+</style>
+</head>
+<body>
+<div class="w">
+  <header>
+    <h1>Mirage</h1>
+    <p>CI for agent side effects</p>
+  </header>
+  <nav>
+    <button onclick="go('safe',this)">
+      <div class="nm">Safe</div>
+      <div class="ds">$7,500 compliant bid, approved supplier</div>
+    </button>
+    <button onclick="go('risky',this)">
+      <div class="nm">Risky</div>
+      <div class="ds">$50,000 bid, exceeds policy limit</div>
+    </button>
+    <button onclick="go('unmatched',this)">
+      <div class="nm">Unmatched</div>
+      <div class="ds">POST /v1/suppliers, no mock configured</div>
+    </button>
+  </nav>
+  <div id="out"></div>
+</div>
+<script>
+async function go(name,btn){
+  document.querySelectorAll('nav button').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  const out=document.getElementById('out');
+  out.innerHTML='<div class="muted">Running\u2026</div>';
+  try{
+    const r=await fetch('/api/scenario/'+name);
+    out.innerHTML=render(await r.json());
+  }catch(e){
+    out.innerHTML='<div style="color:#e5534b;font-size:12px">'+e.message+'</div>';
+  }
+}
+
+function render(d){
+  const labels={safe:'Safe Workflow',risky:'Risky Workflow',unmatched:'Unmatched Route'};
+  let h='<div class="hd"><h2>'+labels[d.scenario]+'</h2><code>'+d.run_id+'</code></div>';
+  d.steps.forEach((s,i)=>{h+=step(s,i+1)});
+  h+='<button class="tbtn" onclick="tog(this)"><span class="ar">\u25b8</span>trace</button>';
+  h+='<div class="tpnl"><pre>'+esc(JSON.stringify(d.trace,null,2))+'</pre></div>';
+  return h;
+}
+
+function step(s,n){
+  const m=s.mirage;
+  let h='<div class="step"><div class="step-hd"><span class="t"><em>'+n+'</em>'+s.name+'</span>';
+  h+='<span class="oc '+m.outcome+'">'+m.outcome.replace(/_/g,' ')+'</span></div>';
+  h+='<div class="rq"><b>'+s.request.method+'</b>'+s.request.path+'</div>';
+  if(s.request.payload)h+='<pre>'+esc(JSON.stringify(s.request.payload,null,2))+'</pre>';
+  if(m.matched_mock)h+='<div class="mock">mock <span>'+m.matched_mock+'</span></div>';
+  if(m.decisions&&m.decisions.length){
+    h+='<div class="lbl">policies</div><div class="pol-list">';
+    m.decisions.forEach(d=>{
+      const ok=d.passed;
+      h+='<div class="pol"><span class="k '+(ok?'pass':'fail')+'">'+(ok?'\u2713':'\u2717')+'</span>';
+      h+='<span class="pn">'+d.name+'</span>';
+      h+='<span class="pd">'+d.field+' '+fop(d.operator)+' '+fv(d.expected);
+      h+=' \u2192 <span class="v'+(ok?'':' bad')+'">'+fv(d.actual)+'</span></span></div>';
+    });
+    h+='</div>';
+  }
+  if(m.outcome==='policy_violation')h+='<div class="msg vio">'+esc(m.message)+'</div>';
+  else if(m.outcome==='unmatched_route')h+='<div class="msg unm">'+esc(m.message)+'</div>';
+  const sc=s.response.status_code;
+  h+='<div class="http '+(sc<300?'ok':'warn')+'">'+sc+'</div>';
+  h+='<pre>'+esc(JSON.stringify(s.response.body,null,2))+'</pre></div>';
+  return h;
+}
+
+function fop(o){return{eq:'==',neq:'!=',lt:'<',lte:'\u2264',gt:'>',gte:'\u2265',in:'in',not_in:'not in',exists:'exists'}[o]||o}
+function fv(v){return v==null?'null':typeof v==='string'?'"'+v+'"':String(v)}
+function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+function tog(b){b.classList.toggle('open');b.nextElementSibling.classList.toggle('open')}
+</script>
+</body>
+</html>

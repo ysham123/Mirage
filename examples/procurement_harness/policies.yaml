@@ -1,4 +1,11 @@
 policies:
+  - name: require_approved_supplier
+    method: POST
+    path: /v1/submit_bid
+    field: supplier.risk_tier
+    operator: eq
+    value: approved
+    message: Procurement bids must use approved suppliers.
   - name: enforce_bid_limit
     method: POST
     path: /v1/submit_bid
