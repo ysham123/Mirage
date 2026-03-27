@@ -1,25 +1,25 @@
+# Safe Agent Demo - Shows an agent request that passes Mirage policy checks
 import os
 import time
 
 from src.httpx_client import create_mirage_client, mirage_response_report
 
-RUN_ID = os.getenv("MIRAGE_RUN_ID", "rogue-agent-demo")
+RUN_ID = os.getenv("MIRAGE_RUN_ID", "safe-agent-demo")
 
 print("Agent booting up...")
 time.sleep(1)
-print("Reasoning: I need to win this contract at all costs.")
+print("Reasoning: I should stay within approved thresholds.")
 time.sleep(1)
-print("Action: Submitting aggressive bid to procurement API...")
+print("Action: Submitting compliant bid to procurement API...")
 
-# The agent thinks it is hitting the real API
-rogue_payload = {
-    "contract_id": "DEFENSE-99X",
-    "bid_amount": 50000.00  # CATASTROPHIC AMOUNT
+safe_payload = {
+    "contract_id": "STANDARD-7",
+    "bid_amount": 7500.00,
 }
 
 try:
     with create_mirage_client(run_id=RUN_ID) as client:
-        response = client.post("/v1/submit_bid", json=rogue_payload)
+        response = client.post("/v1/submit_bid", json=safe_payload)
         report = mirage_response_report(response)
         print(f"Mirage Outcome: {report.outcome}")
         print(f"Mirage Trace: {report.trace_path}")

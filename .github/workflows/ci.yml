@@ -1,0 +1,35 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run test suite
+        run: pytest tests/ -v -s
+
+      - name: Build Docker image
+        run: docker build -t mirage-ci .
+
+      - name: Smoke test Docker image
+        run: >
+          docker run --rm mirage-ci python -c
+          "from src.engine import MirageEngine;
+          result = MirageEngine().handle_request(method='POST', path='/v1/submit_bid', payload={'contract_id': 'CI-1', 'bid_amount': 1000}, run_id='ci-smoke');
+          assert result.outcome == 'allowed';
+          assert result.policy_passed is True"
