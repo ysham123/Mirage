@@ -12,6 +12,8 @@ Template:
 
 Entries:
 
+- [2026-03-28 Action Review Console](2026-03-28-action-review-console.md)
+- [2026-03-27 Live Demo Mode And Script](2026-03-27-live-demo-mode-and-script.md)
 - [2026-03-27 Demo UI Alignment](2026-03-27-demo-ui-alignment.md)
 - [2026-03-27 Session Close Update](2026-03-27-session-close-update.md)
 - [2026-03-27 Procurement Harness Onboarding](2026-03-27-procurement-harness-onboarding.md)

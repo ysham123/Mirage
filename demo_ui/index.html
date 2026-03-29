@@ -5,220 +5,1119 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Mirage</title>
 <style>
-*{margin:0;padding:0;box-sizing:border-box}
-
+:root{
+  --bg:#050505;
+  --panel:#0b0b0b;
+  --panel-2:#0d0d0d;
+  --line:#161616;
+  --line-strong:#2a2a2a;
+  --text:#e8e8e8;
+  --muted:#7d7d7d;
+  --soft:#a7a7a7;
+  --green:#3ecf8e;
+  --yellow:#d8a33b;
+  --red:#f06a61;
+}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%}
 body{
-  background:#050505;color:#e0e0e0;
-  font:13px/1.6 -apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;
-  -webkit-font-smoothing:antialiased;min-height:100vh;
+  background:
+    radial-gradient(circle at top left, rgba(255,255,255,.045), transparent 25%),
+    radial-gradient(circle at top right, rgba(255,255,255,.025), transparent 20%),
+    var(--bg);
+  color:var(--text);
+  font:13px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
+  -webkit-font-smoothing:antialiased;
 }
-
-.w{max-width:660px;margin:0 auto;padding:80px 28px 120px}
-
-header{margin-bottom:72px}
-h1{font-size:14px;font-weight:500;letter-spacing:5px;text-transform:uppercase}
-header p{font-size:12px;color:#3a3a3a;margin-top:6px}
-
-nav{display:flex;gap:8px;margin-bottom:64px}
-nav button{
-  flex:1;background:#0c0c0c;border:1px solid #1a1a1a;
-  border-radius:10px;padding:20px 18px;
-  color:#e0e0e0;font:inherit;cursor:pointer;
-  text-align:left;transition:border-color .15s;
+button,input{font:inherit}
+.app{
+  max-width:1200px;
+  margin:0 auto;
+  padding:56px 22px 88px;
 }
-nav button:hover{border-color:#2a2a2a}
-nav button:hover .nm{color:#fff}
-nav button.on{border-color:#444}
-.nm{font-weight:500;margin-bottom:4px;transition:color .15s}
-.ds{font-size:11px;color:#4a4a4a;line-height:1.5}
-
-#out .hd{
-  display:flex;justify-content:space-between;align-items:center;
-  padding-bottom:20px;margin-bottom:36px;
-  border-bottom:1px solid #161616;
+.hero{
+  display:flex;
+  justify-content:space-between;
+  gap:20px;
+  align-items:flex-start;
+  margin-bottom:22px;
 }
-#out .hd h2{font-size:13px;font-weight:500;color:#888}
-#out .hd code{
-  font:11px 'SF Mono',Menlo,Monaco,Consolas,monospace;color:#333;
+.eyebrow{
+  font:600 11px/1.2 "SF Mono",Menlo,Monaco,Consolas,monospace;
+  letter-spacing:6px;
+  text-transform:uppercase;
+  color:#d8d8d8;
+  margin-bottom:10px;
 }
-
-.step{
-  padding-bottom:36px;margin-bottom:36px;
-  border-bottom:1px solid #111;
+.hero h1{
+  margin:0;
+  font-size:22px;
+  line-height:1.15;
+  font-weight:600;
 }
-.step:last-of-type{border-bottom:none;margin-bottom:28px;padding-bottom:0}
-
-.step-hd{
-  display:flex;justify-content:space-between;
-  align-items:baseline;margin-bottom:20px;
+.hero p{
+  margin:8px 0 0;
+  max-width:720px;
+  color:#8a8a8a;
 }
-.step-hd .t{font-weight:500}
-.step-hd .t em{font-style:normal;color:#3a3a3a;margin-right:8px}
-.oc{
-  font:500 11px/1 'SF Mono',Menlo,Monaco,Consolas,monospace;
-  letter-spacing:.3px;
+.toolbar{
+  min-width:280px;
+  padding:14px 16px;
+  border:1px solid var(--line);
+  border-radius:14px;
+  background:linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,.01));
 }
-.oc.allowed{color:#3ecf8e}
-.oc.policy_violation{color:#e5534b}
-.oc.unmatched_route{color:#d29922}
-
-.rq{
-  font:13px 'SF Mono',Menlo,Monaco,Consolas,monospace;
-  color:#888;margin-bottom:16px;
+.toolbar-top{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+  margin-bottom:10px;
 }
-.rq b{color:#555;font-weight:600;margin-right:10px}
-
-pre{
-  font:12px/1.8 'SF Mono',Menlo,Monaco,Consolas,monospace;
-  color:#5a5a5a;background:#0a0a0a;
-  border-radius:8px;padding:16px 18px;
-  overflow-x:auto;margin-bottom:20px;
+.toolbar label{
+  display:flex;
+  gap:10px;
+  align-items:center;
+  color:#bcbcbc;
+  font:11px "SF Mono",Menlo,Monaco,Consolas,monospace;
 }
-
-.mock{
-  font:12px 'SF Mono',Menlo,Monaco,Consolas,monospace;
-  color:#3a3a3a;margin-bottom:20px;
+.toolbar input{accent-color:#dbdbdb}
+.toolbar-copy{
+  color:var(--muted);
+  font-size:11px;
 }
-.mock span{color:#777}
-
-.lbl{
-  font-size:10px;text-transform:uppercase;
-  letter-spacing:1.5px;color:#333;
-  margin-bottom:10px;font-weight:500;
+.status{
+  margin-top:12px;
+  border:1px solid var(--line);
+  border-radius:12px;
+  background:var(--panel);
+  padding:11px 13px;
+  color:var(--soft);
+  font:11px "SF Mono",Menlo,Monaco,Consolas,monospace;
+  min-height:40px;
 }
-
-.pol-list{margin-bottom:20px}
-.pol{
-  display:flex;align-items:baseline;gap:10px;
-  padding:8px 0;font-size:12px;
+.status.error{color:#f2b0ab;border-color:rgba(240,106,97,.35)}
+.section{
+  margin-top:18px;
+  border:1px solid var(--line);
+  border-radius:18px;
+  background:rgba(255,255,255,.01);
+  overflow:hidden;
 }
-.pol .k{font-size:12px;width:14px;text-align:center;flex-shrink:0}
-.k.pass{color:#3ecf8e}
-.k.fail{color:#e5534b}
-.pol .pn{
-  font-family:'SF Mono',Menlo,Monaco,Consolas,monospace;
-  color:#bbb;min-width:200px;flex-shrink:0;
+.section-hd{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-end;
+  gap:12px;
+  padding:18px 18px 12px;
+  border-bottom:1px solid var(--line);
 }
-.pol .pd{
-  font:11px 'SF Mono',Menlo,Monaco,Consolas,monospace;
-  color:#444;
+.section-hd h2{
+  margin:0;
+  font-size:14px;
+  font-weight:600;
 }
-.pd .v{color:#888}
-.pd .v.bad{color:#e5534b}
-
-.msg{
-  font-size:12px;padding:10px 14px;
-  border-left:2px solid #222;
-  margin-bottom:20px;color:#555;
+.section-hd p{
+  margin:4px 0 0;
+  color:var(--muted);
+  max-width:760px;
 }
-.msg.vio{border-left-color:#e5534b;color:#c44}
-.msg.unm{border-left-color:#d29922;color:#b88520}
-
-.http{
-  font:600 11px 'SF Mono',Menlo,Monaco,Consolas,monospace;
-  margin-bottom:8px;
+.metrics-grid{
+  display:grid;
+  grid-template-columns:repeat(6,minmax(0,1fr));
+  gap:12px;
+  margin-top:18px;
 }
-.http.ok{color:#3ecf8e}
-.http.warn{color:#d29922}
-
-.tbtn{
-  background:none;border:1px solid #151515;
-  border-radius:8px;color:#333;
-  font:11px 'SF Mono',Menlo,Monaco,Consolas,monospace;
-  padding:10px 14px;cursor:pointer;
-  width:100%;text-align:left;
-  transition:color .12s,border-color .12s;
+.metric{
+  border:1px solid var(--line);
+  border-radius:16px;
+  background:linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,.01));
+  padding:15px 16px;
 }
-.tbtn:hover{color:#555;border-color:#222}
-.tbtn .ar{display:inline-block;transition:transform .12s;margin-right:6px}
-.tbtn.open .ar{transform:rotate(90deg)}
-.tpnl{display:none;margin-top:8px}
-.tpnl.open{display:block}
-
-.muted{color:#2a2a2a;font-size:12px}
-
-@media(max-width:520px){
-  nav{flex-direction:column}
-  .w{padding:48px 16px 80px}
-  .pol .pn{min-width:auto}
+.metric .k{
+  display:block;
+  font:600 10px/1.2 "SF Mono",Menlo,Monaco,Consolas,monospace;
+  letter-spacing:1.6px;
+  text-transform:uppercase;
+  color:#5f5f5f;
+}
+.metric .v{
+  display:block;
+  margin-top:12px;
+  font-size:22px;
+  line-height:1.05;
+  font-weight:600;
+}
+.metric .s{
+  display:block;
+  margin-top:8px;
+  color:var(--muted);
+  font-size:11px;
+}
+.launch-grid{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:12px;
+  padding:18px;
+}
+.launch{
+  border:1px solid var(--line);
+  border-radius:16px;
+  background:var(--panel-2);
+  padding:18px 18px 16px;
+  text-align:left;
+  cursor:pointer;
+  color:inherit;
+  transition:border-color .15s, transform .15s, background .15s;
+}
+.launch:hover{
+  border-color:var(--line-strong);
+  transform:translateY(-1px);
+  background:#101010;
+}
+.launch.active{border-color:#666}
+.launch .nm{
+  font-size:14px;
+  font-weight:600;
+  margin-bottom:6px;
+}
+.launch .ds{
+  color:var(--muted);
+  font-size:11px;
+  line-height:1.5;
+}
+.board{
+  margin-top:18px;
+  display:grid;
+  grid-template-columns:1.2fr .9fr .9fr;
+  gap:12px;
+}
+.panel{
+  border:1px solid var(--line);
+  border-radius:18px;
+  background:var(--panel);
+  overflow:hidden;
+}
+.panel-hd{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-end;
+  gap:10px;
+  padding:16px 16px 12px;
+  border-bottom:1px solid var(--line);
+}
+.panel-hd h3{
+  margin:0;
+  font-size:13px;
+  font-weight:600;
+}
+.panel-hd .meta{
+  color:var(--muted);
+  font:11px "SF Mono",Menlo,Monaco,Consolas,monospace;
+}
+.list{
+  padding:10px;
+}
+.run-btn{
+  width:100%;
+  display:grid;
+  grid-template-columns:auto 1fr auto;
+  gap:12px;
+  align-items:center;
+  text-align:left;
+  border:1px solid transparent;
+  background:transparent;
+  color:inherit;
+  padding:11px 12px;
+  border-radius:14px;
+  cursor:pointer;
+  transition:border-color .15s, background .15s;
+}
+.run-btn:hover{border-color:var(--line-strong);background:#111}
+.run-btn.active{border-color:#555;background:#0f0f0f}
+.run-btn + .run-btn{margin-top:6px}
+.run-id{font:600 11px "SF Mono",Menlo,Monaco,Consolas,monospace;color:#e1e1e1}
+.run-sub{color:var(--muted);font-size:11px;margin-top:3px}
+.run-info{min-width:0}
+.run-title{
+  font-weight:600;
+  font-size:12px;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.run-time{
+  color:var(--muted);
+  font:11px "SF Mono",Menlo,Monaco,Consolas,monospace;
+  white-space:nowrap;
+}
+.badge{
+  font:600 10px/1 "SF Mono",Menlo,Monaco,Consolas,monospace;
+  letter-spacing:1.2px;
+  text-transform:uppercase;
+  padding:7px 9px;
+  border-radius:999px;
+  border:1px solid var(--line-strong);
+  color:#cfcfcf;
+}
+.badge.allowed{color:var(--green);border-color:rgba(62,207,142,.45)}
+.badge.policy_violation{color:var(--red);border-color:rgba(240,106,97,.45)}
+.badge.unmatched_route{color:var(--yellow);border-color:rgba(216,163,59,.45)}
+.badge.config_error{color:var(--red);border-color:rgba(240,106,97,.45)}
+.badge.muted{color:var(--muted)}
+.bars{
+  padding:10px 12px 14px;
+}
+.bar-row{
+  padding:9px 0;
+}
+.bar-head{
+  display:flex;
+  justify-content:space-between;
+  gap:12px;
+  align-items:center;
+  margin-bottom:6px;
+}
+.bar-label{
+  min-width:0;
+  font-size:12px;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.bar-value{
+  font:600 11px "SF Mono",Menlo,Monaco,Consolas,monospace;
+  color:#d0d0d0;
+}
+.bar-track{
+  height:8px;
+  border-radius:999px;
+  background:#111;
+  overflow:hidden;
+}
+.bar-fill{
+  height:100%;
+  border-radius:inherit;
+  background:linear-gradient(90deg, rgba(255,255,255,.35), rgba(255,255,255,.08));
+}
+.bar-row.policy .bar-fill{background:linear-gradient(90deg, rgba(240,106,97,.9), rgba(240,106,97,.35))}
+.bar-row.endpoint .bar-fill{background:linear-gradient(90deg, rgba(62,207,142,.9), rgba(62,207,142,.35))}
+.empty{
+  padding:16px;
+  color:var(--muted);
+}
+.drilldown{
+  margin-top:12px;
+}
+.drill-wrap{
+  padding:18px;
+}
+.drill-head{
+  display:flex;
+  justify-content:space-between;
+  gap:16px;
+  align-items:flex-start;
+  margin-bottom:16px;
+}
+.drill-head h3{
+  margin:0;
+  font-size:15px;
+  font-weight:600;
+}
+.drill-head p{
+  margin:6px 0 0;
+  color:var(--muted);
+  max-width:780px;
+}
+.drill-meta{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:10px;
+  margin-bottom:16px;
+}
+.mini{
+  border:1px solid var(--line);
+  border-radius:14px;
+  background:#0c0c0c;
+  padding:12px 13px;
+}
+.mini .k{
+  display:block;
+  font:600 10px/1.2 "SF Mono",Menlo,Monaco,Consolas,monospace;
+  letter-spacing:1.4px;
+  text-transform:uppercase;
+  color:#5a5a5a;
+}
+.mini .v{
+  display:block;
+  margin-top:8px;
+  color:#dedede;
+  font:12px/1.55 "SF Mono",Menlo,Monaco,Consolas,monospace;
+  word-break:break-word;
+}
+.timeline{
+  display:grid;
+  gap:12px;
+}
+.event{
+  border:1px solid var(--line);
+  border-radius:16px;
+  background:#0c0c0c;
+  padding:14px 14px 12px;
+}
+.event-hd{
+  display:flex;
+  justify-content:space-between;
+  gap:12px;
+  align-items:flex-start;
+  margin-bottom:10px;
+}
+.event-name{
+  font-weight:600;
+}
+.event-time{
+  color:var(--muted);
+  font:11px "SF Mono",Menlo,Monaco,Consolas,monospace;
+}
+.event-rq{
+  color:#cfcfcf;
+  font:12px "SF Mono",Menlo,Monaco,Consolas,monospace;
+  margin-bottom:10px;
+}
+.event-rq b{margin-right:8px}
+.chips{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  margin-bottom:10px;
+}
+.chip{
+  border:1px solid var(--line);
+  border-radius:999px;
+  padding:5px 8px;
+  font:11px "SF Mono",Menlo,Monaco,Consolas,monospace;
+  color:#bdbdbd;
+}
+.chip.ok{color:var(--green);border-color:rgba(62,207,142,.35)}
+.chip.bad{color:var(--red);border-color:rgba(240,106,97,.35)}
+.chip.warn{color:var(--yellow);border-color:rgba(216,163,59,.35)}
+.event-msg{
+  margin:10px 0 0;
+  padding:10px 12px;
+  border-left:2px solid #2b2b2b;
+  background:#0a0a0a;
+  color:#9d9d9d;
+}
+.event-msg.bad{border-left-color:var(--red);color:#efb0ab}
+.event-msg.warn{border-left-color:var(--yellow);color:#e4c784}
+.event-msg.ok{border-left-color:var(--green);color:#9ee0be}
+.event pre{
+  margin:10px 0 0;
+  padding:12px 13px;
+  border-radius:12px;
+  border:1px solid #171717;
+  background:#090909;
+  font:11px/1.75 "SF Mono",Menlo,Monaco,Consolas,monospace;
+  color:#cfcfcf;
+  overflow:auto;
+}
+.trace-toggle{
+  width:100%;
+  margin-top:14px;
+  border:1px solid var(--line);
+  background:#0b0b0b;
+  color:#d5d5d5;
+  border-radius:14px;
+  padding:12px 14px;
+  text-align:left;
+  cursor:pointer;
+}
+.trace-details{
+  margin-top:10px;
+}
+.trace-details pre{
+  margin:0;
+  padding:14px 15px;
+  border-radius:14px;
+  border:1px solid #171717;
+  background:#090909;
+  color:#bfbfbf;
+  font:11px/1.7 "SF Mono",Menlo,Monaco,Consolas,monospace;
+  overflow:auto;
+}
+.muted{color:var(--muted)}
+.error{
+  color:#efb0ab;
+  border:1px solid rgba(240,106,97,.4);
+  background:rgba(240,106,97,.07);
+  border-radius:14px;
+  padding:12px 14px;
+}
+.spin{opacity:.72}
+@media (max-width: 1100px){
+  .metrics-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .board{grid-template-columns:1fr}
+  .drill-meta{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (max-width: 700px){
+  .app{padding:28px 14px 60px}
+  .hero{flex-direction:column}
+  .toolbar{min-width:0;width:100%}
+  .metrics-grid,.launch-grid,.drill-meta{grid-template-columns:1fr}
 }
 </style>
 </head>
 <body>
-<div class="w">
-  <header>
-    <h1>Mirage</h1>
-    <p>CI for agent side effects</p>
+<div class="app">
+  <header class="hero">
+    <div>
+      <div class="eyebrow">Mirage</div>
+      <h1>Action Review Console</h1>
+      <p>Review agent actions, not just outputs. Use the browser to inspect aggregate behavior, then drill into one run at a time.</p>
+    </div>
+    <div class="toolbar">
+      <div class="toolbar-top">
+        <label><input id="followLatest" type="checkbox" checked> follow newest run</label>
+        <button id="refreshBtn" class="badge muted" type="button">refresh metrics</button>
+      </div>
+      <div class="toolbar-copy">Metrics are read from the trace store. Demo runs refresh the console automatically after each scenario.</div>
+      <div id="status" class="status">Loading action metrics...</div>
+    </div>
   </header>
-  <nav>
-    <button onclick="go('safe',this)">
-      <div class="nm">Safe</div>
-      <div class="ds">$7,500 compliant bid, approved supplier</div>
-    </button>
-    <button onclick="go('risky',this)">
-      <div class="nm">Risky</div>
-      <div class="ds">$50,000 bid, exceeds policy limit</div>
-    </button>
-    <button onclick="go('unmatched',this)">
-      <div class="nm">Unmatched</div>
-      <div class="ds">POST /v1/suppliers, no mock configured</div>
-    </button>
-  </nav>
-  <div id="out"></div>
+
+  <section class="metrics-grid" id="summaryGrid"></section>
+
+  <section class="section">
+    <div class="section-hd">
+      <div>
+        <h2>Demo Actions</h2>
+        <p>These actions still work. Each run refreshes the metrics console and opens the resulting trace.</p>
+      </div>
+      <div class="meta">scenario launcher</div>
+    </div>
+    <div class="launch-grid">
+      <button class="launch" data-scenario="safe" type="button">
+        <div class="nm">Compliant Bid</div>
+        <div class="ds">Approved supplier submits a $7,500 bid through Mirage.</div>
+      </button>
+      <button class="launch" data-scenario="risky" type="button">
+        <div class="nm">Excessive Bid</div>
+        <div class="ds">Approved supplier submits a $50,000 bid and trips policy.</div>
+      </button>
+      <button class="launch" data-scenario="unmatched" type="button">
+        <div class="nm">New Supplier</div>
+        <div class="ds">Agent calls an unconfigured supplier creation route.</div>
+      </button>
+    </div>
+  </section>
+
+  <section class="board">
+    <section class="panel">
+      <div class="panel-hd">
+        <div>
+          <h3>Recent risky runs</h3>
+          <div class="meta" id="runsMeta">waiting for overview</div>
+        </div>
+      </div>
+      <div class="list" id="recentRuns">
+        <div class="empty">Loading recent runs...</div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-hd">
+        <div>
+          <h3>Top endpoints</h3>
+          <div class="meta">by action volume</div>
+        </div>
+      </div>
+      <div class="bars" id="topEndpoints">
+        <div class="empty">Loading top endpoints...</div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-hd">
+        <div>
+          <h3>Top policy failures</h3>
+          <div class="meta">by failure count</div>
+        </div>
+      </div>
+      <div class="bars" id="topPolicies">
+        <div class="empty">Loading policy failures...</div>
+      </div>
+    </section>
+  </section>
+
+  <section class="section drilldown">
+    <div class="section-hd">
+      <div>
+        <h2>Run Drilldown</h2>
+        <p id="drillSubtitle">Select a recent run to inspect the trace, request payloads, and policy reasoning.</p>
+      </div>
+      <span id="detailBadge" class="badge muted">idle</span>
+    </div>
+    <div class="drill-wrap" id="runDetail">
+      <div class="empty">Pick a run or trigger a demo scenario to load a trace.</div>
+    </div>
+  </section>
 </div>
+
 <script>
-async function go(name,btn){
-  document.querySelectorAll('nav button').forEach(b=>b.classList.remove('on'));
-  btn.classList.add('on');
-  const out=document.getElementById('out');
-  out.innerHTML='<div class="muted">Running\u2026</div>';
-  try{
-    const r=await fetch('/api/scenario/'+name);
-    out.innerHTML=render(await r.json());
-  }catch(e){
-    out.innerHTML='<div style="color:#e5534b;font-size:12px">'+e.message+'</div>';
+const state = {
+  overview: null,
+  selectedRunId: null,
+  selectedRun: null,
+  lastUpdated: null,
+  overviewReq: 0,
+  runReq: 0,
+};
+
+document.addEventListener("DOMContentLoaded", boot);
+
+async function boot() {
+  document.getElementById("refreshBtn").addEventListener("click", () => refreshOverview({ preserveSelection: false }));
+  document.querySelectorAll("[data-scenario]").forEach((button) => {
+    button.addEventListener("click", () => launchScenario(button.dataset.scenario, button));
+  });
+  await refreshOverview({ preserveSelection: false });
+}
+
+async function refreshOverview({ focusRunId = null, preserveSelection = true, seedRun = null } = {}) {
+  const req = ++state.overviewReq;
+  setStatus("Loading action metrics...");
+
+  try {
+    const data = await fetchJSON("/api/metrics/overview");
+    if (req !== state.overviewReq) return;
+
+    state.overview = normalizeOverview(data);
+    state.lastUpdated = new Date();
+    renderOverview();
+
+    let target = focusRunId;
+    if (!target && preserveSelection && state.selectedRunId) target = state.selectedRunId;
+    if (!target && document.getElementById("followLatest").checked) target = pickDefaultRunId(state.overview);
+
+    if (target) {
+      await loadRun(target, { seedRun, silent: true });
+    } else if (seedRun) {
+      renderRun(normalizeRun(seedRun), "selected from demo run");
+    } else {
+      renderRunEmpty();
+    }
+
+    setStatus(`Metrics updated ${formatClock(state.lastUpdated)}.`);
+  } catch (error) {
+    if (req !== state.overviewReq) return;
+    state.overview = null;
+    renderOverview();
+    if (seedRun) {
+      renderRun(normalizeRun(seedRun), "selected from demo run");
+      setStatus("Overview endpoint unavailable, using the demo run payload.", true);
+      return;
+    }
+    renderRunError(error, "Overview endpoint unavailable.");
+    setStatus(`Unable to load metrics: ${error.message}`, true);
   }
 }
 
-function render(d){
-  const labels={safe:'Safe Workflow',risky:'Risky Workflow',unmatched:'Unmatched Route'};
-  let h='<div class="hd"><h2>'+labels[d.scenario]+'</h2><code>'+d.run_id+'</code></div>';
-  d.steps.forEach((s,i)=>{h+=step(s,i+1)});
-  h+='<button class="tbtn" onclick="tog(this)"><span class="ar">\u25b8</span>trace</button>';
-  h+='<div class="tpnl"><pre>'+esc(JSON.stringify(d.trace,null,2))+'</pre></div>';
-  return h;
-}
+async function launchScenario(name, button) {
+  document.querySelectorAll("[data-scenario]").forEach((el) => el.classList.remove("active"));
+  button.classList.add("active");
 
-function step(s,n){
-  const m=s.mirage;
-  let h='<div class="step"><div class="step-hd"><span class="t"><em>'+n+'</em>'+s.name+'</span>';
-  h+='<span class="oc '+m.outcome+'">'+m.outcome.replace(/_/g,' ')+'</span></div>';
-  h+='<div class="rq"><b>'+s.request.method+'</b>'+s.request.path+'</div>';
-  if(s.request.payload)h+='<pre>'+esc(JSON.stringify(s.request.payload,null,2))+'</pre>';
-  if(m.matched_mock)h+='<div class="mock">mock <span>'+m.matched_mock+'</span></div>';
-  if(m.decisions&&m.decisions.length){
-    h+='<div class="lbl">policies</div><div class="pol-list">';
-    m.decisions.forEach(d=>{
-      const ok=d.passed;
-      h+='<div class="pol"><span class="k '+(ok?'pass':'fail')+'">'+(ok?'\u2713':'\u2717')+'</span>';
-      h+='<span class="pn">'+d.name+'</span>';
-      h+='<span class="pd">'+d.field+' '+fop(d.operator)+' '+fv(d.expected);
-      h+=' \u2192 <span class="v'+(ok?'':' bad')+'">'+fv(d.actual)+'</span></span></div>';
-    });
-    h+='</div>';
+  setStatus(`Running ${prettyScenario(name)} through Mirage...`);
+
+  try {
+    const response = await fetchJSON(`/api/scenario/${name}`);
+    const runId = response.run_id || response.meta?.run_id;
+    state.selectedRunId = runId || null;
+    await refreshOverview({ focusRunId: runId, preserveSelection: false, seedRun: response });
+    setStatus(`Scenario ${prettyScenario(name)} complete. Opened ${runId || "the new run"}.`);
+  } catch (error) {
+    setStatus(`Scenario failed: ${error.message}`, true);
+    renderRunError(error, "Demo scenario request failed.");
   }
-  if(m.outcome==='policy_violation')h+='<div class="msg vio">'+esc(m.message)+'</div>';
-  else if(m.outcome==='unmatched_route')h+='<div class="msg unm">'+esc(m.message)+'</div>';
-  const sc=s.response.status_code;
-  h+='<div class="http '+(sc<300?'ok':'warn')+'">'+sc+'</div>';
-  h+='<pre>'+esc(JSON.stringify(s.response.body,null,2))+'</pre></div>';
-  return h;
 }
 
-function fop(o){return{eq:'==',neq:'!=',lt:'<',lte:'\u2264',gt:'>',gte:'\u2265',in:'in',not_in:'not in',exists:'exists'}[o]||o}
-function fv(v){return v==null?'null':typeof v==='string'?'"'+v+'"':String(v)}
-function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
-function tog(b){b.classList.toggle('open');b.nextElementSibling.classList.toggle('open')}
+async function loadRun(runId, { seedRun = null, silent = false } = {}) {
+  const req = ++state.runReq;
+  state.selectedRunId = runId;
+  if (!silent) setDetailBadge("loading");
+
+  try {
+    const response = await fetchJSON(`/api/metrics/runs/${encodeURIComponent(runId)}`);
+    if (req !== state.runReq) return;
+    const run = normalizeRun(response);
+    state.selectedRun = run;
+    renderRun(run, "loaded from metrics API");
+    setDetailBadge(run.outcome || "loaded");
+    highlightSelection();
+    if (!silent) setStatus(`Opened run ${run.run_id}.`);
+  } catch (error) {
+    if (req !== state.runReq) return;
+    if (seedRun) {
+      const run = normalizeRun(seedRun);
+      state.selectedRun = run;
+      renderRun(run, "loaded from scenario payload");
+      setDetailBadge(run.outcome || "loaded");
+      highlightSelection();
+      return;
+    }
+    renderRunError(error, `Unable to load run ${runId}.`);
+    setDetailBadge("error");
+    setStatus(`Failed to load run ${runId}: ${error.message}`, true);
+  }
+}
+
+function renderOverview() {
+  const overview = state.overview;
+  const totals = buildTotals(overview);
+  const cards = [
+    metricCard("Total actions", totals.totalActions, "all intercepted requests"),
+    metricCard("Total runs", totals.totalRuns, "distinct traces reviewed"),
+    metricCard("Allowed", totals.allowed, "passed policy and matched a mock"),
+    metricCard("Policy violations", totals.policyViolation, "actions that tripped policy"),
+    metricCard("Unmatched routes", totals.unmatchedRoute, "requests with no configured mock"),
+    metricCard("Risk rate", totals.riskRate, "flagged action share across runs"),
+  ].join("");
+  document.getElementById("summaryGrid").innerHTML = cards;
+
+  const recentRuns = overview?.recentRuns || [];
+  document.getElementById("runsMeta").textContent = recentRuns.length
+    ? `${recentRuns.length} recent run${recentRuns.length === 1 ? "" : "s"}`
+    : "no runs yet";
+  document.getElementById("recentRuns").innerHTML = recentRuns.length
+    ? recentRuns.map((run) => recentRunRow(run)).join("")
+    : '<div class="empty">No recent risky runs found in the trace store yet.</div>';
+
+  const topEndpoints = overview?.topEndpoints || [];
+  document.getElementById("topEndpoints").innerHTML = topEndpoints.length
+    ? renderBarList(topEndpoints, "endpoint")
+    : '<div class="empty">No endpoint metrics available yet.</div>';
+
+  const topPolicies = overview?.topPolicies || [];
+  document.getElementById("topPolicies").innerHTML = topPolicies.length
+    ? renderBarList(topPolicies, "policy")
+    : '<div class="empty">No policy failure metrics available yet.</div>';
+
+  highlightSelection();
+}
+
+function renderRun(run, sourceLabel) {
+  const detail = document.getElementById("runDetail");
+  const outcome = run.outcome || "unknown";
+  const events = run.events || [];
+  state.selectedRun = run;
+  const meta = [
+    miniCard("run id", run.run_id || "unknown"),
+    miniCard("source", run.source || sourceLabel || "metrics"),
+    miniCard("trace path", run.trace_path || "unknown"),
+    miniCard("events", String(events.length)),
+  ].join("");
+
+  const timeline = events.length
+    ? events.map((event, index) => eventCard(event, index + 1)).join("")
+    : '<div class="empty">No events found in this run.</div>';
+
+  const traceJson = run.trace ? JSON.stringify(run.trace, null, 2) : JSON.stringify(run, null, 2);
+
+  detail.innerHTML = [
+    '<div class="drill-head">',
+      '<div>',
+        '<h3>' + esc(run.run_id || "Run") + '</h3>',
+        '<p>' + esc(run.summaryText || run.headline || run.message || "This run is available for drilldown.") + '</p>',
+      '</div>',
+      '<span class="badge ' + esc(outcome) + '">' + esc(outcome.replace(/_/g, " ")) + '</span>',
+    '</div>',
+    '<div class="drill-meta">' + meta + '</div>',
+    '<div class="timeline">' + timeline + '</div>',
+    '<details class="trace-details">',
+      '<summary class="trace-toggle">Raw trace</summary>',
+      '<pre>' + esc(traceJson) + '</pre>',
+    '</details>',
+  ].join("");
+  document.getElementById("drillSubtitle").textContent = run.summaryText || "The drilldown is synced to the current selected run.";
+  setDetailBadge(outcome || "loaded");
+}
+
+function renderRunEmpty() {
+  document.getElementById("runDetail").innerHTML = '<div class="empty">Pick a run or trigger a demo scenario to load a trace.</div>';
+  document.getElementById("drillSubtitle").textContent = "Select a recent run to inspect the trace, request payloads, and policy reasoning.";
+  setDetailBadge("idle");
+}
+
+function renderRunError(error, prefix) {
+  document.getElementById("runDetail").innerHTML = '<div class="error">' + esc(prefix + " " + error.message) + "</div>";
+  setDetailBadge("error");
+}
+
+function recentRunRow(run) {
+  const runId = getRunId(run);
+  const outcome = getOutcome(run);
+  const desc = getRunDescription(run);
+  const time = getRunTime(run);
+  const events = getCount(run, "event_count", "events", "count");
+  return [
+    '<button class="run-btn' + (state.selectedRunId === runId ? ' active' : '') + '" type="button" data-run-id="' + escAttr(runId) + '">',
+      '<div>',
+        '<div class="run-id">' + esc(runId) + '</div>',
+        '<div class="run-sub">' + esc(desc) + '</div>',
+      '</div>',
+      '<div class="run-info">',
+        '<div class="run-title">' + esc(time || "recent run") + '</div>',
+        '<div class="run-time">' + esc(events + " events") + '</div>',
+      '</div>',
+      '<span class="badge ' + esc(outcome) + '">' + esc(outcome.replace(/_/g, " ")) + '</span>',
+    '</button>',
+  ].join("");
+}
+
+function renderBarList(items, kind) {
+  const max = Math.max(...items.map((item) => getCount(item, "count", "failure_count", "actions", "value")), 1);
+  return items.map((item) => {
+    const label = getLabel(item);
+    const count = getCount(item, "count", "failure_count", "actions", "value");
+    const detail = getDetail(item);
+    const width = Math.max(6, Math.round((count / max) * 100));
+    return [
+      '<div class="bar-row ' + kind + '">',
+        '<div class="bar-head">',
+          '<div class="bar-label">' + esc(label) + '</div>',
+          '<div class="bar-value">' + esc(String(count)) + '</div>',
+        '</div>',
+        '<div class="bar-track"><div class="bar-fill" style="width:' + width + '%"></div></div>',
+        detail ? '<div class="run-sub" style="margin-top:7px">' + esc(detail) + '</div>' : '',
+      '</div>',
+    ].join("");
+  }).join("");
+}
+
+function metricCard(label, value, subtext) {
+  return [
+    '<div class="metric">',
+      '<span class="k">' + esc(label) + '</span>',
+      '<span class="v">' + esc(String(value)) + '</span>',
+      '<span class="s">' + esc(subtext) + '</span>',
+    '</div>',
+  ].join("");
+}
+
+function miniCard(label, value) {
+  return [
+    '<div class="mini">',
+      '<span class="k">' + esc(label) + '</span>',
+      '<span class="v">' + esc(value) + '</span>',
+    '</div>',
+  ].join("");
+}
+
+function eventCard(event, index) {
+  const outcome = event.outcome || "unknown";
+  const request = event.request || {};
+  const response = event.response || {};
+  const decisions = normalizeDecisions(event.decisions || event.policy_decisions || []);
+  const chips = [
+    chip(outcome, outcome === "allowed" ? "ok" : outcome === "policy_violation" ? "bad" : "warn"),
+    request.method ? chip(request.method.toUpperCase()) : "",
+    request.path ? chip(request.path) : "",
+    event.matched_mock ? chip(`mock ${event.matched_mock}`) : "",
+  ].filter(Boolean).join("");
+
+  const decisionHtml = decisions.length
+    ? '<div class="chips">' + decisions.map((decision) => chip(decisionLine(decision), decision.passed ? "ok" : "bad")).join("") + '</div>'
+    : "";
+
+  const payloadHtml = request.payload && Object.keys(request.payload).length
+    ? '<div class="event-msg"><strong>Request payload</strong><pre>' + esc(JSON.stringify(request.payload, null, 2)) + "</pre></div>"
+    : "";
+
+  const responseHtml = response.body
+    ? '<div class="event-msg"><strong>Response</strong><pre>' + esc(JSON.stringify(response.body, null, 2)) + "</pre></div>"
+    : "";
+
+  const message = event.decision_summary || event.message || "";
+  const messageClass = outcome === "allowed" ? "ok" : outcome === "policy_violation" ? "bad" : "warn";
+
+  return [
+    '<article class="event">',
+      '<div class="event-hd">',
+        '<div>',
+          '<div class="event-name">' + index + '. ' + esc(event.name || request.path || "Action") + '</div>',
+          '<div class="event-time">' + esc(shortTime(event.timestamp || "")) + '</div>',
+        '</div>',
+        '<span class="badge ' + esc(outcome) + '">' + esc(outcome.replace(/_/g, " ")) + '</span>',
+      '</div>',
+      '<div class="event-rq"><b>' + esc(String(request.method || "REQUEST")) + '</b>' + esc(String(request.path || "unknown path")) + '</div>',
+      '<div class="chips">' + chips + '</div>',
+      message ? '<div class="event-msg ' + messageClass + '">' + esc(message) + '</div>' : "",
+      decisionHtml,
+      payloadHtml,
+      responseHtml,
+    '</article>',
+  ].join("");
+}
+
+function chip(text, cls = "") {
+  return '<span class="chip' + (cls ? ' ' + cls : '') + '">' + esc(text) + '</span>';
+}
+
+function decisionLine(decision) {
+  const operatorMap = { eq: "==", neq: "!=", lt: "<", lte: "≤", gt: ">", gte: "≥", in: "in", not_in: "not in", exists: "exists" };
+  const expected = decision.expected === undefined ? "null" : JSON.stringify(decision.expected);
+  const actual = decision.actual === undefined ? "null" : JSON.stringify(decision.actual);
+  return `${decision.name}: ${decision.field} ${operatorMap[decision.operator] || decision.operator} ${expected} → ${actual}`;
+}
+
+function normalizeOverview(data) {
+  const source = safeObject(data);
+  const summary = safeObject(source.summary || source.metrics || source.overview);
+  const recentRuns = pickList(source.recent_risky_runs, source.recent_runs, source.risky_runs, source.runs);
+  const topEndpoints = pickList(source.top_endpoints, source.endpoints, summary.top_endpoints, summary.top_endpoints_by_count);
+  const topPolicies = pickList(source.top_policy_failures, source.top_policies, source.policy_failures, summary.top_policy_failures);
+
+  const totalActions = getCount(summary, "total_actions", "action_count", "actions", "events", "total");
+  const totalRuns = getCount(summary, "total_runs", "run_count", "runs");
+  const allowed = getCount(summary, "allowed", "allowed_count");
+  const policyViolation = getCount(summary, "policy_violation", "policy_violations", "violations");
+  const unmatchedRoute = getCount(summary, "unmatched_route", "unmatched_routes");
+  const configError = getCount(summary, "config_error", "config_errors");
+  const flagTotal = policyViolation + unmatchedRoute + configError;
+  const riskRate = totalActions ? Math.round((flagTotal / totalActions) * 100) : 0;
+
+  return {
+    totalActions,
+    totalRuns,
+    allowed,
+    policyViolation,
+    unmatchedRoute,
+    configError,
+    riskRate,
+    recentRuns,
+    topEndpoints,
+    topPolicies,
+  };
+}
+
+function normalizeRun(data) {
+  const source = safeObject(data);
+  const runId = source.run_id || source.id || source.meta?.run_id || "unknown-run";
+  const trace = source.trace || (Array.isArray(source.events) ? { run_id: runId, events: source.events } : null);
+  const events = Array.isArray(source.events)
+    ? source.events.map((event, index) => normalizeEvent(event, index))
+    : Array.isArray(source.steps)
+      ? source.steps.map((stepData, index) => normalizeEvent({
+          timestamp: stepData.trace_event?.timestamp,
+          name: stepData.name,
+          request: stepData.request,
+          outcome: stepData.mirage?.outcome,
+          policy_passed: stepData.mirage?.policy_passed,
+          matched_mock: stepData.mirage?.matched_mock,
+          message: stepData.mirage?.message,
+          decision_summary: stepData.mirage?.decision_summary,
+          decisions: stepData.mirage?.decisions,
+          response: stepData.response,
+        }, index))
+      : [];
+
+  const lastEvent = events.length ? events[events.length - 1] : null;
+  const outcome = source.outcome || source.summary?.final_outcome || lastEvent?.outcome || source.meta?.final_outcome || "unknown";
+  const tracePath = source.trace_path || source.meta?.trace_path || "";
+  const summaryText = source.summary?.headline || source.headline || source.message || source.summary?.summary || "";
+
+  return {
+    run_id: runId,
+    source: source.meta?.source || source.source || "metrics",
+    trace_path: tracePath,
+    event_count: source.event_count ?? source.meta?.event_count ?? events.length,
+    outcome,
+    summaryText,
+    headline: source.summary?.headline || source.headline || runId,
+    message: source.message || source.summary?.message || "",
+    events,
+    trace: trace || source,
+  };
+}
+
+function normalizeEvent(event, index) {
+  const request = safeObject(event.request);
+  const response = safeObject(event.response);
+  return {
+    index: index + 1,
+    timestamp: event.timestamp || event.time || "",
+    name: event.name || event.step_name || request.path || `Action ${index + 1}`,
+    request: {
+      method: request.method || event.method || "REQUEST",
+      path: request.path || event.path || "unknown",
+      payload: request.payload || event.payload || null,
+    },
+    outcome: event.outcome || "unknown",
+    policy_passed: event.policy_passed,
+    matched_mock: event.matched_mock || event.mock_name || "",
+    message: event.message || "",
+    decision_summary: event.decision_summary || "",
+    decisions: normalizeDecisions(event.decisions || event.policy_decisions || []),
+    response: {
+      status_code: response.status_code || event.status_code || "",
+      body: response.body || event.body || null,
+    },
+  };
+}
+
+function normalizeDecisions(decisions) {
+  if (!Array.isArray(decisions)) return [];
+  return decisions.map((decision) => ({
+    name: decision.name || "policy",
+    passed: !!decision.passed,
+    field: decision.field || "field",
+    operator: decision.operator || "eq",
+    expected: decision.expected,
+    actual: decision.actual,
+    message: decision.message || "",
+  }));
+}
+
+function pickDefaultRunId(overview) {
+  const first = overview?.recentRuns?.[0];
+  return getRunId(first);
+}
+
+function renderRunListSelected() {
+  document.querySelectorAll("[data-run-id]").forEach((button) => {
+    button.classList.toggle("active", button.dataset.runId === state.selectedRunId);
+  });
+}
+
+function highlightSelection() {
+  renderRunListSelected();
+}
+
+function buildTotals(overview) {
+  return overview || {
+    totalActions: 0,
+    totalRuns: 0,
+    allowed: 0,
+    policyViolation: 0,
+    unmatchedRoute: 0,
+    configError: 0,
+    riskRate: 0,
+  };
+}
+
+function getRunId(item) {
+  return item?.run_id || item?.id || item?.meta?.run_id || item?.runId || "unknown-run";
+}
+
+function getOutcome(item) {
+  return item?.outcome || item?.status || item?.summary?.final_outcome || item?.result || "unknown";
+}
+
+function getRunDescription(item) {
+  const method = item?.request?.method || item?.method || "";
+  const path = item?.request?.path || item?.path || "";
+  const summary = [method, path].filter(Boolean).join(" ");
+  return summary || item?.headline || item?.source || "recent run";
+}
+
+function getRunTime(item) {
+  return item?.timestamp || item?.last_seen || item?.updated_at || item?.created_at || item?.meta?.timestamp || "";
+}
+
+function getDetail(item) {
+  return item?.message || item?.summary || item?.description || item?.top_reason || "";
+}
+
+function getCount(item, ...keys) {
+  for (const key of keys) {
+    const value = item?.[key];
+    if (typeof value === "number" && Number.isFinite(value)) return value;
+    if (typeof value === "string" && value.trim() !== "" && !Number.isNaN(Number(value))) return Number(value);
+  }
+  return 0;
+}
+
+function getLabel(item) {
+  return item?.label || item?.name || item?.endpoint || item?.path || item?.field || "item";
+}
+
+function pickList(...lists) {
+  for (const list of lists) {
+    if (Array.isArray(list) && list.length) return list;
+  }
+  return [];
+}
+
+function prettyScenario(name) {
+  return { safe: "Compliant Bid", risky: "Excessive Bid", unmatched: "New Supplier" }[name] || name;
+}
+
+function setStatus(message, error = false) {
+  const el = document.getElementById("status");
+  el.textContent = message;
+  el.classList.toggle("error", error);
+}
+
+function setDetailBadge(text) {
+  const badge = document.getElementById("detailBadge");
+  badge.textContent = text;
+  badge.className = `badge ${text === "idle" ? "muted" : ""}`;
+}
+
+function shortTime(value) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value);
+  return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
+function formatClock(date) {
+  return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
+function esc(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;");
+}
+
+function escAttr(value) {
+  return esc(value).replaceAll('"', "&quot;");
+}
+
+function safeObject(value) {
+  return value && typeof value === "object" ? value : {};
+}
+
+function fetchJSON(url) {
+  return fetch(url).then(async (response) => {
+    const text = await response.text();
+    let data = null;
+    try {
+      data = text ? JSON.parse(text) : null;
+    } catch {
+      data = text;
+    }
+    if (!response.ok) {
+      const message = typeof data === "object" && data ? data.error || data.message || response.statusText : response.statusText;
+      throw new Error(message || "Request failed");
+    }
+    return data;
+  });
+}
+
+document.addEventListener("click", (event) => {
+  const target = event.target.closest("[data-run-id]");
+  if (!target) return;
+  if (!state.overview) return;
+  selectRun(target.dataset.runId);
+});
+
+async function selectRun(runId) {
+  state.selectedRunId = runId;
+  await loadRun(runId);
+  highlightSelection();
+}
 </script>
 </body>
 </html>

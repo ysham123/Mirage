@@ -12,6 +12,7 @@ Mirage currently gives a Python-first developer workflow for:
 - config-driven policy checks
 - deterministic run-scoped traces
 - clear request outcomes for debugging and CI
+- an action review console over trace artifacts
 - an `httpx` helper for agent integrations
 - local, test, and container-friendly execution
 
@@ -138,9 +139,17 @@ Harness docs:
 
 - [`examples/procurement_harness/README.md`](examples/procurement_harness/README.md)
 
-## Demo UI
+## Action Review Console
 
-The founder demo UI is a thin layer over the same procurement harness flow. It runs the scenarios through Mirage's FastAPI proxy boundary and shows the request, Mirage outcome, mocked response, and trace.
+The demo UI now doubles as a lightweight action review console. It reads Mirage trace artifacts, shows aggregate action metrics, surfaces recent risky runs, and lets you drill into one run at a time.
+
+It still supports the scenario launcher for founder demos, but the primary value of the UI is now:
+
+- aggregate action counts across runs
+- recent risky run review
+- top endpoints by action volume
+- top policy failures
+- per-run timeline drilldown with request, outcome, policy reasoning, and trace
 
 Start it with:
 
@@ -149,6 +158,8 @@ make demo-ui
 ```
 
 Then open `http://127.0.0.1:5100`. Override the port with `PORT=5101 make demo-ui` if needed.
+
+For live demos, use the terminal-first script in [`docs/live-demo-script.md`](docs/live-demo-script.md).
 
 ## Example Scenarios
 
@@ -184,3 +195,4 @@ The template and index live in [`docs/worklog/`](docs/worklog).
 - [`PROBLEM_STATEMENT.md`](PROBLEM_STATEMENT.md): concise founder-facing problem and solution framing
 - [`PROJECT_NOTES.md`](PROJECT_NOTES.md): product thesis and implementation notes
 - [`MIRAGE_90_DAY_PLAN.md`](MIRAGE_90_DAY_PLAN.md): current 90-day product and distribution plan
+- [`docs/live-demo-script.md`](docs/live-demo-script.md): recommended founder live demo flow
