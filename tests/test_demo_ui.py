@@ -19,15 +19,15 @@ def test_demo_ui_root_serves_html(tmp_path):
     assert "text/html" in response.headers["content-type"]
     assert "<title>Mirage</title>" in response.text
     assert "Run Graph" in response.text
-    assert "/assets/mirage-logo.png" in response.text
+    assert "/assets/mirage-logo.svg" in response.text
 
 
-def test_demo_ui_logo_asset_serves_png(tmp_path):
+def test_demo_ui_logo_asset_serves_svg(tmp_path):
     with TestClient(create_demo_app(artifact_root=tmp_path / "artifacts" / "traces")) as client:
-        response = client.get("/assets/mirage-logo.png")
+        response = client.get("/assets/mirage-logo.svg")
 
     assert response.status_code == 200
-    assert response.headers["content-type"] == "image/png"
+    assert response.headers["content-type"] == "image/svg+xml"
 
 
 def test_demo_ui_safe_scenario_uses_procurement_flow(tmp_path):

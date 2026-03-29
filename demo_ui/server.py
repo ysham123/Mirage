@@ -64,9 +64,9 @@ def create_demo_app(*, artifact_root: str | Path | None = None) -> FastAPI:
     async def serve_ui():
         return FileResponse(Path(__file__).parent / "index.html", media_type="text/html")
 
-    @app.get("/assets/mirage-logo.png")
+    @app.get("/assets/mirage-logo.svg")
     async def serve_logo():
-        return FileResponse(ROOT / "Mirage Photo.png", media_type="image/png")
+        return FileResponse(Path(__file__).parent / "assets" / "mirage-logo.svg", media_type="image/svg+xml")
 
     @app.get("/api/scenario/{name}")
     async def run_demo_scenario(name: str):

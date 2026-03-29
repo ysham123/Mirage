@@ -10,7 +10,7 @@ The UI now reads like an action review workstation instead of a stacked internal
 
 Changes in this pass:
 
-- added the Mirage logo directly into the UI header, backed by the official PNG asset
+- added the Mirage logo directly into the UI header, now backed by the official SVG asset
 - promoted the review queue and run detail into the main workspace
 - moved demo scenarios into a secondary utility panel
 - changed run detail to an overview-first experience
@@ -26,6 +26,7 @@ Changes in this pass:
 
 - `demo_ui/index.html`
 - `demo_ui/server.py`
+- `demo_ui/assets/mirage-logo.svg`
 - `README.md`
 - `tests/test_demo_ui.py`
 - `docs/worklog/INDEX.md`
@@ -39,7 +40,7 @@ Changes in this pass:
 ## Risks
 
 - The redesign is still implemented in a single static HTML file, so future complexity may justify splitting styles and UI logic.
-- The logo now depends on the official PNG asset path remaining present in the repo root.
+- The logo now depends on the official SVG asset remaining present under `demo_ui/assets/`.
 
 ## Next Step
 
