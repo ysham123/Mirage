@@ -12,6 +12,8 @@ Template:
 
 Entries:
 
+- [2026-03-29 MVP UI Redesign](2026-03-29-mvp-ui-redesign.md)
+- [2026-03-29 Run Graph Drilldown](2026-03-29-run-graph-drilldown.md)
 - [2026-03-28 Action Review Console](2026-03-28-action-review-console.md)
 - [2026-03-27 Live Demo Mode And Script](2026-03-27-live-demo-mode-and-script.md)
 - [2026-03-27 Demo UI Alignment](2026-03-27-demo-ui-alignment.md)

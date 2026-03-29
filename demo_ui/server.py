@@ -64,6 +64,10 @@ def create_demo_app(*, artifact_root: str | Path | None = None) -> FastAPI:
     async def serve_ui():
         return FileResponse(Path(__file__).parent / "index.html", media_type="text/html")
 
+    @app.get("/assets/mirage-logo.png")
+    async def serve_logo():
+        return FileResponse(ROOT / "Mirage Photo.png", media_type="image/png")
+
     @app.get("/api/scenario/{name}")
     async def run_demo_scenario(name: str):
         if name not in SCENARIO_NAMES:

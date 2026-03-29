@@ -146,10 +146,11 @@ The demo UI now doubles as a lightweight action review console. It reads Mirage 
 It still supports the scenario launcher for founder demos, but the primary value of the UI is now:
 
 - aggregate action counts across runs
-- recent risky run review
+- review queue for recent runs that need attention
 - top endpoints by action volume
 - top policy failures
-- per-run timeline drilldown with request, outcome, policy reasoning, and trace
+- overview-first run detail with request, outcome, policy reasoning, and trace
+- per-run graph view for decision flow review
 
 Start it with:
 

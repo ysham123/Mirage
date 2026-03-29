@@ -5,569 +5,956 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Mirage</title>
 <style>
+/* ── Variables ── */
 :root{
   --bg:#050505;
-  --panel:#0b0b0b;
-  --panel-2:#0d0d0d;
-  --line:#161616;
-  --line-strong:#2a2a2a;
-  --text:#e8e8e8;
-  --muted:#7d7d7d;
-  --soft:#a7a7a7;
-  --green:#3ecf8e;
-  --yellow:#d8a33b;
-  --red:#f06a61;
+  --surface:rgba(255,255,255,0.04);
+  --surface-2:rgba(255,255,255,0.03);
+  --surface-hover:rgba(255,255,255,0.055);
+  --surface-strong:rgba(255,255,255,0.08);
+  --separator:rgba(255,255,255,0.08);
+  --text:#f5f5f7;
+  --text-2:rgba(235,235,245,0.74);
+  --text-3:rgba(235,235,245,0.42);
+  --text-4:rgba(235,235,245,0.2);
+  --green:#30d158;
+  --red:#ff453a;
+  --orange:#ff9f0a;
+  --radius:18px;
+  --radius-sm:12px;
+  --ease:cubic-bezier(.25,.1,.25,1);
+  --mono:'SF Mono',ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;
+  --sans:-apple-system,BlinkMacSystemFont,'SF Pro Display','SF Pro Text',system-ui,sans-serif;
 }
-*{box-sizing:border-box}
-html,body{margin:0;min-height:100%}
+
+/* ── Reset ── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{min-height:100vh}
 body{
   background:
-    radial-gradient(circle at top left, rgba(255,255,255,.045), transparent 25%),
-    radial-gradient(circle at top right, rgba(255,255,255,.025), transparent 20%),
-    var(--bg);
+    radial-gradient(circle at 20% 0%, rgba(255,255,255,0.085), transparent 32%),
+    radial-gradient(circle at 100% 0%, rgba(255,255,255,0.045), transparent 26%),
+    linear-gradient(180deg, #101010 0%, #070707 28%, #050505 100%);
   color:var(--text);
-  font:13px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
+  font:14px/1.5 var(--sans);
   -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+  scrollbar-width:thin;
+  scrollbar-color:rgba(255,255,255,0.08) transparent;
 }
-button,input{font:inherit}
+button,input{font:inherit;border:none;background:none;color:inherit}
+::selection{background:rgba(48,209,88,0.22)}
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.08);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,0.15)}
+
+/* ── Layout ── */
 .app{
-  max-width:1200px;
+  max-width:1380px;
   margin:0 auto;
-  padding:56px 22px 88px;
+  padding:56px 28px 88px;
+  user-select:none;
 }
+.metric .v,.run-id,.mini .v,.event pre,.event-rq,.event-msg,.status,.chip,.trace-pane,.overview-copy{user-select:text}
+
+/* ── Hero ── */
 .hero{
-  display:flex;
-  justify-content:space-between;
+  display:grid;
+  grid-template-columns:minmax(0,1.3fr) minmax(300px,.7fr);
   gap:20px;
+  align-items:stretch;
+}
+.hero-main{
+  padding:28px 30px;
+  border-radius:28px;
+  background:linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0.025));
+  border:1px solid rgba(255,255,255,0.08);
+}
+.brand-row{
+  display:flex;
+  gap:22px;
   align-items:flex-start;
-  margin-bottom:22px;
+}
+.brand-mark{
+  width:72px;
+  height:72px;
+  border-radius:22px;
+  display:grid;
+  place-items:center;
+  background:rgba(255,255,255,0.02);
+  border:1px solid rgba(255,255,255,0.08);
+  flex-shrink:0;
+}
+.brand-mark img{
+  width:56px;
+  height:56px;
+  object-fit:contain;
+  display:block;
 }
 .eyebrow{
-  font:600 11px/1.2 "SF Mono",Menlo,Monaco,Consolas,monospace;
-  letter-spacing:6px;
+  font:500 11px/1 var(--mono);
+  letter-spacing:0.16em;
   text-transform:uppercase;
-  color:#d8d8d8;
-  margin-bottom:10px;
+  color:var(--text-3);
+  margin-bottom:14px;
 }
 .hero h1{
-  margin:0;
-  font-size:22px;
-  line-height:1.15;
+  max-width:760px;
+  font-size:38px;
   font-weight:600;
+  letter-spacing:-0.04em;
+  line-height:1.03;
 }
 .hero p{
-  margin:8px 0 0;
-  max-width:720px;
-  color:#8a8a8a;
+  margin-top:16px;
+  color:var(--text-2);
+  font-size:15px;
+  max-width:650px;
+  line-height:1.6;
 }
+.hero-note{
+  margin-top:26px;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  color:var(--text-3);
+  font-size:12px;
+}
+.hero-note::before{
+  content:"";
+  width:34px;
+  height:1px;
+  background:var(--separator);
+}
+
+/* ── Toolbar ── */
 .toolbar{
-  min-width:280px;
-  padding:14px 16px;
-  border:1px solid var(--line);
-  border-radius:14px;
-  background:linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,.01));
+  padding:24px;
+  border-radius:28px;
+  background:rgba(255,255,255,0.035);
+  border:1px solid rgba(255,255,255,0.08);
+  display:flex;
+  flex-direction:column;
+  justify-content:space-between;
 }
 .toolbar-top{
   display:flex;
   justify-content:space-between;
   align-items:center;
   gap:12px;
-  margin-bottom:10px;
+  margin-bottom:14px;
 }
 .toolbar label{
   display:flex;
-  gap:10px;
+  gap:8px;
   align-items:center;
-  color:#bcbcbc;
-  font:11px "SF Mono",Menlo,Monaco,Consolas,monospace;
+  color:var(--text-2);
+  font:12px var(--mono);
+  cursor:pointer;
 }
-.toolbar input{accent-color:#dbdbdb}
+.toolbar input[type="checkbox"]{accent-color:var(--green);cursor:pointer}
 .toolbar-copy{
-  color:var(--muted);
-  font-size:11px;
+  color:var(--text-3);
+  font-size:12px;
+  line-height:1.6;
+  max-width:260px;
 }
+
+/* ── Status ── */
 .status{
-  margin-top:12px;
-  border:1px solid var(--line);
-  border-radius:12px;
-  background:var(--panel);
-  padding:11px 13px;
-  color:var(--soft);
-  font:11px "SF Mono",Menlo,Monaco,Consolas,monospace;
-  min-height:40px;
-}
-.status.error{color:#f2b0ab;border-color:rgba(240,106,97,.35)}
-.section{
   margin-top:18px;
-  border:1px solid var(--line);
-  border-radius:18px;
-  background:rgba(255,255,255,.01);
-  overflow:hidden;
+  padding:12px 14px;
+  border-radius:14px;
+  background:rgba(255,255,255,0.03);
+  color:var(--text-2);
+  font:11px/1.55 var(--mono);
+  min-height:42px;
+  transition:color .2s var(--ease),background .2s var(--ease);
 }
-.section-hd{
-  display:flex;
-  justify-content:space-between;
-  align-items:flex-end;
-  gap:12px;
-  padding:18px 18px 12px;
-  border-bottom:1px solid var(--line);
+.status.error{
+  color:#ff8a84;
+  background:rgba(255,69,58,0.08);
 }
-.section-hd h2{
-  margin:0;
-  font-size:14px;
-  font-weight:600;
-}
-.section-hd p{
-  margin:4px 0 0;
-  color:var(--muted);
-  max-width:760px;
-}
+
+/* ── Metrics ── */
 .metrics-grid{
   display:grid;
   grid-template-columns:repeat(6,minmax(0,1fr));
-  gap:12px;
+  gap:10px;
   margin-top:18px;
 }
 .metric{
-  border:1px solid var(--line);
-  border-radius:16px;
-  background:linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,.01));
-  padding:15px 16px;
+  padding:18px 18px 16px;
+  background:rgba(255,255,255,0.03);
+  border:1px solid rgba(255,255,255,0.065);
+  border-radius:20px;
+  animation:metric-in .45s var(--ease) both;
 }
 .metric .k{
   display:block;
-  font:600 10px/1.2 "SF Mono",Menlo,Monaco,Consolas,monospace;
-  letter-spacing:1.6px;
+  font:500 10px/1 var(--mono);
+  letter-spacing:0.08em;
   text-transform:uppercase;
-  color:#5f5f5f;
+  color:var(--text-3);
 }
 .metric .v{
   display:block;
-  margin-top:12px;
-  font-size:22px;
-  line-height:1.05;
-  font-weight:600;
+  margin-top:14px;
+  font-size:30px;
+  font-weight:320;
+  letter-spacing:-0.045em;
+  line-height:1;
+}
+.metric .u{
+  font-size:.55em;
+  font-weight:400;
+  color:var(--text-3);
+  margin-left:2px;
 }
 .metric .s{
   display:block;
-  margin-top:8px;
-  color:var(--muted);
-  font-size:11px;
-}
-.launch-grid{
-  display:grid;
-  grid-template-columns:repeat(3,minmax(0,1fr));
-  gap:12px;
-  padding:18px;
-}
-.launch{
-  border:1px solid var(--line);
-  border-radius:16px;
-  background:var(--panel-2);
-  padding:18px 18px 16px;
-  text-align:left;
-  cursor:pointer;
-  color:inherit;
-  transition:border-color .15s, transform .15s, background .15s;
-}
-.launch:hover{
-  border-color:var(--line-strong);
-  transform:translateY(-1px);
-  background:#101010;
-}
-.launch.active{border-color:#666}
-.launch .nm{
-  font-size:14px;
-  font-weight:600;
-  margin-bottom:6px;
-}
-.launch .ds{
-  color:var(--muted);
+  margin-top:10px;
+  color:var(--text-3);
   font-size:11px;
   line-height:1.5;
 }
-.board{
-  margin-top:18px;
-  display:grid;
-  grid-template-columns:1.2fr .9fr .9fr;
-  gap:12px;
+
+/* ── Shared Panels ── */
+.section-hd,.panel-hd{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:16px;
 }
 .panel{
-  border:1px solid var(--line);
-  border-radius:18px;
-  background:var(--panel);
+  background:rgba(255,255,255,0.028);
+  border:1px solid rgba(255,255,255,0.065);
+  border-radius:28px;
   overflow:hidden;
 }
 .panel-hd{
-  display:flex;
-  justify-content:space-between;
-  align-items:flex-end;
-  gap:10px;
-  padding:16px 16px 12px;
-  border-bottom:1px solid var(--line);
+  padding:22px 24px 16px;
 }
-.panel-hd h3{
-  margin:0;
-  font-size:13px;
+.panel-hd h2,.panel-hd h3{
+  font-size:16px;
   font-weight:600;
+  letter-spacing:-0.02em;
+}
+.panel-hd p{
+  margin-top:7px;
+  color:var(--text-3);
+  font-size:13px;
+  line-height:1.5;
+  max-width:560px;
 }
 .panel-hd .meta{
-  color:var(--muted);
-  font:11px "SF Mono",Menlo,Monaco,Consolas,monospace;
+  color:var(--text-4);
+  font:11px var(--mono);
+  letter-spacing:0.04em;
+  text-transform:uppercase;
+  white-space:nowrap;
+  padding-top:4px;
 }
-.list{
-  padding:10px;
+
+/* ── Workspace ── */
+.workspace{
+  margin-top:18px;
+  display:grid;
+  grid-template-columns:380px minmax(0,1fr);
+  gap:12px;
+  align-items:start;
 }
+.queue-panel .list{padding:6px 10px 12px}
+.detail-shell{
+  min-height:760px;
+}
+.detail-shell .panel-hd{
+  padding-bottom:12px;
+}
+.drill-wrap{
+  padding:0 24px 24px;
+}
+
+/* ── Insights ── */
+.insights-grid{
+  margin-top:12px;
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:12px;
+}
+.bars{padding:0 24px 24px}
+.launch-panel .launch-grid{
+  padding:0 18px 18px;
+  display:grid;
+  grid-template-columns:1fr;
+  gap:10px;
+}
+
+/* ── Launch Cards ── */
+.launch{
+  background:rgba(255,255,255,0.03);
+  border:1px solid rgba(255,255,255,0.05);
+  border-radius:20px;
+  padding:18px;
+  text-align:left;
+  cursor:pointer;
+  transition:background .2s var(--ease),border-color .2s var(--ease),transform .2s var(--ease);
+}
+.launch:hover{
+  background:var(--surface-hover);
+  transform:translateY(-1px);
+}
+.launch.active{border-color:rgba(48,209,88,0.32);background:rgba(48,209,88,0.05)}
+.launch .nm{
+  font-size:14px;
+  font-weight:600;
+  letter-spacing:-0.01em;
+  margin-bottom:6px;
+}
+.launch .ds{
+  color:var(--text-3);
+  font-size:12px;
+  line-height:1.55;
+}
+
+/* ── Run List ── */
+.list{padding:4px 8px 8px}
 .run-btn{
   width:100%;
   display:grid;
-  grid-template-columns:auto 1fr auto;
-  gap:12px;
+  grid-template-columns:1fr auto auto;
+  gap:16px;
   align-items:center;
   text-align:left;
-  border:1px solid transparent;
-  background:transparent;
-  color:inherit;
-  padding:11px 12px;
-  border-radius:14px;
+  padding:14px 16px;
+  border-radius:18px;
   cursor:pointer;
-  transition:border-color .15s, background .15s;
+  position:relative;
+  transition:background .15s var(--ease),border-color .15s var(--ease),transform .15s var(--ease);
+  border:1px solid transparent;
 }
-.run-btn:hover{border-color:var(--line-strong);background:#111}
-.run-btn.active{border-color:#555;background:#0f0f0f}
-.run-btn + .run-btn{margin-top:6px}
-.run-id{font:600 11px "SF Mono",Menlo,Monaco,Consolas,monospace;color:#e1e1e1}
-.run-sub{color:var(--muted);font-size:11px;margin-top:3px}
-.run-info{min-width:0}
-.run-title{
-  font-weight:600;
+.run-btn::before{
+  content:"";
+  position:absolute;
+  left:8px;
+  top:12px;
+  bottom:12px;
+  width:2px;
+  border-radius:999px;
+  background:transparent;
+}
+.run-btn:hover{
+  background:rgba(255,255,255,0.035);
+  transform:translateY(-1px);
+}
+.run-btn.active{
+  background:rgba(255,255,255,0.045);
+  border-color:rgba(255,255,255,0.08);
+}
+.run-btn.active::before{background:rgba(48,209,88,0.9)}
+.run-btn+.run-btn{margin-top:4px}
+.run-id{
+  font:600 11px var(--mono);
+  color:var(--text);
+}
+.run-sub{
+  color:var(--text-3);
   font-size:12px;
+  margin-top:4px;
+  line-height:1.45;
+}
+.run-info{
+  min-width:0;
+  text-align:right;
+}
+.run-title{
+  font-weight:500;
+  font-size:12px;
+  color:var(--text-2);
   white-space:nowrap;
   overflow:hidden;
   text-overflow:ellipsis;
 }
 .run-time{
-  color:var(--muted);
-  font:11px "SF Mono",Menlo,Monaco,Consolas,monospace;
+  color:var(--text-3);
+  font:11px var(--mono);
+  white-space:nowrap;
+  margin-top:4px;
+}
+
+/* ── Badges ── */
+.badge{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  font:500 10px/1 var(--mono);
+  letter-spacing:0.06em;
+  text-transform:uppercase;
+  padding:7px 10px;
+  border-radius:999px;
   white-space:nowrap;
 }
-.badge{
-  font:600 10px/1 "SF Mono",Menlo,Monaco,Consolas,monospace;
-  letter-spacing:1.2px;
-  text-transform:uppercase;
-  padding:7px 9px;
-  border-radius:999px;
-  border:1px solid var(--line-strong);
-  color:#cfcfcf;
+.badge.allowed{color:var(--green);background:rgba(48,209,88,0.12)}
+.badge.policy_violation{color:var(--red);background:rgba(255,69,58,0.12)}
+.badge.unmatched_route{color:var(--orange);background:rgba(255,159,10,0.14)}
+.badge.config_error{color:var(--red);background:rgba(255,69,58,0.12)}
+.badge.error{color:var(--red);background:rgba(255,69,58,0.12)}
+.badge.muted{
+  color:var(--text-2);
+  background:rgba(255,255,255,0.06);
+  cursor:pointer;
+  transition:background .15s var(--ease);
 }
-.badge.allowed{color:var(--green);border-color:rgba(62,207,142,.45)}
-.badge.policy_violation{color:var(--red);border-color:rgba(240,106,97,.45)}
-.badge.unmatched_route{color:var(--yellow);border-color:rgba(216,163,59,.45)}
-.badge.config_error{color:var(--red);border-color:rgba(240,106,97,.45)}
-.badge.muted{color:var(--muted)}
-.bars{
-  padding:10px 12px 14px;
-}
-.bar-row{
-  padding:9px 0;
-}
+.badge.muted:hover{background:rgba(255,255,255,0.12)}
+
+/* ── Bar Charts ── */
+.bar-row{padding:10px 0}
 .bar-head{
   display:flex;
   justify-content:space-between;
   gap:12px;
   align-items:center;
-  margin-bottom:6px;
+  margin-bottom:7px;
 }
 .bar-label{
   min-width:0;
   font-size:12px;
+  color:var(--text-2);
   white-space:nowrap;
   overflow:hidden;
   text-overflow:ellipsis;
 }
 .bar-value{
-  font:600 11px "SF Mono",Menlo,Monaco,Consolas,monospace;
-  color:#d0d0d0;
+  font:500 11px var(--mono);
+  color:var(--text-2);
 }
 .bar-track{
-  height:8px;
+  height:4px;
   border-radius:999px;
-  background:#111;
+  background:rgba(255,255,255,0.05);
   overflow:hidden;
 }
 .bar-fill{
   height:100%;
   border-radius:inherit;
-  background:linear-gradient(90deg, rgba(255,255,255,.35), rgba(255,255,255,.08));
+  transition:width .5s var(--ease);
 }
-.bar-row.policy .bar-fill{background:linear-gradient(90deg, rgba(240,106,97,.9), rgba(240,106,97,.35))}
-.bar-row.endpoint .bar-fill{background:linear-gradient(90deg, rgba(62,207,142,.9), rgba(62,207,142,.35))}
-.empty{
-  padding:16px;
-  color:var(--muted);
+.bar-row.policy .bar-fill{background:linear-gradient(90deg,var(--red),rgba(255,69,58,0.22))}
+.bar-row.endpoint .bar-fill{background:linear-gradient(90deg,var(--green),rgba(48,209,88,0.22))}
+
+/* ── Drilldown / Detail ── */
+.drill-nav{
+  display:flex;
+  gap:8px;
+  margin-bottom:16px;
+  flex-wrap:wrap;
 }
-.drilldown{
-  margin-top:12px;
+.view-btn{
+  padding:8px 12px;
+  border-radius:999px;
+  background:rgba(255,255,255,0.04);
+  color:var(--text-2);
+  font:11px/1 var(--mono);
+  letter-spacing:0.04em;
+  text-transform:uppercase;
+  cursor:pointer;
+  transition:background .15s var(--ease),color .15s var(--ease),border-color .15s var(--ease);
+  border:1px solid transparent;
 }
-.drill-wrap{
-  padding:18px;
+.view-btn:hover{background:var(--surface-hover)}
+.view-btn.active{
+  background:rgba(255,255,255,0.08);
+  border-color:rgba(255,255,255,0.1);
+  color:var(--text);
 }
 .drill-head{
   display:flex;
   justify-content:space-between;
-  gap:16px;
+  gap:18px;
   align-items:flex-start;
-  margin-bottom:16px;
+  margin-bottom:20px;
 }
 .drill-head h3{
-  margin:0;
-  font-size:15px;
-  font-weight:600;
+  font-size:26px;
+  font-weight:580;
+  letter-spacing:-0.04em;
+  line-height:1.05;
 }
 .drill-head p{
-  margin:6px 0 0;
-  color:var(--muted);
-  max-width:780px;
+  margin-top:10px;
+  color:var(--text-3);
+  max-width:660px;
+  font-size:14px;
+  line-height:1.55;
 }
 .drill-meta{
   display:grid;
   grid-template-columns:repeat(4,minmax(0,1fr));
   gap:10px;
-  margin-bottom:16px;
+  margin-bottom:22px;
 }
+.detail-view[hidden]{display:none}
+
+/* ── Run Overview ── */
+.overview{
+  display:grid;
+  gap:12px;
+}
+.overview-hero{
+  padding:22px 24px;
+  border-radius:24px;
+  background:linear-gradient(180deg, rgba(255,255,255,0.055), rgba(255,255,255,0.025));
+  border:1px solid rgba(255,255,255,0.08);
+}
+.overview-label{
+  font:500 10px/1 var(--mono);
+  text-transform:uppercase;
+  letter-spacing:0.08em;
+  color:var(--text-3);
+}
+.overview-title{
+  margin-top:12px;
+  font-size:24px;
+  font-weight:580;
+  letter-spacing:-0.035em;
+  line-height:1.06;
+}
+.overview-copy{
+  margin-top:10px;
+  max-width:760px;
+  color:var(--text-2);
+  font-size:14px;
+  line-height:1.6;
+}
+.overview-grid{
+  display:grid;
+  grid-template-columns:1.2fr .8fr;
+  gap:12px;
+}
+.overview-card{
+  background:rgba(255,255,255,0.03);
+  border:1px solid rgba(255,255,255,0.06);
+  border-radius:24px;
+  padding:20px;
+}
+.overview-card h4{
+  font-size:15px;
+  font-weight:600;
+  letter-spacing:-0.02em;
+}
+.overview-card p{
+  margin-top:8px;
+  color:var(--text-3);
+  font-size:13px;
+  line-height:1.55;
+}
+.path-flow{
+  margin-top:16px;
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  align-items:center;
+}
+.path-step{
+  padding:10px 12px;
+  border-radius:999px;
+  background:rgba(255,255,255,0.045);
+  color:var(--text-2);
+  font-size:12px;
+}
+.path-arrow{
+  color:var(--text-4);
+  font:14px/1 var(--mono);
+}
+.overview-lines{
+  margin-top:16px;
+  display:grid;
+  gap:12px;
+}
+.overview-line{
+  display:flex;
+  justify-content:space-between;
+  gap:16px;
+  padding-bottom:12px;
+  border-bottom:1px solid rgba(255,255,255,0.06);
+}
+.overview-line:last-child{
+  border-bottom:none;
+  padding-bottom:0;
+}
+.overview-line .label{
+  color:var(--text-3);
+  font-size:12px;
+}
+.overview-line .value{
+  color:var(--text-2);
+  font:12px/1.5 var(--mono);
+  text-align:right;
+}
+
+/* ── Mini Cards ── */
 .mini{
-  border:1px solid var(--line);
-  border-radius:14px;
-  background:#0c0c0c;
-  padding:12px 13px;
+  background:rgba(255,255,255,0.03);
+  border:1px solid rgba(255,255,255,0.06);
+  border-radius:18px;
+  padding:14px 16px;
 }
 .mini .k{
   display:block;
-  font:600 10px/1.2 "SF Mono",Menlo,Monaco,Consolas,monospace;
-  letter-spacing:1.4px;
+  font:500 10px/1 var(--mono);
+  letter-spacing:0.08em;
   text-transform:uppercase;
-  color:#5a5a5a;
+  color:var(--text-3);
 }
 .mini .v{
   display:block;
   margin-top:8px;
-  color:#dedede;
-  font:12px/1.55 "SF Mono",Menlo,Monaco,Consolas,monospace;
-  word-break:break-word;
+  color:var(--text);
+  font:12px/1.5 var(--mono);
+  word-break:break-all;
 }
-.timeline{
-  display:grid;
-  gap:12px;
-}
+
+/* ── Timeline ── */
+.timeline{display:grid;gap:10px}
 .event{
-  border:1px solid var(--line);
-  border-radius:16px;
-  background:#0c0c0c;
-  padding:14px 14px 12px;
+  background:rgba(255,255,255,0.03);
+  border:1px solid rgba(255,255,255,0.06);
+  border-radius:24px;
+  padding:20px;
 }
 .event-hd{
   display:flex;
   justify-content:space-between;
   gap:12px;
   align-items:flex-start;
-  margin-bottom:10px;
+  margin-bottom:12px;
 }
 .event-name{
   font-weight:600;
+  font-size:15px;
+  letter-spacing:-0.02em;
 }
 .event-time{
-  color:var(--muted);
-  font:11px "SF Mono",Menlo,Monaco,Consolas,monospace;
+  color:var(--text-3);
+  font:11px var(--mono);
 }
 .event-rq{
-  color:#cfcfcf;
-  font:12px "SF Mono",Menlo,Monaco,Consolas,monospace;
-  margin-bottom:10px;
+  color:var(--text-2);
+  font:12px var(--mono);
+  margin-bottom:12px;
 }
-.event-rq b{margin-right:8px}
+.event-rq b{margin-right:8px;color:var(--text)}
+
+/* ── Chips ── */
 .chips{
   display:flex;
   flex-wrap:wrap;
-  gap:8px;
-  margin-bottom:10px;
+  gap:6px;
+  margin-bottom:12px;
 }
 .chip{
-  border:1px solid var(--line);
+  padding:4px 9px;
   border-radius:999px;
-  padding:5px 8px;
-  font:11px "SF Mono",Menlo,Monaco,Consolas,monospace;
-  color:#bdbdbd;
+  font:11px var(--mono);
+  color:var(--text-2);
+  background:rgba(255,255,255,0.04);
 }
-.chip.ok{color:var(--green);border-color:rgba(62,207,142,.35)}
-.chip.bad{color:var(--red);border-color:rgba(240,106,97,.35)}
-.chip.warn{color:var(--yellow);border-color:rgba(216,163,59,.35)}
+.chip.ok{color:var(--green);background:rgba(48,209,88,0.1)}
+.chip.bad{color:var(--red);background:rgba(255,69,58,0.1)}
+.chip.warn{color:var(--orange);background:rgba(255,159,10,0.1)}
+
+/* ── Event Messages ── */
 .event-msg{
-  margin:10px 0 0;
-  padding:10px 12px;
-  border-left:2px solid #2b2b2b;
-  background:#0a0a0a;
-  color:#9d9d9d;
+  margin:12px 0 0;
+  padding:10px 14px;
+  border-left:2px solid rgba(255,255,255,0.06);
+  font-size:13px;
+  line-height:1.55;
+  color:var(--text-2);
 }
-.event-msg.bad{border-left-color:var(--red);color:#efb0ab}
-.event-msg.warn{border-left-color:var(--yellow);color:#e4c784}
-.event-msg.ok{border-left-color:var(--green);color:#9ee0be}
-.event pre{
-  margin:10px 0 0;
-  padding:12px 13px;
-  border-radius:12px;
-  border:1px solid #171717;
-  background:#090909;
-  font:11px/1.75 "SF Mono",Menlo,Monaco,Consolas,monospace;
-  color:#cfcfcf;
-  overflow:auto;
+.event-msg.ok{border-left-color:var(--green);color:#6ee090}
+.event-msg.bad{border-left-color:var(--red);color:#ff8a84}
+.event-msg.warn{border-left-color:var(--orange);color:#ffb84d}
+
+/* ── Run Graph ── */
+.graph{
+  display:grid;
+  gap:12px;
 }
-.trace-toggle{
-  width:100%;
-  margin-top:14px;
-  border:1px solid var(--line);
-  background:#0b0b0b;
-  color:#d5d5d5;
-  border-radius:14px;
-  padding:12px 14px;
-  text-align:left;
-  cursor:pointer;
+.graph-summary{
+  padding:16px 18px;
+  border-radius:20px;
+  background:rgba(255,255,255,0.03);
+  border:1px solid rgba(255,255,255,0.06);
+  color:var(--text-2);
+  font-size:13px;
+  line-height:1.55;
 }
-.trace-details{
+.graph-flow{
+  display:grid;
+  gap:12px;
+}
+.graph-row{
+  display:grid;
+  grid-template-columns:minmax(0,1.2fr) 30px minmax(0,1fr) 30px minmax(0,.9fr) 30px minmax(0,1fr);
+  gap:10px;
+  align-items:stretch;
+}
+.graph-arrow{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:var(--text-4);
+  font:18px/1 var(--mono);
+}
+.graph-stack{
+  display:grid;
+  gap:8px;
+}
+.graph-node{
+  min-height:96px;
+  padding:14px 16px;
+  border-radius:20px;
+  background:rgba(255,255,255,0.03);
+  border:1px solid rgba(255,255,255,0.06);
+}
+.graph-node.request{border-color:rgba(255,255,255,0.08)}
+.graph-node.policy.pass{border-color:rgba(48,209,88,0.24)}
+.graph-node.policy.fail{border-color:rgba(255,69,58,0.24)}
+.graph-node.policy.neutral{border-color:rgba(255,255,255,0.08)}
+.graph-node.outcome.allowed{border-color:rgba(48,209,88,0.24)}
+.graph-node.outcome.policy_violation,
+.graph-node.outcome.config_error{border-color:rgba(255,69,58,0.24)}
+.graph-node.outcome.unmatched_route{border-color:rgba(255,159,10,0.24)}
+.graph-node.artifact{border-color:rgba(255,255,255,0.08)}
+.graph-k{
+  display:block;
+  font:500 10px/1 var(--mono);
+  letter-spacing:0.08em;
+  text-transform:uppercase;
+  color:var(--text-3);
+}
+.graph-v{
+  display:block;
+  margin-top:8px;
+  font-size:13px;
+  font-weight:600;
+  letter-spacing:-0.01em;
+}
+.graph-sub{
+  display:block;
+  margin-top:8px;
+  color:var(--text-2);
+  font-size:12px;
+  line-height:1.5;
+}
+.graph-meta{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
   margin-top:10px;
 }
-.trace-details pre{
-  margin:0;
-  padding:14px 15px;
-  border-radius:14px;
-  border:1px solid #171717;
-  background:#090909;
-  color:#bfbfbf;
-  font:11px/1.7 "SF Mono",Menlo,Monaco,Consolas,monospace;
+.graph-chip{
+  padding:3px 8px;
+  border-radius:999px;
+  background:rgba(255,255,255,0.04);
+  color:var(--text-2);
+  font:11px/1 var(--mono);
+}
+.graph-chip.ok{color:var(--green);background:rgba(48,209,88,0.1)}
+.graph-chip.bad{color:var(--red);background:rgba(255,69,58,0.1)}
+.graph-chip.warn{color:var(--orange);background:rgba(255,159,10,0.1)}
+
+/* ── Code Blocks ── */
+.event pre,.trace-pane{
+  margin:12px 0 0;
+  padding:16px 18px;
+  border-radius:20px;
+  background:rgba(255,255,255,0.02);
+  border:1px solid rgba(255,255,255,0.05);
+  font:11px/1.7 var(--mono);
+  color:var(--text-2);
   overflow:auto;
 }
-.muted{color:var(--muted)}
+.trace-pane{margin:0}
+
+/* ── States ── */
+.empty{
+  padding:40px 24px;
+  color:var(--text-3);
+  text-align:center;
+  font-size:13px;
+  line-height:1.6;
+}
 .error{
-  color:#efb0ab;
-  border:1px solid rgba(240,106,97,.4);
-  background:rgba(240,106,97,.07);
-  border-radius:14px;
-  padding:12px 14px;
+  color:#ff8a84;
+  background:rgba(255,69,58,0.08);
+  border-radius:18px;
+  padding:18px 20px;
+  font-size:13px;
+  line-height:1.55;
 }
-.spin{opacity:.72}
-@media (max-width: 1100px){
+.spin{opacity:.5}
+.muted{color:var(--text-3)}
+
+/* ── Animations ── */
+@keyframes metric-in{
+  from{opacity:0;transform:translateY(8px)}
+  to{opacity:1;transform:translateY(0)}
+}
+
+/* ── Responsive ── */
+@media(max-width:1200px){
+  .hero{grid-template-columns:1fr}
+  .workspace{grid-template-columns:1fr}
+  .insights-grid{grid-template-columns:1fr 1fr}
   .metrics-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
-  .board{grid-template-columns:1fr}
-  .drill-meta{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .drill-meta,.overview-grid{grid-template-columns:1fr 1fr}
+  .graph-row{grid-template-columns:1fr}
+  .graph-arrow{display:none}
 }
-@media (max-width: 700px){
-  .app{padding:28px 14px 60px}
-  .hero{flex-direction:column}
-  .toolbar{min-width:0;width:100%}
-  .metrics-grid,.launch-grid,.drill-meta{grid-template-columns:1fr}
+@media(max-width:760px){
+  .app{padding:28px 16px 60px}
+  .brand-row{flex-direction:column;gap:16px}
+  .hero h1{font-size:30px}
+  .metrics-grid,.insights-grid,.drill-meta,.overview-grid{grid-template-columns:1fr}
 }
 </style>
 </head>
 <body>
 <div class="app">
   <header class="hero">
-    <div>
-      <div class="eyebrow">Mirage</div>
-      <h1>Action Review Console</h1>
-      <p>Review agent actions, not just outputs. Use the browser to inspect aggregate behavior, then drill into one run at a time.</p>
-    </div>
-    <div class="toolbar">
-      <div class="toolbar-top">
-        <label><input id="followLatest" type="checkbox" checked> follow newest run</label>
-        <button id="refreshBtn" class="badge muted" type="button">refresh metrics</button>
+    <section class="hero-main">
+      <div class="brand-row">
+        <div class="brand-mark" aria-hidden="true">
+          <img src="/assets/mirage-logo.png" alt="Mirage logo">
+        </div>
+        <div>
+          <div class="eyebrow">Mirage</div>
+          <h1>Review agent actions before they become production side effects.</h1>
+          <p>Inspect what agents tried, what Mirage contained, and why each run deserves attention. The product stays focused on action review instead of generic analytics chrome.</p>
+        </div>
       </div>
-      <div class="toolbar-copy">Metrics are read from the trace store. Demo runs refresh the console automatically after each scenario.</div>
-      <div id="status" class="status">Loading action metrics...</div>
-    </div>
+      <div class="hero-note">Action review for agentic systems</div>
+    </section>
+    <aside class="toolbar">
+      <div>
+        <div class="toolbar-top">
+          <label><input id="followLatest" type="checkbox" checked> follow newest run</label>
+          <button id="refreshBtn" class="badge muted" type="button">refresh</button>
+        </div>
+        <div class="toolbar-copy">Mirage reads directly from the trace store. Launch a demo scenario when you want to seed fresh runs into the console.</div>
+      </div>
+      <div id="status" class="status">Loading action metrics&#8230;</div>
+    </aside>
   </header>
 
   <section class="metrics-grid" id="summaryGrid"></section>
 
-  <section class="section">
-    <div class="section-hd">
-      <div>
-        <h2>Demo Actions</h2>
-        <p>These actions still work. Each run refreshes the metrics console and opens the resulting trace.</p>
-      </div>
-      <div class="meta">scenario launcher</div>
-    </div>
-    <div class="launch-grid">
-      <button class="launch" data-scenario="safe" type="button">
-        <div class="nm">Compliant Bid</div>
-        <div class="ds">Approved supplier submits a $7,500 bid through Mirage.</div>
-      </button>
-      <button class="launch" data-scenario="risky" type="button">
-        <div class="nm">Excessive Bid</div>
-        <div class="ds">Approved supplier submits a $50,000 bid and trips policy.</div>
-      </button>
-      <button class="launch" data-scenario="unmatched" type="button">
-        <div class="nm">New Supplier</div>
-        <div class="ds">Agent calls an unconfigured supplier creation route.</div>
-      </button>
-    </div>
-  </section>
-
-  <section class="board">
-    <section class="panel">
+  <section class="workspace">
+    <section class="panel queue-panel">
       <div class="panel-hd">
         <div>
-          <h3>Recent risky runs</h3>
-          <div class="meta" id="runsMeta">waiting for overview</div>
+          <h2>Needs Review</h2>
+          <p>Recent risky runs and fresh traces that deserve inspection.</p>
         </div>
+        <div class="meta" id="runsMeta">waiting for runs</div>
       </div>
       <div class="list" id="recentRuns">
-        <div class="empty">Loading recent runs...</div>
+        <div class="empty">Loading recent runs&#8230;</div>
       </div>
     </section>
 
+    <section class="panel detail-shell">
+      <div class="panel-hd">
+        <div>
+          <h2>Run Detail</h2>
+          <p id="drillSubtitle">Select a run to inspect the action path, policy reasoning, and trace artifact.</p>
+        </div>
+        <span id="detailBadge" class="badge muted">idle</span>
+      </div>
+      <div class="drill-wrap" id="runDetail">
+        <div class="empty">Select a run from the review queue or seed a demo scenario to inspect the full action path.</div>
+      </div>
+    </section>
+  </section>
+
+  <section class="insights-grid">
     <section class="panel">
       <div class="panel-hd">
         <div>
-          <h3>Top endpoints</h3>
-          <div class="meta">by action volume</div>
+          <h3>Endpoint Volume</h3>
+          <p>Where agents spend their outbound actions most often.</p>
         </div>
       </div>
       <div class="bars" id="topEndpoints">
-        <div class="empty">Loading top endpoints...</div>
+        <div class="empty">Loading endpoints&#8230;</div>
       </div>
     </section>
 
     <section class="panel">
       <div class="panel-hd">
         <div>
-          <h3>Top policy failures</h3>
-          <div class="meta">by failure count</div>
+          <h3>Policy Friction</h3>
+          <p>Which checks fail most often across the current trace store.</p>
         </div>
       </div>
       <div class="bars" id="topPolicies">
-        <div class="empty">Loading policy failures...</div>
+        <div class="empty">Loading failures&#8230;</div>
       </div>
     </section>
-  </section>
 
-  <section class="section drilldown">
-    <div class="section-hd">
-      <div>
-        <h2>Run Drilldown</h2>
-        <p id="drillSubtitle">Select a recent run to inspect the trace, request payloads, and policy reasoning.</p>
+    <section class="panel launch-panel">
+      <div class="panel-hd">
+        <div>
+          <h3>Scenario Launcher</h3>
+          <p>Founder demo utility for seeding known runs into the review queue.</p>
+        </div>
+        <div class="meta">demo only</div>
       </div>
-      <span id="detailBadge" class="badge muted">idle</span>
-    </div>
-    <div class="drill-wrap" id="runDetail">
-      <div class="empty">Pick a run or trigger a demo scenario to load a trace.</div>
-    </div>
+      <div class="launch-grid">
+        <button class="launch" data-scenario="safe" type="button">
+          <div class="nm">Compliant Bid</div>
+          <div class="ds">Approved supplier submits a $7,500 bid through Mirage.</div>
+        </button>
+        <button class="launch" data-scenario="risky" type="button">
+          <div class="nm">Excessive Bid</div>
+          <div class="ds">Approved supplier submits a $50,000 bid and trips policy.</div>
+        </button>
+        <button class="launch" data-scenario="unmatched" type="button">
+          <div class="nm">New Supplier</div>
+          <div class="ds">Agent calls an unconfigured supplier creation route.</div>
+        </button>
+      </div>
+    </section>
   </section>
 </div>
 
 <script>
+const numFmt = new Intl.NumberFormat();
+function fmtNum(n) {
+  return typeof n === "number" && Number.isFinite(n) ? numFmt.format(n) : String(n ?? 0);
+}
+
+function relativeTime(value) {
+  if (!value) return "";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return String(value);
+  const s = Math.floor((Date.now() - d.getTime()) / 1000);
+  if (s < 0) return "just now";
+  if (s < 60) return "just now";
+  if (s < 3600) return Math.floor(s / 60) + "m ago";
+  if (s < 86400) return Math.floor(s / 3600) + "h ago";
+  if (s < 604800) return Math.floor(s / 86400) + "d ago";
+  return d.toLocaleDateString([], { month: "short", day: "numeric" });
+}
+
 const state = {
   overview: null,
   selectedRunId: null,
   selectedRun: null,
+  detailView: "overview",
   lastUpdated: null,
   overviewReq: 0,
   runReq: 0,
@@ -585,7 +972,7 @@ async function boot() {
 
 async function refreshOverview({ focusRunId = null, preserveSelection = true, seedRun = null } = {}) {
   const req = ++state.overviewReq;
-  setStatus("Loading action metrics...");
+  setStatus("Loading action metrics\u2026");
 
   try {
     const data = await fetchJSON("/api/metrics/overview");
@@ -607,18 +994,18 @@ async function refreshOverview({ focusRunId = null, preserveSelection = true, se
       renderRunEmpty();
     }
 
-    setStatus(`Metrics updated ${formatClock(state.lastUpdated)}.`);
+    setStatus("Updated " + formatClock(state.lastUpdated));
   } catch (error) {
     if (req !== state.overviewReq) return;
     state.overview = null;
     renderOverview();
     if (seedRun) {
       renderRun(normalizeRun(seedRun), "selected from demo run");
-      setStatus("Overview endpoint unavailable, using the demo run payload.", true);
+      setStatus("Overview unavailable \u2014 showing demo run.", true);
       return;
     }
     renderRunError(error, "Overview endpoint unavailable.");
-    setStatus(`Unable to load metrics: ${error.message}`, true);
+    setStatus("Unable to load metrics: " + error.message, true);
   }
 }
 
@@ -626,16 +1013,16 @@ async function launchScenario(name, button) {
   document.querySelectorAll("[data-scenario]").forEach((el) => el.classList.remove("active"));
   button.classList.add("active");
 
-  setStatus(`Running ${prettyScenario(name)} through Mirage...`);
+  setStatus("Running " + prettyScenario(name) + " through Mirage\u2026");
 
   try {
-    const response = await fetchJSON(`/api/scenario/${name}`);
+    const response = await fetchJSON("/api/scenario/" + name);
     const runId = response.run_id || response.meta?.run_id;
     state.selectedRunId = runId || null;
     await refreshOverview({ focusRunId: runId, preserveSelection: false, seedRun: response });
-    setStatus(`Scenario ${prettyScenario(name)} complete. Opened ${runId || "the new run"}.`);
+    setStatus(prettyScenario(name) + " complete \u2014 opened " + (runId || "the new run"));
   } catch (error) {
-    setStatus(`Scenario failed: ${error.message}`, true);
+    setStatus("Scenario failed: " + error.message, true);
     renderRunError(error, "Demo scenario request failed.");
   }
 }
@@ -646,14 +1033,14 @@ async function loadRun(runId, { seedRun = null, silent = false } = {}) {
   if (!silent) setDetailBadge("loading");
 
   try {
-    const response = await fetchJSON(`/api/metrics/runs/${encodeURIComponent(runId)}`);
+    const response = await fetchJSON("/api/metrics/runs/" + encodeURIComponent(runId));
     if (req !== state.runReq) return;
     const run = normalizeRun(response);
     state.selectedRun = run;
     renderRun(run, "loaded from metrics API");
     setDetailBadge(run.outcome || "loaded");
     highlightSelection();
-    if (!silent) setStatus(`Opened run ${run.run_id}.`);
+    if (!silent) setStatus("Opened run " + run.run_id);
   } catch (error) {
     if (req !== state.runReq) return;
     if (seedRun) {
@@ -664,42 +1051,50 @@ async function loadRun(runId, { seedRun = null, silent = false } = {}) {
       highlightSelection();
       return;
     }
-    renderRunError(error, `Unable to load run ${runId}.`);
+    renderRunError(error, "Unable to load run " + runId + ".");
     setDetailBadge("error");
-    setStatus(`Failed to load run ${runId}: ${error.message}`, true);
+    setStatus("Failed to load run " + runId + ": " + error.message, true);
   }
 }
 
 function renderOverview() {
   const overview = state.overview;
   const totals = buildTotals(overview);
+  const flagged = totals.policyViolation + totals.unmatchedRoute + totals.configError;
   const cards = [
-    metricCard("Total actions", totals.totalActions, "all intercepted requests"),
-    metricCard("Total runs", totals.totalRuns, "distinct traces reviewed"),
-    metricCard("Allowed", totals.allowed, "passed policy and matched a mock"),
-    metricCard("Policy violations", totals.policyViolation, "actions that tripped policy"),
-    metricCard("Unmatched routes", totals.unmatchedRoute, "requests with no configured mock"),
-    metricCard("Risk rate", totals.riskRate, "flagged action share across runs"),
+    metricCard("Total actions", totals.totalActions, "intercepted across the trace store", "", 0),
+    metricCard("Tracked runs", totals.totalRuns, "distinct runs available for review", "", 60),
+    metricCard("Risky actions", flagged, "violations, unmatched routes, or config errors", "", 120),
+    metricCard("Allowed", totals.allowed, "requests Mirage kept clean", "", 180),
+    metricCard("Unmatched", totals.unmatchedRoute, "actions with no configured mock", "", 240),
+    metricCard("Risk rate", totals.riskRate, "share of flagged actions", "%", 300),
   ].join("");
   document.getElementById("summaryGrid").innerHTML = cards;
 
+  // Tint the risk rate card based on severity
+  const riskEl = document.querySelector(".metric:last-child");
+  if (riskEl && totals.riskRate > 0) {
+    const c = totals.riskRate > 40 ? "255,69,58" : totals.riskRate > 15 ? "255,159,10" : "48,209,88";
+    riskEl.style.background = "rgba(" + c + ",0.05)";
+  }
+
   const recentRuns = overview?.recentRuns || [];
   document.getElementById("runsMeta").textContent = recentRuns.length
-    ? `${recentRuns.length} recent run${recentRuns.length === 1 ? "" : "s"}`
-    : "no runs yet";
+    ? fmtNum(recentRuns.length) + " run" + (recentRuns.length === 1 ? "" : "s")
+    : "no fresh runs";
   document.getElementById("recentRuns").innerHTML = recentRuns.length
     ? recentRuns.map((run) => recentRunRow(run)).join("")
-    : '<div class="empty">No recent risky runs found in the trace store yet.</div>';
+    : '<div class="empty">No recent runs are available yet. Launch a demo scenario to seed the review queue.</div>';
 
   const topEndpoints = overview?.topEndpoints || [];
   document.getElementById("topEndpoints").innerHTML = topEndpoints.length
     ? renderBarList(topEndpoints, "endpoint")
-    : '<div class="empty">No endpoint metrics available yet.</div>';
+    : '<div class="empty">No endpoint data yet.</div>';
 
   const topPolicies = overview?.topPolicies || [];
   document.getElementById("topPolicies").innerHTML = topPolicies.length
     ? renderBarList(topPolicies, "policy")
-    : '<div class="empty">No policy failure metrics available yet.</div>';
+    : '<div class="empty">No policy failures yet.</div>';
 
   highlightSelection();
 }
@@ -709,6 +1104,8 @@ function renderRun(run, sourceLabel) {
   const outcome = run.outcome || "unknown";
   const events = run.events || [];
   state.selectedRun = run;
+  document.title = run.run_id + " \u2014 Mirage";
+
   const meta = [
     miniCard("run id", run.run_id || "unknown"),
     miniCard("source", run.source || sourceLabel || "metrics"),
@@ -719,6 +1116,10 @@ function renderRun(run, sourceLabel) {
   const timeline = events.length
     ? events.map((event, index) => eventCard(event, index + 1)).join("")
     : '<div class="empty">No events found in this run.</div>';
+  const graph = events.length
+    ? renderRunGraph(run)
+    : '<div class="empty">No events found in this run.</div>';
+  const overviewPane = renderRunOverview(run);
 
   const traceJson = run.trace ? JSON.stringify(run.trace, null, 2) : JSON.stringify(run, null, 2);
 
@@ -731,19 +1132,34 @@ function renderRun(run, sourceLabel) {
       '<span class="badge ' + esc(outcome) + '">' + esc(outcome.replace(/_/g, " ")) + '</span>',
     '</div>',
     '<div class="drill-meta">' + meta + '</div>',
-    '<div class="timeline">' + timeline + '</div>',
-    '<details class="trace-details">',
-      '<summary class="trace-toggle">Raw trace</summary>',
-      '<pre>' + esc(traceJson) + '</pre>',
-    '</details>',
+    '<div class="drill-nav">',
+      viewButton("overview", "Overview"),
+      viewButton("timeline", "Timeline"),
+      viewButton("graph", "Run Graph"),
+      viewButton("trace", "Raw Trace"),
+    '</div>',
+    '<section class="detail-view" data-view-panel="overview">' +
+      overviewPane +
+    '</section>',
+    '<section class="detail-view" data-view-panel="timeline">' +
+      '<div class="timeline">' + timeline + '</div>' +
+    '</section>',
+    '<section class="detail-view" data-view-panel="graph">' +
+      graph +
+    '</section>',
+    '<section class="detail-view" data-view-panel="trace">' +
+      '<pre class="trace-pane">' + esc(traceJson) + '</pre>' +
+    '</section>',
   ].join("");
-  document.getElementById("drillSubtitle").textContent = run.summaryText || "The drilldown is synced to the current selected run.";
+  document.getElementById("drillSubtitle").textContent = run.summaryText || "Drilldown synced to the selected run.";
   setDetailBadge(outcome || "loaded");
+  applyDetailView();
 }
 
 function renderRunEmpty() {
   document.getElementById("runDetail").innerHTML = '<div class="empty">Pick a run or trigger a demo scenario to load a trace.</div>';
   document.getElementById("drillSubtitle").textContent = "Select a recent run to inspect the trace, request payloads, and policy reasoning.";
+  document.title = "Mirage";
   setDetailBadge("idle");
 }
 
@@ -765,8 +1181,8 @@ function recentRunRow(run) {
         '<div class="run-sub">' + esc(desc) + '</div>',
       '</div>',
       '<div class="run-info">',
-        '<div class="run-title">' + esc(time || "recent run") + '</div>',
-        '<div class="run-time">' + esc(events + " events") + '</div>',
+        '<div class="run-title">' + esc(relativeTime(time) || "recent") + '</div>',
+        '<div class="run-time">' + esc(fmtNum(events) + " events") + '</div>',
       '</div>',
       '<span class="badge ' + esc(outcome) + '">' + esc(outcome.replace(/_/g, " ")) + '</span>',
     '</button>',
@@ -784,21 +1200,74 @@ function renderBarList(items, kind) {
       '<div class="bar-row ' + kind + '">',
         '<div class="bar-head">',
           '<div class="bar-label">' + esc(label) + '</div>',
-          '<div class="bar-value">' + esc(String(count)) + '</div>',
+          '<div class="bar-value">' + esc(fmtNum(count)) + '</div>',
         '</div>',
         '<div class="bar-track"><div class="bar-fill" style="width:' + width + '%"></div></div>',
-        detail ? '<div class="run-sub" style="margin-top:7px">' + esc(detail) + '</div>' : '',
+        detail ? '<div class="run-sub" style="margin-top:6px">' + esc(detail) + '</div>' : '',
       '</div>',
     ].join("");
   }).join("");
 }
 
-function metricCard(label, value, subtext) {
+function metricCard(label, value, subtext, suffix, delay) {
   return [
-    '<div class="metric">',
+    '<div class="metric" style="animation-delay:' + (delay || 0) + 'ms">',
       '<span class="k">' + esc(label) + '</span>',
-      '<span class="v">' + esc(String(value)) + '</span>',
+      '<span class="v">' + esc(fmtNum(value)) + (suffix ? '<span class="u">' + esc(suffix) + '</span>' : '') + '</span>',
       '<span class="s">' + esc(subtext) + '</span>',
+    '</div>',
+  ].join("");
+}
+
+function viewButton(view, label) {
+  return '<button class="view-btn' + (state.detailView === view ? " active" : "") + '" type="button" data-detail-view="' + escAttr(view) + '">' + esc(label) + '</button>';
+}
+
+function renderRunOverview(run) {
+  const events = run.events || [];
+  const latestEvent = events.length ? events[events.length - 1] : null;
+  const decisions = events.flatMap((event) => normalizeDecisions(event.decisions || event.policy_decisions || []));
+  const failingPolicies = decisions.filter((decision) => !decision.passed);
+  const actionPath = events.length
+    ? events.map((event) => '<span class="path-step">' + esc(event.name || event.request?.path || "Action") + '</span>').join('<span class="path-arrow">\u2192</span>')
+    : '<span class="path-step">No actions recorded</span>';
+  const latestRequest = latestEvent?.request
+    ? [latestEvent.request.method, latestEvent.request.path].filter(Boolean).join(" ")
+    : "No primary action";
+  const outcomeText = (run.outcome || "unknown").replace(/_/g, " ");
+  return [
+    '<div class="overview">',
+      '<section class="overview-hero">',
+        '<div class="overview-label">Selected run</div>',
+        '<div class="overview-title">' + esc(run.headline || run.run_id || "Run detail") + '</div>',
+        '<div class="overview-copy">' + esc(run.summaryText || run.message || "Mirage captured this run and made it available for review.") + '</div>',
+      '</section>',
+      '<div class="overview-grid">',
+        '<section class="overview-card">',
+          '<h4>Action path</h4>',
+          '<p>Read the run as a single contained flow before drilling into timeline, graph, or raw trace.</p>',
+          '<div class="path-flow">' + actionPath + '</div>',
+        '</section>',
+        '<section class="overview-card">',
+          '<h4>Review summary</h4>',
+          '<div class="overview-lines">',
+            overviewLine("Final outcome", outcomeText),
+            overviewLine("Latest action", latestRequest || "No request recorded"),
+            overviewLine("Policy failures", fmtNum(failingPolicies.length)),
+            overviewLine("Trace path", run.trace_path || "Trace stored"),
+            overviewLine("Primary policy", failingPolicies[0]?.name || "No failing policy"),
+          '</div>',
+        '</section>',
+      '</div>',
+    '</div>',
+  ].join("");
+}
+
+function overviewLine(label, value) {
+  return [
+    '<div class="overview-line">',
+      '<span class="label">' + esc(label) + '</span>',
+      '<span class="value">' + esc(value) + '</span>',
     '</div>',
   ].join("");
 }
@@ -812,6 +1281,105 @@ function miniCard(label, value) {
   ].join("");
 }
 
+function renderRunGraph(run) {
+  const rows = run.events.map((event, index) => graphRow(event, index + 1)).join("");
+  return [
+    '<div class="graph">',
+      '<div class="graph-summary">Run graph maps each intercepted action into a simple decision path: request \u2192 policy gate \u2192 Mirage outcome \u2192 sandbox artifact.</div>',
+      '<div class="graph-flow">' + rows + '</div>',
+    '</div>',
+  ].join("");
+}
+
+function graphRow(event, index) {
+  const decisions = normalizeDecisions(event.decisions || event.policy_decisions || []);
+  const request = event.request || {};
+  const response = event.response || {};
+  const outcome = event.outcome || "unknown";
+  const policyNodes = decisions.length
+    ? decisions.map((decision) => graphDecisionNode(decision)).join("")
+    : graphPolicyFallback(event);
+  const traceLabel = event.matched_mock ? "mock " + event.matched_mock : "trace artifact";
+  const responseLabel = response.status_code ? "status " + response.status_code : "mocked response";
+  const requestPayload = request.payload && Object.keys(request.payload).length
+    ? Object.keys(request.payload).join(", ")
+    : "no payload";
+  return [
+    '<div class="graph-row">',
+      graphNode("request", "Action " + index, (request.method || "REQUEST") + " " + (request.path || "unknown"), requestPayload, [
+        graphChip(outcome.replace(/_/g, " "), outcomeChipClass(outcome)),
+      ]),
+      '<div class="graph-arrow">\u2192</div>',
+      '<div class="graph-stack">' + policyNodes + '</div>',
+      '<div class="graph-arrow">\u2192</div>',
+      graphNode("outcome " + escAttr(outcome), "Mirage Outcome", outcome.replace(/_/g, " "), event.decision_summary || event.message || "Mirage evaluated this action.", [
+        graphChip(event.policy_passed === false ? "policy fail" : "policy pass", event.policy_passed === false ? "bad" : "ok"),
+      ]),
+      '<div class="graph-arrow">\u2192</div>',
+      graphNode("artifact", "Sandbox Artifact", traceLabel, responseLabel, [
+        response.status_code ? graphChip("HTTP " + response.status_code) : "",
+        event.matched_mock ? graphChip(event.matched_mock) : "",
+        event.timestamp ? graphChip(shortTime(event.timestamp)) : "",
+      ].filter(Boolean)),
+    '</div>',
+  ].join("");
+}
+
+function graphDecisionNode(decision) {
+  const passed = !!decision.passed;
+  const detail = decision.message || decisionLine(decision);
+  return graphNode(
+    "policy " + (passed ? "pass" : "fail"),
+    "Policy Gate",
+    decision.name,
+    detail,
+    [graphChip(passed ? "pass" : "fail", passed ? "ok" : "bad")]
+  );
+}
+
+function graphPolicyFallback(event) {
+  if (event.policy_passed === false) {
+    return graphNode(
+      "policy fail",
+      "Policy Gate",
+      "Policy violation",
+      event.decision_summary || event.message || "Mirage flagged this action without structured decision detail.",
+      [graphChip("fail", "bad")]
+    );
+  }
+  return graphNode(
+    "policy neutral",
+    "Policy Gate",
+    "No failing policy",
+    "No structured policy decisions were recorded for this action.",
+    [graphChip("pass", "ok")]
+  );
+}
+
+function graphNode(typeClass, label, value, detail, chips) {
+  const chipHtml = Array.isArray(chips) && chips.length
+    ? '<div class="graph-meta">' + chips.join("") + '</div>'
+    : "";
+  return [
+    '<article class="graph-node ' + typeClass + '">',
+      '<span class="graph-k">' + esc(label) + '</span>',
+      '<span class="graph-v">' + esc(value) + '</span>',
+      '<span class="graph-sub">' + esc(detail) + '</span>',
+      chipHtml,
+    '</article>',
+  ].join("");
+}
+
+function graphChip(text, cls) {
+  return '<span class="graph-chip' + (cls ? " " + cls : "") + '">' + esc(text) + '</span>';
+}
+
+function outcomeChipClass(outcome) {
+  if (outcome === "allowed") return "ok";
+  if (outcome === "policy_violation") return "bad";
+  return "warn";
+}
+
 function eventCard(event, index) {
   const outcome = event.outcome || "unknown";
   const request = event.request || {};
@@ -821,7 +1389,7 @@ function eventCard(event, index) {
     chip(outcome, outcome === "allowed" ? "ok" : outcome === "policy_violation" ? "bad" : "warn"),
     request.method ? chip(request.method.toUpperCase()) : "",
     request.path ? chip(request.path) : "",
-    event.matched_mock ? chip(`mock ${event.matched_mock}`) : "",
+    event.matched_mock ? chip("mock " + event.matched_mock) : "",
   ].filter(Boolean).join("");
 
   const decisionHtml = decisions.length
@@ -843,7 +1411,7 @@ function eventCard(event, index) {
     '<article class="event">',
       '<div class="event-hd">',
         '<div>',
-          '<div class="event-name">' + index + '. ' + esc(event.name || request.path || "Action") + '</div>',
+          '<div class="event-name">' + index + ". " + esc(event.name || request.path || "Action") + '</div>',
           '<div class="event-time">' + esc(shortTime(event.timestamp || "")) + '</div>',
         '</div>',
         '<span class="badge ' + esc(outcome) + '">' + esc(outcome.replace(/_/g, " ")) + '</span>',
@@ -858,15 +1426,15 @@ function eventCard(event, index) {
   ].join("");
 }
 
-function chip(text, cls = "") {
-  return '<span class="chip' + (cls ? ' ' + cls : '') + '">' + esc(text) + '</span>';
+function chip(text, cls) {
+  return '<span class="chip' + (cls ? " " + cls : "") + '">' + esc(text) + '</span>';
 }
 
 function decisionLine(decision) {
-  const operatorMap = { eq: "==", neq: "!=", lt: "<", lte: "≤", gt: ">", gte: "≥", in: "in", not_in: "not in", exists: "exists" };
+  const operatorMap = { eq: "==", neq: "!=", lt: "<", lte: "\u2264", gt: ">", gte: "\u2265", in: "in", not_in: "not in", exists: "exists" };
   const expected = decision.expected === undefined ? "null" : JSON.stringify(decision.expected);
   const actual = decision.actual === undefined ? "null" : JSON.stringify(decision.actual);
-  return `${decision.name}: ${decision.field} ${operatorMap[decision.operator] || decision.operator} ${expected} → ${actual}`;
+  return decision.name + ": " + decision.field + " " + (operatorMap[decision.operator] || decision.operator) + " " + expected + " \u2192 " + actual;
 }
 
 function normalizeOverview(data) {
@@ -945,7 +1513,7 @@ function normalizeEvent(event, index) {
   return {
     index: index + 1,
     timestamp: event.timestamp || event.time || "",
-    name: event.name || event.step_name || request.path || `Action ${index + 1}`,
+    name: event.name || event.step_name || request.path || "Action " + (index + 1),
     request: {
       method: request.method || event.method || "REQUEST",
       path: request.path || event.path || "unknown",
@@ -992,6 +1560,15 @@ function highlightSelection() {
   renderRunListSelected();
 }
 
+function applyDetailView() {
+  document.querySelectorAll("[data-detail-view]").forEach((button) => {
+    button.classList.toggle("active", button.dataset.detailView === state.detailView);
+  });
+  document.querySelectorAll("[data-view-panel]").forEach((panel) => {
+    panel.hidden = panel.dataset.viewPanel !== state.detailView;
+  });
+}
+
 function buildTotals(overview) {
   return overview || {
     totalActions: 0,
@@ -1013,6 +1590,8 @@ function getOutcome(item) {
 }
 
 function getRunDescription(item) {
+  const detail = getDetail(item);
+  if (detail) return detail;
   const method = item?.request?.method || item?.method || "";
   const path = item?.request?.path || item?.path || "";
   const summary = [method, path].filter(Boolean).join(" ");
@@ -1051,16 +1630,17 @@ function prettyScenario(name) {
   return { safe: "Compliant Bid", risky: "Excessive Bid", unmatched: "New Supplier" }[name] || name;
 }
 
-function setStatus(message, error = false) {
+function setStatus(message, error) {
   const el = document.getElementById("status");
   el.textContent = message;
-  el.classList.toggle("error", error);
+  el.classList.toggle("error", !!error);
 }
 
 function setDetailBadge(text) {
   const badge = document.getElementById("detailBadge");
-  badge.textContent = text;
-  badge.className = `badge ${text === "idle" ? "muted" : ""}`;
+  badge.textContent = text.replace(/_/g, " ");
+  const cls = text === "idle" || text === "loading" || text === "loaded" ? "muted" : text;
+  badge.className = "badge " + cls;
 }
 
 function shortTime(value) {
@@ -1107,6 +1687,12 @@ function fetchJSON(url) {
 }
 
 document.addEventListener("click", (event) => {
+  const viewTarget = event.target.closest("[data-detail-view]");
+  if (viewTarget) {
+    state.detailView = viewTarget.dataset.detailView || "timeline";
+    applyDetailView();
+    return;
+  }
   const target = event.target.closest("[data-run-id]");
   if (!target) return;
   if (!state.overview) return;
