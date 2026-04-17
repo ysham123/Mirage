@@ -50,11 +50,15 @@ def _mirage_headers(result: MirageResult) -> dict[str, str]:
     if result.mock_name:
         headers["X-Mirage-Matched-Mock"] = result.mock_name
     if result.message:
-        headers["X-Mirage-Message"] = result.message
+        headers["X-Mirage-Message"] = _single_line(result.message)
     decision_summary = result.decision_summary()
     if decision_summary:
-        headers["X-Mirage-Decision-Summary"] = decision_summary
+        headers["X-Mirage-Decision-Summary"] = _single_line(decision_summary)
     return headers
+
+
+def _single_line(text: str) -> str:
+    return text.splitlines()[0] if "\n" in text else text
 
 
 app = create_app()

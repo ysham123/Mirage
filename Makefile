@@ -31,6 +31,24 @@ procurement-demo-unmatched:
 demo-ui:
 	python -m demo_ui.server
 
+ui-install:
+	cd ui && pnpm install
+
+ui-dev:
+	cd ui && pnpm dev
+
+ui-build:
+	cd ui && pnpm build
+
+ui-test:
+	cd ui && pnpm test
+
+mirage-summary:
+	python -m src.cli summarize-run --run-id $(RUN_ID)
+
+mirage-gate:
+	python -m src.cli gate-run --run-id $(RUN_ID)
+
 test:
 	pytest tests/ -v -s
 

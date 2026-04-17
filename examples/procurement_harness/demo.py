@@ -6,7 +6,7 @@ import time
 
 from examples.procurement_harness.agent import ProcurementAgent
 from examples.procurement_harness.scenarios import SCENARIO_NAMES, run_scenario
-from src.httpx_client import create_mirage_client
+from src.httpx_client import MirageSession
 
 
 def main() -> int:
@@ -29,9 +29,10 @@ def main() -> int:
     print("Workflow: Procurement approval harness")
     time.sleep(1)
 
-    with create_mirage_client(run_id=run_id) as client:
-        agent = ProcurementAgent(client)
+    with MirageSession(run_id=run_id) as mirage:
+        agent = ProcurementAgent(mirage)
         result = run_scenario(agent, args.scenario)
+        summary = mirage.summary()
 
     if result.supplier_lookup is not None:
         print("Step 1: Supplier lookup")
@@ -44,6 +45,7 @@ def main() -> int:
     print(f"Mirage Trace: {result.action.mirage.trace_path}")
     print(f"Mirage Decision: {result.action.mirage.decision_summary or result.action.mirage.message}")
     print(f"Agent Log: Response: {result.action.response_body}")
+    print(f"Mirage Summary: {summary.safe_actions} safe / {summary.risky_actions} risky action(s)")
     return 0
 
 

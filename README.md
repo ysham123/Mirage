@@ -31,21 +31,41 @@ Install dependencies:
 make install
 ```
 
-Run the primary procurement harness onboarding flow:
+### Integrate your own agent
+
+The canonical Mirage integration is `MirageSession`. One run ID, an `httpx`
+client surface the agent uses directly, one assertion point for CI.
+
+```python
+from src import MirageSession
+
+with MirageSession(run_id="demo-run") as mirage:
+    response = mirage.post(
+        "/v1/submit_bid",
+        json={"contract_id": "STANDARD-7", "bid_amount": 7500},
+    )
+    summary = mirage.assert_clean()
+    print(summary.trace_path)
+```
+
+For the full 30-minute walkthrough of pointing Mirage at your own agent, see
+[`docs/FIRST_INTEGRATION.md`](docs/FIRST_INTEGRATION.md). For CI gating
+recipes (pytest and GitHub Actions), see
+[`docs/CI_INTEGRATION.md`](docs/CI_INTEGRATION.md).
+
+### Try the bundled procurement harness
+
+If you want to see Mirage working on a realistic pre-built workflow before
+integrating your own agent:
 
 ```bash
 make proxy-procurement
 ```
 
-In a second terminal, run the safe procurement demo:
+In a second terminal:
 
 ```bash
 make procurement-demo-safe
-```
-
-Run the procurement harness tests:
-
-```bash
 make test-procurement
 ```
 
@@ -55,11 +75,34 @@ Run with Docker:
 docker compose up --build
 ```
 
-That Docker path now starts the Mirage proxy with the procurement harness config on `http://localhost:8000`.
+That Docker path starts the Mirage proxy with the procurement harness config on `http://localhost:8000`.
 
-## `httpx` Integration
+## MirageSession
 
-Mirage now includes a lightweight `httpx` entry point for Python agent tests:
+MirageSession is the recommended path for:
+
+- local developer runs
+- `pytest` integration tests
+- CI gates on risky actions
+
+For agent code that already expects a client-like object:
+
+```python
+from examples.procurement_harness.agent import ProcurementAgent
+from src import MirageSession
+
+with MirageSession(run_id="procurement-safe") as mirage:
+    agent = ProcurementAgent(mirage)
+    result = agent.run_compliant_bid_workflow()
+    summary = mirage.assert_clean()
+    print(result.action.mirage.outcome)
+    print(summary.to_text())
+```
+
+### Alternative: per-response primitives
+
+If you want per-response access instead of a run-level session, the lower-level
+`httpx` primitives remain available:
 
 ```python
 from src.httpx_client import (
@@ -84,6 +127,27 @@ Mirage adds response metadata headers so tests and agents can inspect what happe
 - `X-Mirage-Policy-Passed`
 - `X-Mirage-Trace-Path`
 - `X-Mirage-Decision-Summary`
+
+## CI Gating
+
+Mirage now has a run-level CLI for CI or shell workflows:
+
+```bash
+make mirage-summary RUN_ID=procurement-risky-demo
+make mirage-gate RUN_ID=procurement-risky-demo
+```
+
+Equivalent direct commands:
+
+```bash
+python -m src.cli summarize-run --run-id procurement-risky-demo
+python -m src.cli gate-run --run-id procurement-risky-demo
+```
+
+`gate-run` exits non-zero when the run is risky or missing, so it can fail CI directly.
+
+For complete GitHub Actions and pytest recipes, see
+[`docs/CI_INTEGRATION.md`](docs/CI_INTEGRATION.md).
 
 ## Config
 
@@ -193,6 +257,8 @@ The template and index live in [`docs/worklog/`](docs/worklog).
 
 ## Supporting Docs
 
+- [`docs/FIRST_INTEGRATION.md`](docs/FIRST_INTEGRATION.md): 30-minute walkthrough for integrating your own `httpx` agent
+- [`docs/CI_INTEGRATION.md`](docs/CI_INTEGRATION.md): pytest and GitHub Actions gating recipes
 - [`PROBLEM_STATEMENT.md`](PROBLEM_STATEMENT.md): concise founder-facing problem and solution framing
 - [`PROJECT_NOTES.md`](PROJECT_NOTES.md): product thesis and implementation notes
 - [`MIRAGE_90_DAY_PLAN.md`](MIRAGE_90_DAY_PLAN.md): current 90-day product and distribution plan

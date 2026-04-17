@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Mirage</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%23111'/><circle cx='16' cy='16' r='5' fill='%2330d158'/></svg>">
 <style>
 /* ── Variables ── */
 :root{
@@ -154,7 +155,22 @@ button,input{font:inherit;border:none;background:none;color:inherit}
   display:grid;
   grid-template-columns:280px 1fr;
   overflow:hidden;
+  transition:grid-template-columns .25s var(--ease);
 }
+.shell.sb-collapsed{grid-template-columns:0px 1fr}
+.shell.sb-collapsed .sidebar{border-right:none;overflow:hidden}
+.sb-collapse-btn{
+  display:none;
+  width:24px;
+  height:24px;
+  border-radius:6px;
+  cursor:pointer;
+  color:var(--text-3);
+  font:14px/1 var(--mono);
+  transition:background .12s var(--ease),color .12s var(--ease);
+}
+.sb-collapse-btn:hover{background:var(--surface-hover);color:var(--text)}
+.topbar .sb-collapse-btn{display:flex;align-items:center;justify-content:center;flex-shrink:0}
 
 /* ── Sidebar ── */
 .sidebar{
@@ -180,6 +196,48 @@ button,input{font:inherit;border:none;background:none;color:inherit}
   letter-spacing:0.04em;
   color:var(--text-4);
 }
+.sb-search{
+  padding:8px 10px 4px;
+  flex-shrink:0;
+}
+.sb-search input{
+  width:100%;
+  padding:7px 10px;
+  border-radius:7px;
+  background:rgba(255,255,255,0.04);
+  border:1px solid rgba(255,255,255,0.06);
+  font:12px var(--sans);
+  color:var(--text);
+  outline:none;
+  transition:border-color .15s var(--ease);
+}
+.sb-search input::placeholder{color:var(--text-4)}
+.sb-search input:focus{border-color:rgba(255,255,255,0.18)}
+.sb-filterbar{
+  display:flex;
+  gap:6px;
+  padding:0 10px 8px;
+  flex-wrap:wrap;
+}
+.filter-btn{
+  padding:5px 9px;
+  border-radius:999px;
+  cursor:pointer;
+  background:rgba(255,255,255,0.04);
+  color:var(--text-3);
+  font:10px/1 var(--mono);
+  letter-spacing:0.04em;
+  text-transform:uppercase;
+  transition:background .12s var(--ease),color .12s var(--ease),border-color .12s var(--ease);
+  border:1px solid transparent;
+}
+.filter-btn:hover{background:rgba(255,255,255,0.08);color:var(--text-2)}
+.filter-btn.active{
+  background:rgba(48,209,88,0.08);
+  border-color:rgba(48,209,88,0.2);
+  color:var(--green);
+}
+.filter-btn:focus-visible{outline:2px solid rgba(48,209,88,0.4);outline-offset:-2px}
 .sb-queue{
   flex:1;
   min-height:0;
@@ -244,13 +302,25 @@ button,input{font:inherit;border:none;background:none;color:inherit}
   border-radius:1px;
   background:var(--green);
 }
+.run-btn:focus-visible{outline:2px solid rgba(48,209,88,0.4);outline-offset:-2px}
 .run-btn+.run-btn{margin-top:2px}
+.severity-dot{
+  width:6px;
+  height:6px;
+  border-radius:50%;
+  flex-shrink:0;
+  background:var(--text-4);
+}
+.severity-dot.allowed{background:var(--green)}
+.severity-dot.policy_violation{background:var(--red)}
+.severity-dot.unmatched_route{background:var(--orange)}
+.severity-dot.config_error{background:var(--red)}
 .run-top{
   display:flex;
-  justify-content:space-between;
   align-items:center;
-  gap:8px;
+  gap:7px;
 }
+.run-top .badge{margin-left:auto}
 .run-id{
   font:600 11px var(--mono);
   color:var(--text);
@@ -320,10 +390,9 @@ button,input{font:inherit;border:none;background:none;color:inherit}
 .metrics-strip .metric{
   flex:1;
   padding:12px 16px;
-  border-right:1px solid var(--separator);
-  border-radius:0;
   border:none;
   border-right:1px solid var(--separator);
+  border-radius:0;
   background:transparent;
   animation:none;
   opacity:1;
@@ -450,7 +519,14 @@ button,input{font:inherit;border:none;background:none;color:inherit}
   justify-content:space-between;
   gap:18px;
   align-items:flex-start;
-  margin-bottom:20px;
+  position:sticky;
+  top:0;
+  z-index:3;
+  background:rgba(5,5,5,0.92);
+  backdrop-filter:blur(14px);
+  -webkit-backdrop-filter:blur(14px);
+  margin:0 -24px 20px;
+  padding:24px 24px 16px;
 }
 .drill-head h3{
   font-size:22px;
@@ -472,6 +548,30 @@ button,input{font:inherit;border:none;background:none;color:inherit}
   grid-template-columns:repeat(4,minmax(0,1fr));
   gap:8px;
   margin-bottom:20px;
+}
+.run-actions{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  margin:-6px 0 20px;
+}
+.run-action-btn{
+  padding:7px 10px;
+  border-radius:7px;
+  background:rgba(255,255,255,0.04);
+  border:1px solid rgba(255,255,255,0.06);
+  color:var(--text-2);
+  font:10px/1 var(--mono);
+  letter-spacing:0.04em;
+  text-transform:uppercase;
+  cursor:pointer;
+  transition:background .12s var(--ease),color .12s var(--ease),border-color .12s var(--ease);
+}
+.run-action-btn:hover{background:rgba(255,255,255,0.08);color:var(--text)}
+.run-action-btn:focus-visible{outline:2px solid rgba(48,209,88,0.4);outline-offset:-2px}
+.run-action-btn[disabled]{
+  opacity:.45;
+  cursor:not-allowed;
 }
 .mini{
   background:var(--surface-2);
@@ -515,12 +615,14 @@ button,input{font:inherit;border:none;background:none;color:inherit}
   border:1px solid transparent;
 }
 .view-btn:hover{background:var(--surface-hover)}
+.view-btn:focus-visible{outline:2px solid rgba(48,209,88,0.4);outline-offset:-2px}
 .view-btn.active{
   background:rgba(255,255,255,0.08);
   border-color:rgba(255,255,255,0.1);
   color:var(--text);
 }
 .detail-view[hidden]{display:none}
+.detail-view:not([hidden]){animation:view-in .2s var(--ease)}
 
 /* ── Overview View ── */
 .overview{display:grid;gap:10px}
@@ -614,7 +716,9 @@ button,input{font:inherit;border:none;background:none;color:inherit}
   border:1px solid rgba(255,255,255,0.05);
   border-radius:var(--radius);
   padding:18px 20px;
+  scroll-margin-top:120px;
 }
+.event.risky{border-color:rgba(255,69,58,0.14)}
 .event-hd{
   display:flex;
   justify-content:space-between;
@@ -830,6 +934,7 @@ button,input{font:inherit;border:none;background:none;color:inherit}
 }
 
 @keyframes fade-in{from{opacity:0}to{opacity:1}}
+@keyframes view-in{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
 
 /* ── Responsive ── */
 @media(max-width:1100px){
@@ -875,6 +980,7 @@ button,input{font:inherit;border:none;background:none;color:inherit}
       <span id="syncTime" class="topbar-sync"></span>
       <label class="topbar-check"><input id="followLatest" type="checkbox" checked> follow latest</label>
       <button id="refreshBtn" class="topbar-btn" type="button">Refresh</button>
+      <button class="sb-collapse-btn" id="sidebarToggle" type="button" title="Toggle sidebar ([)">&#x2759;</button>
     </div>
   </header>
 
@@ -886,6 +992,15 @@ button,input{font:inherit;border:none;background:none;color:inherit}
         <div class="sb-head">
           Needs Review
           <span class="sb-badge" id="runsMeta">waiting</span>
+        </div>
+        <div class="sb-search">
+          <input id="queueSearch" type="text" placeholder="Filter runs..." autocomplete="off" spellcheck="false">
+        </div>
+        <div class="sb-filterbar" id="queueFilters">
+          <button class="filter-btn active" type="button" data-queue-filter="all">All</button>
+          <button class="filter-btn" type="button" data-queue-filter="risky">Risky</button>
+          <button class="filter-btn" type="button" data-queue-filter="allowed">Allowed</button>
+          <button class="filter-btn" type="button" data-queue-filter="unmatched_route">Unmatched</button>
         </div>
         <div class="sb-scroll" id="recentRuns">
           <div class="empty">Loading runs&#8230;</div>
@@ -938,7 +1053,7 @@ button,input{font:inherit;border:none;background:none;color:inherit}
         <div class="empty-state">
           <div class="empty-icon">&#x2736;</div>
           <p>Select a run from the review queue or launch a demo scenario.</p>
-          <span class="empty-hint">j / k to navigate &middot; enter to open</span>
+          <span class="empty-hint">j / k navigate &middot; / search &middot; [ sidebar &middot; 1-4 views</span>
         </div>
       </div>
     </main>
@@ -969,19 +1084,40 @@ const state = {
   selectedRunId: null,
   selectedRun: null,
   detailView: "overview",
+  queueFilter: "all",
+  queueSearch: "",
   lastUpdated: null,
   overviewReq: 0,
   runReq: 0,
+  riskyCursor: 0,
 };
 
 document.addEventListener("DOMContentLoaded", boot);
 
 async function boot() {
+  applyUrlState();
   document.getElementById("refreshBtn").addEventListener("click", () => refreshOverview({ preserveSelection: false }));
   document.querySelectorAll("[data-scenario]").forEach((button) => {
     button.addEventListener("click", () => launchScenario(button.dataset.scenario, button));
   });
-  await refreshOverview({ preserveSelection: false });
+  document.querySelectorAll("[data-queue-filter]").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.queueFilter = button.dataset.queueFilter || "all";
+      renderOverview();
+      syncUrlState();
+    });
+  });
+  document.getElementById("queueSearch").addEventListener("input", (event) => {
+    state.queueSearch = event.target.value || "";
+    renderOverview();
+  });
+  window.addEventListener("popstate", async () => {
+    applyUrlState();
+    document.getElementById("queueSearch").value = state.queueSearch;
+    await refreshOverview({ focusRunId: state.selectedRunId, preserveSelection: false });
+  });
+  document.getElementById("queueSearch").value = state.queueSearch;
+  await refreshOverview({ focusRunId: state.selectedRunId, preserveSelection: false });
 }
 
 async function refreshOverview({ focusRunId = null, preserveSelection = true, seedRun = null } = {}) {
@@ -1092,13 +1228,19 @@ function renderOverview() {
     riskEl.style.background = "rgba(" + c + ",0.06)";
   }
 
-  const recentRuns = overview?.recentRuns || [];
-  document.getElementById("runsMeta").textContent = recentRuns.length
-    ? fmtNum(recentRuns.length) + " run" + (recentRuns.length === 1 ? "" : "s")
+  const allRuns = overview?.recentRuns || [];
+  const recentRuns = getVisibleRuns(allRuns);
+  updateQueueFilterUI();
+  document.getElementById("runsMeta").textContent = allRuns.length
+    ? recentRuns.length === allRuns.length
+      ? fmtNum(allRuns.length) + " run" + (allRuns.length === 1 ? "" : "s")
+      : fmtNum(recentRuns.length) + " of " + fmtNum(allRuns.length)
     : "none";
   document.getElementById("recentRuns").innerHTML = recentRuns.length
     ? recentRuns.map((run) => recentRunRow(run)).join("")
-    : '<div class="empty">No runs yet. Launch a scenario to seed the queue.</div>';
+    : allRuns.length
+      ? '<div class="empty">No runs match the current filter.</div>'
+      : '<div class="empty">No runs yet. Launch a scenario to seed the queue.</div>';
 
   const topEndpoints = overview?.topEndpoints || [];
   document.getElementById("topEndpoints").innerHTML = topEndpoints.length
@@ -1118,6 +1260,7 @@ function renderRun(run, sourceLabel) {
   const outcome = run.outcome || "unknown";
   const events = run.events || [];
   state.selectedRun = run;
+  state.riskyCursor = 0;
   document.title = run.run_id + " \u2014 Mirage";
 
   const meta = [
@@ -1134,6 +1277,17 @@ function renderRun(run, sourceLabel) {
     ? renderRunGraph(run)
     : '<div class="empty">No events in this run.</div>';
   const overviewPane = renderRunOverview(run);
+  const riskyActions = events.filter(isRiskyEvent).length;
+  const actions = [
+    runActionButton("copy-run-id", "Copy run id"),
+    runActionButton("copy-trace-path", "Copy trace path"),
+    runActionButton("open-trace", "Open raw trace"),
+    runActionButton(
+      "next-risky",
+      riskyActions ? "Next risky action" : "No risky actions",
+      !riskyActions
+    ),
+  ].join("");
 
   const traceJson = run.trace ? JSON.stringify(run.trace, null, 2) : JSON.stringify(run, null, 2);
 
@@ -1146,6 +1300,7 @@ function renderRun(run, sourceLabel) {
       '<span class="badge ' + esc(outcome) + '">' + esc(outcome.replace(/_/g, " ")) + '</span>',
     '</div>',
     '<div class="drill-meta">' + meta + '</div>',
+    '<div class="run-actions">' + actions + '</div>',
     '<div class="drill-nav">',
       viewButton("overview", "Overview"),
       viewButton("timeline", "Timeline"),
@@ -1160,10 +1315,11 @@ function renderRun(run, sourceLabel) {
   document.getElementById("drillSubtitle").textContent = run.summaryText || "Drilldown synced to selected run.";
   setDetailBadge(outcome || "loaded");
   applyDetailView();
+  syncUrlState();
 }
 
 function renderRunEmpty() {
-  document.getElementById("runDetail").innerHTML = '<div class="empty-state"><div class="empty-icon">&#x2736;</div><p>Select a run from the review queue or launch a demo scenario.</p><span class="empty-hint">j / k to navigate &middot; enter to open</span></div>';
+  document.getElementById("runDetail").innerHTML = '<div class="empty-state"><div class="empty-icon">&#x2736;</div><p>Select a run from the review queue or launch a demo scenario.</p><span class="empty-hint">j / k navigate &middot; / search &middot; [ sidebar &middot; 1-4 views</span></div>';
   document.getElementById("drillSubtitle").textContent = "Select a run to inspect its trace, policy reasoning, and action path.";
   document.title = "Mirage";
   setDetailBadge("idle");
@@ -1181,8 +1337,9 @@ function recentRunRow(run) {
   const time = getRunTime(run);
   const events = getCount(run, "event_count", "events", "count");
   return [
-    '<button class="run-btn' + (state.selectedRunId === runId ? ' active' : '') + '" type="button" data-run-id="' + escAttr(runId) + '">',
+    '<button class="run-btn' + (state.selectedRunId === runId ? ' active' : '') + '" type="button" data-run-id="' + escAttr(runId) + '" data-outcome="' + escAttr(outcome) + '" data-search="' + escAttr(runId + ' ' + desc + ' ' + outcome) + '">',
       '<div class="run-top">',
+        '<span class="severity-dot ' + esc(outcome) + '"></span>',
         '<span class="run-id">' + esc(runId) + '</span>',
         '<span class="badge ' + esc(outcome) + '">' + esc(outcome.replace(/_/g, " ")) + '</span>',
       '</div>',
@@ -1415,7 +1572,7 @@ function eventCard(event, index) {
   const messageClass = outcome === "allowed" ? "ok" : outcome === "policy_violation" ? "bad" : "warn";
 
   return [
-    '<article class="event">',
+    '<article class="event' + (isRiskyEvent(event) ? ' risky' : '') + '" data-event-index="' + escAttr(String(index)) + '" data-event-risky="' + escAttr(String(isRiskyEvent(event))) + '">',
       '<div class="event-hd">',
         '<div>',
           '<div class="event-name">' + index + ". " + esc(event.name || request.path || "Action") + '</div>',
@@ -1553,7 +1710,7 @@ function normalizeDecisions(decisions) {
 }
 
 function pickDefaultRunId(overview) {
-  const first = overview?.recentRuns?.[0];
+  const first = getVisibleRuns(overview?.recentRuns || [])[0];
   return getRunId(first);
 }
 
@@ -1707,6 +1864,11 @@ function fetchJSON(url) {
 }
 
 document.addEventListener("click", (event) => {
+  const actionTarget = event.target.closest("[data-run-action]");
+  if (actionTarget) {
+    handleRunAction(actionTarget.dataset.runAction);
+    return;
+  }
   const viewTarget = event.target.closest("[data-detail-view]");
   if (viewTarget) {
     state.detailView = viewTarget.dataset.detailView || "timeline";
@@ -1725,12 +1887,35 @@ async function selectRun(runId) {
   highlightSelection();
 }
 
+// ── Sidebar Toggle ──
+document.getElementById("sidebarToggle").addEventListener("click", toggleSidebar);
+function toggleSidebar() {
+  document.querySelector(".shell").classList.toggle("sb-collapsed");
+}
+
 // ── Keyboard Navigation ──
 document.addEventListener("keydown", (e) => {
-  if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
+  if (e.target.tagName === "TEXTAREA") return;
+  if (e.target.tagName === "INPUT") {
+    if (e.key === "Escape") { e.target.blur(); e.target.value = ""; e.target.dispatchEvent(new Event("input")); }
+    return;
+  }
   const runs = state.overview?.recentRuns || [];
-  if (!runs.length) return;
-  const ids = runs.map(getRunId);
+  if (e.key === "/" || e.key === "f" && !e.metaKey && !e.ctrlKey) {
+    e.preventDefault();
+    document.getElementById("queueSearch").focus();
+    return;
+  }
+  if (e.key === "[") { toggleSidebar(); return; }
+  if (e.key === "u" && state.selectedRun) {
+    state.detailView = "trace";
+    applyDetailView();
+    setStatus("Opened raw trace for " + state.selectedRun.run_id);
+    return;
+  }
+  const visibleRuns = getVisibleRuns(runs);
+  if (!visibleRuns.length) return;
+  const ids = visibleRuns.map(getRunId);
   const idx = state.selectedRunId ? ids.indexOf(state.selectedRunId) : -1;
 
   if (e.key === "j" || e.key === "ArrowDown") {
@@ -1743,6 +1928,8 @@ document.addEventListener("keydown", (e) => {
     const prev = Math.max(idx - 1, 0);
     selectRun(ids[prev]);
     scrollRunIntoView(ids[prev]);
+  } else if (e.key === "Enter" && idx >= 0) {
+    selectRun(ids[idx]);
   } else if (e.key === "1" || e.key === "2" || e.key === "3" || e.key === "4") {
     const views = ["overview", "timeline", "graph", "trace"];
     state.detailView = views[Number(e.key) - 1];
@@ -1755,6 +1942,111 @@ document.addEventListener("keydown", (e) => {
 function scrollRunIntoView(runId) {
   const btn = document.querySelector('[data-run-id="' + CSS.escape(runId) + '"]');
   if (btn) btn.scrollIntoView({ block: "nearest", behavior: "smooth" });
+}
+
+function updateQueueFilterUI() {
+  document.querySelectorAll("[data-queue-filter]").forEach((button) => {
+    button.classList.toggle("active", button.dataset.queueFilter === state.queueFilter);
+  });
+}
+
+function getVisibleRuns(runs) {
+  const search = state.queueSearch.toLowerCase().trim();
+  return (runs || []).filter((run) => {
+    const outcome = getOutcome(run);
+    const matchesFilter = state.queueFilter === "all"
+      ? true
+      : state.queueFilter === "risky"
+        ? outcome !== "allowed"
+        : outcome === state.queueFilter;
+    if (!matchesFilter) return false;
+    if (!search) return true;
+    const haystack = [
+      getRunId(run),
+      getRunDescription(run),
+      outcome,
+      run?.request?.method,
+      run?.request?.path,
+      run?.headline,
+    ].filter(Boolean).join(" ").toLowerCase();
+    return haystack.includes(search);
+  });
+}
+
+function runActionButton(action, label, disabled) {
+  return '<button class="run-action-btn" type="button" data-run-action="' + escAttr(action) + '"' + (disabled ? " disabled" : "") + '>' + esc(label) + '</button>';
+}
+
+function handleRunAction(action) {
+  if (!state.selectedRun) return;
+  if (action === "copy-run-id") {
+    copyToClipboard(state.selectedRun.run_id, "Copied run id");
+    return;
+  }
+  if (action === "copy-trace-path") {
+    copyToClipboard(state.selectedRun.trace_path || "", "Copied trace path");
+    return;
+  }
+  if (action === "open-trace") {
+    state.detailView = "trace";
+    applyDetailView();
+    setStatus("Opened raw trace for " + state.selectedRun.run_id);
+    return;
+  }
+  if (action === "next-risky") {
+    jumpToNextRiskyAction();
+  }
+}
+
+async function copyToClipboard(value, successMessage) {
+  if (!value) {
+    setStatus("Nothing to copy for this run.", true);
+    return;
+  }
+  try {
+    await navigator.clipboard.writeText(value);
+    setStatus(successMessage);
+  } catch (error) {
+    setStatus("Clipboard unavailable: " + error.message, true);
+  }
+}
+
+function jumpToNextRiskyAction() {
+  const riskyEvents = state.selectedRun?.events?.filter(isRiskyEvent) || [];
+  if (!riskyEvents.length) {
+    setStatus("No risky actions in this run.");
+    return;
+  }
+  state.detailView = "timeline";
+  applyDetailView();
+  const target = riskyEvents[state.riskyCursor % riskyEvents.length];
+  state.riskyCursor += 1;
+  requestAnimationFrame(() => {
+    const node = document.querySelector('[data-event-index="' + CSS.escape(String(target.index)) + '"]');
+    if (node) node.scrollIntoView({ block: "center", behavior: "smooth" });
+  });
+  setStatus("Focused risky action " + target.index + " in " + state.selectedRun.run_id);
+}
+
+function isRiskyEvent(event) {
+  return event?.outcome !== "allowed" || event?.policy_passed === false;
+}
+
+function applyUrlState() {
+  const params = new URLSearchParams(window.location.search);
+  const filter = params.get("filter");
+  state.selectedRunId = params.get("run_id");
+  state.queueFilter = filter && ["all", "risky", "allowed", "unmatched_route"].includes(filter) ? filter : "all";
+}
+
+function syncUrlState() {
+  const params = new URLSearchParams(window.location.search);
+  if (state.selectedRunId) params.set("run_id", state.selectedRunId);
+  else params.delete("run_id");
+  if (state.queueFilter && state.queueFilter !== "all") params.set("filter", state.queueFilter);
+  else params.delete("filter");
+  const next = window.location.pathname + (params.toString() ? "?" + params.toString() : "");
+  window.history.replaceState({}, "", next);
 }
 </script>
 </body>

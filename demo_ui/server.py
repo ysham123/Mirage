@@ -1,19 +1,22 @@
-"""Mirage Demo UI server for founder demos."""
+"""Mirage console API and legacy demo shell."""
 
 from __future__ import annotations
 
+import asyncio
 from contextlib import asynccontextmanager
+from datetime import datetime, timezone
+import json
 import os
-import uuid
 from pathlib import Path
-from typing import Any
+from typing import Any, AsyncIterator
+import uuid
 
 import uvicorn
-from fastapi import FastAPI
+from fastapi import Body, FastAPI, Query
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from fastapi.testclient import TestClient
-from fastapi.responses import FileResponse, JSONResponse
 
-from src.metrics import build_metrics_overview, build_run_metrics
 from examples.procurement_harness.agent import (
     ProcurementAgent,
     ProcurementCallResult,
@@ -21,6 +24,7 @@ from examples.procurement_harness.agent import (
 )
 from examples.procurement_harness.scenarios import SCENARIO_NAMES, ScenarioName, run_scenario
 from src.engine import MirageEngine
+from src.metrics import build_metrics_overview, build_run_metrics
 from src.proxy import create_app
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -53,12 +57,20 @@ def create_demo_app(*, artifact_root: str | Path | None = None) -> FastAPI:
         proxy_client = TestClient(create_app(engine))
         app.state.proxy_client = proxy_client
         app.state.engine = engine
+        app.state.side_effect_suppressions = {}
         try:
             yield
         finally:
             proxy_client.close()
 
-    app = FastAPI(title="Mirage Demo", lifespan=lifespan)
+    app = FastAPI(title="Mirage Console API", lifespan=lifespan)
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origin_regex=r"https?://(localhost|127\.0\.0\.1)(:\d+)?",
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
     @app.get("/")
     async def serve_ui():
@@ -86,6 +98,7 @@ def create_demo_app(*, artifact_root: str | Path | None = None) -> FastAPI:
             headline=_headline_for_scenario(name),
             final_outcome=result.action.mirage.outcome,
             steps=_scenario_steps(name, result, trace.get("events", [])),
+            suppressions={},
         )
         payload["scenario"] = name
         return payload
@@ -94,9 +107,11 @@ def create_demo_app(*, artifact_root: str | Path | None = None) -> FastAPI:
     async def metrics_overview():
         overview = build_metrics_overview(app.state.engine.trace_store.artifact_root)
         recent_runs: list[dict[str, Any]] = []
+        suppressions = _suppression_store(app)
         for run in overview.get("recent_runs", []):
             run_metrics = build_run_metrics(app.state.engine.trace_store.artifact_root, run["run_id"])
             last_request = _last_request_from_trace(run_metrics["trace"]) if run_metrics else {}
+            suppression_count = len(suppressions.get(run["run_id"], {}))
             recent_runs.append(
                 {
                     **run,
@@ -104,9 +119,11 @@ def create_demo_app(*, artifact_root: str | Path | None = None) -> FastAPI:
                     "headline": run_metrics["headline"] if run_metrics else "Mirage run review.",
                     "timestamp": run.get("last_event_at"),
                     "request": last_request,
+                    "suppressed_count": suppression_count,
                 }
             )
 
+        risky_runs = sum(1 for run in recent_runs if run.get("outcome") not in ("allowed", "unknown"))
         return {
             "summary": {
                 "total_runs": overview["overview"]["run_count"],
@@ -115,6 +132,8 @@ def create_demo_app(*, artifact_root: str | Path | None = None) -> FastAPI:
                 "policy_violation": overview["overview"]["policy_violation_count"],
                 "unmatched_route": overview["overview"]["unmatched_route_count"],
                 "config_error": overview["overview"]["config_error_count"],
+                "risky_runs": risky_runs,
+                "suppressed_actions": sum(len(run_suppressions) for run_suppressions in suppressions.values()),
             },
             "recent_runs": recent_runs,
             "top_endpoints": [
@@ -138,18 +157,115 @@ def create_demo_app(*, artifact_root: str | Path | None = None) -> FastAPI:
 
     @app.get("/api/metrics/runs/{run_id}")
     async def metrics_run_detail(run_id: str):
-        run_metrics = build_run_metrics(app.state.engine.trace_store.artifact_root, run_id)
-        if run_metrics is None:
+        payload = _build_run_payload(app, run_id)
+        if payload is None:
             return JSONResponse(status_code=404, content={"error": f"Unknown run: {run_id}"})
-        return _run_detail_payload(
-            run_id=run_metrics["run_id"],
-            trace=run_metrics["trace"],
-            trace_path=run_metrics["trace_path"],
-            source="trace metrics review",
-            headline=run_metrics["headline"],
-            final_outcome=run_metrics["final_outcome"],
-            steps=_trace_events_to_steps(run_metrics["trace"].get("events", [])),
+        return payload
+
+    @app.get("/api/chat/stream")
+    async def chat_stream(run_id: str = Query(..., description="Mirage run ID to replay as a chat stream.")):
+        payload = _build_run_payload(app, run_id)
+        if payload is None:
+            return JSONResponse(status_code=404, content={"error": f"Unknown run: {run_id}"})
+
+        async def stream() -> AsyncIterator[str]:
+            risk = payload["risk"]
+            yield _sse_event(
+                "status",
+                {
+                    "run_id": run_id,
+                    "message": f"Connected to Mirage review stream for {run_id}.",
+                    "level": risk["level"],
+                },
+            )
+            intro = (
+                f"{payload['summary']['headline']} "
+                f"Mirage inspected {payload['meta']['event_count']} action(s) with "
+                f"{risk['risky_steps']} risky and {risk['suppressed_steps']} suppressed."
+            )
+            for chunk in _chunk_text(intro):
+                yield _sse_event(
+                    "message_delta",
+                    {
+                        "message_id": f"{run_id}-summary",
+                        "role": "assistant",
+                        "delta": chunk,
+                    },
+                )
+                await asyncio.sleep(0.012)
+
+            for side_effect in payload["side_effects"]:
+                yield _sse_event(
+                    "step",
+                    {
+                        "run_id": run_id,
+                        "step_index": side_effect["step_index"],
+                        "side_effect": side_effect,
+                        "message": _stream_step_message(side_effect),
+                    },
+                )
+                yield _sse_event(
+                    "metric",
+                    {
+                        **risk,
+                        "focus_step_index": side_effect["step_index"],
+                        "focus_outcome": side_effect["outcome"],
+                    },
+                )
+                await asyncio.sleep(0.02)
+
+            yield _sse_event(
+                "complete",
+                {
+                    "run_id": run_id,
+                    "completed_at": _now_iso(),
+                    "risk": risk,
+                },
+            )
+
+        return StreamingResponse(
+            stream(),
+            media_type="text/event-stream",
+            headers={
+                "Cache-Control": "no-cache",
+                "Connection": "keep-alive",
+                "X-Accel-Buffering": "no",
+            },
         )
+
+    @app.post("/api/runs/{run_id}/side-effects/{step_index}/suppress")
+    async def suppress_side_effect(
+        run_id: str,
+        step_index: int,
+        payload: dict[str, Any] | None = Body(default=None),
+    ):
+        run_payload = _build_run_payload(app, run_id)
+        if run_payload is None:
+            return JSONResponse(status_code=404, content={"error": f"Unknown run: {run_id}"})
+
+        side_effect = _find_side_effect(run_payload, step_index)
+        if side_effect is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": f"Unknown side effect {step_index} for run {run_id}."},
+            )
+
+        reason = _normalize_suppression_reason(payload, side_effect)
+        suppression = {
+            "suppressed": True,
+            "reason": reason,
+            "suppressed_at": _now_iso(),
+            "step_index": step_index,
+        }
+        _suppression_store(app).setdefault(run_id, {})[step_index] = suppression
+        updated_payload = _build_run_payload(app, run_id)
+        updated_side_effect = _find_side_effect(updated_payload, step_index) if updated_payload else None
+        return {
+            "run_id": run_id,
+            "step_index": step_index,
+            "suppression": suppression,
+            "side_effect": updated_side_effect,
+        }
 
     return app
 
@@ -280,7 +396,15 @@ def _run_detail_payload(
     headline: str,
     final_outcome: str,
     steps: list[dict[str, Any]],
+    suppressions: dict[int, dict[str, Any]],
 ) -> dict[str, Any]:
+    indexed_steps = [
+        _decorate_step(step, index=index, run_id=run_id, suppression=suppressions.get(index))
+        for index, step in enumerate(steps, start=1)
+    ]
+    side_effects = [_side_effect_from_step(step) for step in indexed_steps]
+    risk = _build_risk_snapshot(indexed_steps, final_outcome)
+    agent_health = _build_agent_health(final_outcome, risk)
     event_count = len(trace.get("events", []))
     return {
         "run_id": run_id,
@@ -296,10 +420,158 @@ def _run_detail_payload(
             "trace_event_count": event_count,
             "trace_path": trace_path,
         },
-        "steps": steps,
+        "risk": risk,
+        "agent_health": agent_health,
+        "steps": indexed_steps,
+        "side_effects": side_effects,
         "trace": trace,
         "trace_path": trace_path,
     }
+
+
+def _build_run_payload(app: FastAPI, run_id: str) -> dict[str, Any] | None:
+    run_metrics = build_run_metrics(app.state.engine.trace_store.artifact_root, run_id)
+    if run_metrics is None:
+        return None
+    return _run_detail_payload(
+        run_id=run_metrics["run_id"],
+        trace=run_metrics["trace"],
+        trace_path=run_metrics["trace_path"],
+        source="trace metrics review",
+        headline=run_metrics["headline"],
+        final_outcome=run_metrics["final_outcome"],
+        steps=_trace_events_to_steps(run_metrics["trace"].get("events", [])),
+        suppressions=_suppression_store(app).get(run_id, {}),
+    )
+
+
+def _decorate_step(
+    step: dict[str, Any],
+    *,
+    index: int,
+    run_id: str,
+    suppression: dict[str, Any] | None,
+) -> dict[str, Any]:
+    outcome = str(step.get("mirage", {}).get("outcome", "unknown"))
+    decisions = step.get("mirage", {}).get("decisions", []) or []
+    confidence = _confidence_for_outcome(outcome, len(decisions))
+    return {
+        **step,
+        "step_index": index,
+        "step_id": f"{run_id}-step-{index}",
+        "severity": _severity_for_outcome(outcome, suppression),
+        "confidence": confidence,
+        "suppression": suppression,
+    }
+
+
+def _side_effect_from_step(step: dict[str, Any]) -> dict[str, Any]:
+    mirage = step.get("mirage", {})
+    request = step.get("request", {})
+    response = step.get("response", {})
+    suppression = step.get("suppression")
+    status = "suppressed" if suppression else mirage.get("outcome", "unknown")
+    return {
+        "id": step["step_id"],
+        "step_index": step["step_index"],
+        "name": step.get("name"),
+        "method": request.get("method", "GET"),
+        "path": request.get("path", "/"),
+        "payload": request.get("payload"),
+        "status_code": response.get("status_code"),
+        "response_body": response.get("body"),
+        "outcome": mirage.get("outcome", "unknown"),
+        "severity": step.get("severity"),
+        "message": mirage.get("message"),
+        "decision_summary": mirage.get("decision_summary"),
+        "decisions": mirage.get("decisions", []),
+        "matched_mock": mirage.get("matched_mock"),
+        "policy_passed": mirage.get("policy_passed", False),
+        "timestamp": step.get("trace_event", {}).get("timestamp"),
+        "confidence": step.get("confidence"),
+        "suppressed": bool(suppression),
+        "suppression": suppression,
+        "status": status,
+    }
+
+
+def _build_risk_snapshot(steps: list[dict[str, Any]], final_outcome: str) -> dict[str, Any]:
+    risky_steps = [step for step in steps if step.get("mirage", {}).get("outcome") != "allowed"]
+    suppressed_steps = [step for step in steps if step.get("suppression")]
+    base_score = {
+        "allowed": 18,
+        "policy_violation": 82,
+        "unmatched_route": 68,
+        "config_error": 92,
+    }.get(final_outcome, 48)
+    score = max(6, min(98, base_score + max(0, len(risky_steps) - 1) * 7 - len(suppressed_steps) * 12))
+    if score >= 80:
+        level = "critical"
+    elif score >= 55:
+        level = "elevated"
+    elif score >= 30:
+        level = "guarded"
+    else:
+        level = "stable"
+    return {
+        "score": score,
+        "level": level,
+        "total_steps": len(steps),
+        "risky_steps": len(risky_steps),
+        "suppressed_steps": len(suppressed_steps),
+        "allowed_steps": sum(1 for step in steps if step.get("mirage", {}).get("outcome") == "allowed"),
+    }
+
+
+def _build_agent_health(final_outcome: str, risk: dict[str, Any]) -> dict[str, Any]:
+    status = "stable"
+    summary = "Agent actions are tracking inside configured guardrails."
+    if final_outcome == "policy_violation":
+        status = "watch"
+        summary = "A policy caught a risky action before it became a real side effect."
+    elif final_outcome == "unmatched_route":
+        status = "watch"
+        summary = "An unconfigured route needs a mock before this workflow is safe in CI."
+    elif final_outcome == "config_error":
+        status = "critical"
+        summary = "Mirage config needs repair before the workflow can be trusted."
+    if risk["suppressed_steps"] and status == "watch":
+        summary += " Suppression is active while the team reviews the trace."
+    return {
+        "status": status,
+        "summary": summary,
+        "confidence": round(max(0.35, 1 - risk["score"] / 120), 2),
+        "label": {
+            "stable": "Nominal",
+            "watch": "Needs Review",
+            "critical": "Degraded",
+        }[status],
+    }
+
+
+def _confidence_for_outcome(outcome: str, decision_count: int) -> float:
+    base = {
+        "allowed": 0.92,
+        "policy_violation": 0.63,
+        "unmatched_route": 0.57,
+        "config_error": 0.41,
+    }.get(outcome, 0.5)
+    modifier = min(0.06, decision_count * 0.01)
+    return round(max(0.32, min(0.98, base + modifier)), 2)
+
+
+def _severity_for_outcome(outcome: str, suppression: dict[str, Any] | None) -> str:
+    if suppression:
+        return "suppressed"
+    if outcome == "allowed":
+        return "nominal"
+    if outcome == "config_error":
+        return "critical"
+    if outcome == "policy_violation":
+        return "high"
+    if outcome == "unmatched_route":
+        return "medium"
+    return "low"
 
 
 def _headline_for_scenario(name: ScenarioName) -> str:
@@ -337,6 +609,50 @@ def _last_request_from_trace(trace: dict[str, Any]) -> dict[str, Any]:
     if not isinstance(request, dict):
         return {}
     return request
+
+
+def _stream_step_message(side_effect: dict[str, Any]) -> str:
+    decision_summary = side_effect.get("decision_summary") or side_effect.get("message") or "No extra detail."
+    if side_effect.get("suppressed"):
+        return f"{side_effect['name']} is currently suppressed. {decision_summary}"
+    return (
+        f"{side_effect['name']} finished as `{side_effect['outcome']}` on "
+        f"`{side_effect['method']} {side_effect['path']}`. {decision_summary}"
+    )
+
+
+def _suppression_store(app: FastAPI) -> dict[str, dict[int, dict[str, Any]]]:
+    return app.state.side_effect_suppressions
+
+
+def _normalize_suppression_reason(payload: dict[str, Any] | None, side_effect: dict[str, Any]) -> str:
+    reason = ""
+    if isinstance(payload, dict):
+        reason = str(payload.get("reason") or "").strip()
+    if reason:
+        return reason
+    return side_effect.get("decision_summary") or "Suppressed from the Mirage console while triaging risk."
+
+
+def _find_side_effect(payload: dict[str, Any] | None, step_index: int) -> dict[str, Any] | None:
+    if payload is None:
+        return None
+    for side_effect in payload.get("side_effects", []):
+        if side_effect.get("step_index") == step_index:
+            return side_effect
+    return None
+
+
+def _chunk_text(text: str, size: int = 24) -> list[str]:
+    return [text[index : index + size] for index in range(0, len(text), size)] or [text]
+
+
+def _sse_event(event: str, payload: dict[str, Any]) -> str:
+    return f"event: {event}\ndata: {json.dumps(payload)}\n\n"
+
+
+def _now_iso() -> str:
+    return datetime.now(timezone.utc).isoformat()
 
 
 app = create_demo_app()
