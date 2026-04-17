@@ -30,6 +30,13 @@ make procurement-demo-risky
 make procurement-demo-unmatched
 ```
 
+Summarize or gate the resulting run directly from the shell:
+
+```bash
+make mirage-summary RUN_ID=procurement-risky-demo
+make mirage-gate RUN_ID=procurement-risky-demo
+```
+
 Run the harness tests:
 
 ```bash
@@ -53,6 +60,6 @@ Then open `http://127.0.0.1:5100`.
 ## Files
 
 - `agent.py`: procurement workflow abstraction
-- `demo.py`: CLI demo entry point
+- `demo.py`: CLI demo entry point built on `MirageSession`
 - `mocks.yaml`: procurement harness mock routes
 - `policies.yaml`: procurement harness policy rules

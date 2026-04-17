@@ -4,221 +4,2050 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Mirage</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%23111'/><circle cx='16' cy='16' r='5' fill='%2330d158'/></svg>">
 <style>
-*{margin:0;padding:0;box-sizing:border-box}
+/* ── Variables ── */
+:root{
+  --bg:#050505;
+  --surface:rgba(255,255,255,0.04);
+  --surface-2:rgba(255,255,255,0.03);
+  --surface-hover:rgba(255,255,255,0.06);
+  --surface-strong:rgba(255,255,255,0.08);
+  --separator:rgba(255,255,255,0.07);
+  --text:#f5f5f7;
+  --text-2:rgba(235,235,245,0.72);
+  --text-3:rgba(235,235,245,0.40);
+  --text-4:rgba(235,235,245,0.18);
+  --green:#30d158;
+  --red:#ff453a;
+  --orange:#ff9f0a;
+  --radius:14px;
+  --radius-sm:10px;
+  --ease:cubic-bezier(.25,.1,.25,1);
+  --mono:'SF Mono',ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;
+  --sans:-apple-system,BlinkMacSystemFont,'SF Pro Display','SF Pro Text',system-ui,sans-serif;
+}
 
+/* ── Reset ── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden}
 body{
-  background:#050505;color:#e0e0e0;
-  font:13px/1.6 -apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;
-  -webkit-font-smoothing:antialiased;min-height:100vh;
+  background:var(--bg);
+  color:var(--text);
+  font:14px/1.5 var(--sans);
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+  scrollbar-width:thin;
+  scrollbar-color:rgba(255,255,255,0.08) transparent;
+}
+button,input{font:inherit;border:none;background:none;color:inherit}
+::selection{background:rgba(48,209,88,0.22)}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.07);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,0.14)}
+
+/* ── App Shell ── */
+.app{
+  height:100vh;
+  display:grid;
+  grid-template-rows:48px 1fr;
+  overflow:hidden;
+  user-select:none;
+}
+.selectable{user-select:text}
+
+/* ── Top Bar ── */
+.topbar{
+  display:flex;
+  align-items:center;
+  gap:16px;
+  padding:0 16px;
+  border-bottom:1px solid var(--separator);
+  background:rgba(8,8,8,0.85);
+  backdrop-filter:blur(20px);
+  -webkit-backdrop-filter:blur(20px);
+  z-index:10;
+}
+.topbar-brand{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex-shrink:0;
+}
+.topbar-dot{
+  width:7px;
+  height:7px;
+  border-radius:50%;
+  background:var(--green);
+  flex-shrink:0;
+}
+.topbar-dot.syncing{animation:pulse 1.2s var(--ease) infinite}
+.topbar-brand span{
+  font-weight:600;
+  font-size:14px;
+  letter-spacing:-0.02em;
+}
+.topbar-sep{
+  width:1px;
+  height:18px;
+  background:var(--separator);
+  flex-shrink:0;
+}
+.topbar-page{
+  font-size:13px;
+  color:var(--text-2);
+  flex-shrink:0;
+}
+.topbar-status{
+  flex:1;
+  text-align:center;
+  font:11px/1 var(--mono);
+  color:var(--text-3);
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  padding:0;
+  background:none;
+  border-radius:0;
+}
+.topbar-status.error{
+  color:#ff8a84;
+  background:none;
+  padding:0;
+  border-radius:0;
+}
+.topbar-actions{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  flex-shrink:0;
+}
+.topbar-check{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  font:11px var(--mono);
+  color:var(--text-2);
+  cursor:pointer;
+}
+.topbar-check input{accent-color:var(--green);cursor:pointer}
+.topbar-btn{
+  padding:6px 12px;
+  border-radius:6px;
+  background:rgba(255,255,255,0.06);
+  font:500 10px/1 var(--mono);
+  color:var(--text-2);
+  letter-spacing:0.06em;
+  text-transform:uppercase;
+  cursor:pointer;
+  transition:background .15s var(--ease);
+}
+.topbar-btn:hover{background:rgba(255,255,255,0.12)}
+.topbar-sync{
+  font:10px var(--mono);
+  color:var(--text-4);
+  white-space:nowrap;
 }
 
-.w{max-width:660px;margin:0 auto;padding:80px 28px 120px}
+/* ── Shell ── */
+.shell{
+  display:grid;
+  grid-template-columns:280px 1fr;
+  overflow:hidden;
+  transition:grid-template-columns .25s var(--ease);
+}
+.shell.sb-collapsed{grid-template-columns:0px 1fr}
+.shell.sb-collapsed .sidebar{border-right:none;overflow:hidden}
+.sb-collapse-btn{
+  display:none;
+  width:24px;
+  height:24px;
+  border-radius:6px;
+  cursor:pointer;
+  color:var(--text-3);
+  font:14px/1 var(--mono);
+  transition:background .12s var(--ease),color .12s var(--ease);
+}
+.sb-collapse-btn:hover{background:var(--surface-hover);color:var(--text)}
+.topbar .sb-collapse-btn{display:flex;align-items:center;justify-content:center;flex-shrink:0}
 
-header{margin-bottom:72px}
-h1{font-size:14px;font-weight:500;letter-spacing:5px;text-transform:uppercase}
-header p{font-size:12px;color:#3a3a3a;margin-top:6px}
+/* ── Sidebar ── */
+.sidebar{
+  display:flex;
+  flex-direction:column;
+  border-right:1px solid var(--separator);
+  overflow:hidden;
+  background:rgba(255,255,255,0.01);
+}
+.sb-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:12px 14px;
+  font:500 10px/1 var(--mono);
+  letter-spacing:0.1em;
+  text-transform:uppercase;
+  color:var(--text-3);
+  flex-shrink:0;
+}
+.sb-head .sb-badge{
+  font-weight:400;
+  letter-spacing:0.04em;
+  color:var(--text-4);
+}
+.sb-search{
+  padding:8px 10px 4px;
+  flex-shrink:0;
+}
+.sb-search input{
+  width:100%;
+  padding:7px 10px;
+  border-radius:7px;
+  background:rgba(255,255,255,0.04);
+  border:1px solid rgba(255,255,255,0.06);
+  font:12px var(--sans);
+  color:var(--text);
+  outline:none;
+  transition:border-color .15s var(--ease);
+}
+.sb-search input::placeholder{color:var(--text-4)}
+.sb-search input:focus{border-color:rgba(255,255,255,0.18)}
+.sb-filterbar{
+  display:flex;
+  gap:6px;
+  padding:0 10px 8px;
+  flex-wrap:wrap;
+}
+.filter-btn{
+  padding:5px 9px;
+  border-radius:999px;
+  cursor:pointer;
+  background:rgba(255,255,255,0.04);
+  color:var(--text-3);
+  font:10px/1 var(--mono);
+  letter-spacing:0.04em;
+  text-transform:uppercase;
+  transition:background .12s var(--ease),color .12s var(--ease),border-color .12s var(--ease);
+  border:1px solid transparent;
+}
+.filter-btn:hover{background:rgba(255,255,255,0.08);color:var(--text-2)}
+.filter-btn.active{
+  background:rgba(48,209,88,0.08);
+  border-color:rgba(48,209,88,0.2);
+  color:var(--green);
+}
+.filter-btn:focus-visible{outline:2px solid rgba(48,209,88,0.4);outline-offset:-2px}
+.sb-queue{
+  flex:1;
+  min-height:0;
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+  border-bottom:1px solid var(--separator);
+}
+.sb-scroll{
+  flex:1;
+  overflow-y:auto;
+  padding:0 6px 8px;
+}
+.sb-insights{
+  flex-shrink:0;
+  max-height:260px;
+  overflow-y:auto;
+  border-bottom:1px solid var(--separator);
+}
+.sb-insight{
+  padding:0 14px 10px;
+}
+.sb-insight .sb-head{
+  position:sticky;
+  top:0;
+  padding:10px 0;
+  background:rgba(5,5,5,0.92);
+  backdrop-filter:blur(8px);
+  -webkit-backdrop-filter:blur(8px);
+  z-index:1;
+}
+.sb-scenarios{
+  flex-shrink:0;
+  padding:4px 6px 8px;
+}
+.sb-scenarios .sb-head{
+  padding:10px 8px;
+}
 
-nav{display:flex;gap:8px;margin-bottom:64px}
-nav button{
-  flex:1;background:#0c0c0c;border:1px solid #1a1a1a;
-  border-radius:10px;padding:20px 18px;
-  color:#e0e0e0;font:inherit;cursor:pointer;
-  text-align:left;transition:border-color .15s;
+/* ── Run Items (sidebar) ── */
+.run-btn{
+  width:100%;
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+  text-align:left;
+  padding:10px 12px;
+  border-radius:var(--radius-sm);
+  cursor:pointer;
+  position:relative;
+  transition:background .12s var(--ease);
 }
-nav button:hover{border-color:#2a2a2a}
-nav button:hover .nm{color:#fff}
-nav button.on{border-color:#444}
-.nm{font-weight:500;margin-bottom:4px;transition:color .15s}
-.ds{font-size:11px;color:#4a4a4a;line-height:1.5}
-
-#out .hd{
-  display:flex;justify-content:space-between;align-items:center;
-  padding-bottom:20px;margin-bottom:36px;
-  border-bottom:1px solid #161616;
+.run-btn:hover{background:rgba(255,255,255,0.04)}
+.run-btn.active{background:rgba(48,209,88,0.05)}
+.run-btn.active::after{
+  content:'';
+  position:absolute;
+  left:0;
+  top:8px;
+  bottom:8px;
+  width:2px;
+  border-radius:1px;
+  background:var(--green);
 }
-#out .hd h2{font-size:13px;font-weight:500;color:#888}
-#out .hd code{
-  font:11px 'SF Mono',Menlo,Monaco,Consolas,monospace;color:#333;
+.run-btn:focus-visible{outline:2px solid rgba(48,209,88,0.4);outline-offset:-2px}
+.run-btn+.run-btn{margin-top:2px}
+.severity-dot{
+  width:6px;
+  height:6px;
+  border-radius:50%;
+  flex-shrink:0;
+  background:var(--text-4);
 }
-
-.step{
-  padding-bottom:36px;margin-bottom:36px;
-  border-bottom:1px solid #111;
+.severity-dot.allowed{background:var(--green)}
+.severity-dot.policy_violation{background:var(--red)}
+.severity-dot.unmatched_route{background:var(--orange)}
+.severity-dot.config_error{background:var(--red)}
+.run-top{
+  display:flex;
+  align-items:center;
+  gap:7px;
 }
-.step:last-of-type{border-bottom:none;margin-bottom:28px;padding-bottom:0}
-
-.step-hd{
-  display:flex;justify-content:space-between;
-  align-items:baseline;margin-bottom:20px;
+.run-top .badge{margin-left:auto}
+.run-id{
+  font:600 11px var(--mono);
+  color:var(--text);
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  min-width:0;
 }
-.step-hd .t{font-weight:500}
-.step-hd .t em{font-style:normal;color:#3a3a3a;margin-right:8px}
-.oc{
-  font:500 11px/1 'SF Mono',Menlo,Monaco,Consolas,monospace;
-  letter-spacing:.3px;
+.run-desc{
+  color:var(--text-3);
+  font-size:12px;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
 }
-.oc.allowed{color:#3ecf8e}
-.oc.policy_violation{color:#e5534b}
-.oc.unmatched_route{color:#d29922}
-
-.rq{
-  font:13px 'SF Mono',Menlo,Monaco,Consolas,monospace;
-  color:#888;margin-bottom:16px;
-}
-.rq b{color:#555;font-weight:600;margin-right:10px}
-
-pre{
-  font:12px/1.8 'SF Mono',Menlo,Monaco,Consolas,monospace;
-  color:#5a5a5a;background:#0a0a0a;
-  border-radius:8px;padding:16px 18px;
-  overflow-x:auto;margin-bottom:20px;
-}
-
-.mock{
-  font:12px 'SF Mono',Menlo,Monaco,Consolas,monospace;
-  color:#3a3a3a;margin-bottom:20px;
-}
-.mock span{color:#777}
-
-.lbl{
-  font-size:10px;text-transform:uppercase;
-  letter-spacing:1.5px;color:#333;
-  margin-bottom:10px;font-weight:500;
+.run-meta-row{
+  display:flex;
+  gap:6px;
+  color:var(--text-4);
+  font:10px var(--mono);
 }
 
-.pol-list{margin-bottom:20px}
-.pol{
-  display:flex;align-items:baseline;gap:10px;
-  padding:8px 0;font-size:12px;
+/* ── Scenario Items (sidebar) ── */
+.scenario-btn{
+  width:100%;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:8px 10px;
+  border-radius:8px;
+  cursor:pointer;
+  transition:background .12s var(--ease);
 }
-.pol .k{font-size:12px;width:14px;text-align:center;flex-shrink:0}
-.k.pass{color:#3ecf8e}
-.k.fail{color:#e5534b}
-.pol .pn{
-  font-family:'SF Mono',Menlo,Monaco,Consolas,monospace;
-  color:#bbb;min-width:200px;flex-shrink:0;
+.scenario-btn:hover{background:rgba(255,255,255,0.04)}
+.scenario-btn.active{background:rgba(48,209,88,0.05)}
+.scenario-btn+.scenario-btn{margin-top:2px}
+.scenario-name{
+  font-size:13px;
+  font-weight:500;
 }
-.pol .pd{
-  font:11px 'SF Mono',Menlo,Monaco,Consolas,monospace;
-  color:#444;
+.scenario-hint{
+  font:10px var(--mono);
+  color:var(--text-4);
 }
-.pd .v{color:#888}
-.pd .v.bad{color:#e5534b}
 
-.msg{
-  font-size:12px;padding:10px 14px;
-  border-left:2px solid #222;
-  margin-bottom:20px;color:#555;
+/* ── Sidebar Bar Charts (compact) ── */
+.sb-insight .bar-row{padding:4px 0}
+.sb-insight .bar-label{font-size:11px}
+.sb-insight .bar-value{font-size:10px}
+.sb-insight .bar-track{height:3px}
+.sb-insight .run-sub{display:none}
+.sb-insight .empty{padding:8px 0;font-size:11px;text-align:left}
+
+/* ── Main Area ── */
+.main{
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
 }
-.msg.vio{border-left-color:#e5534b;color:#c44}
-.msg.unm{border-left-color:#d29922;color:#b88520}
 
-.http{
-  font:600 11px 'SF Mono',Menlo,Monaco,Consolas,monospace;
-  margin-bottom:8px;
+/* ── Metrics Strip ── */
+.metrics-strip{
+  display:flex;
+  flex-shrink:0;
+  border-bottom:1px solid var(--separator);
 }
-.http.ok{color:#3ecf8e}
-.http.warn{color:#d29922}
-
-.tbtn{
-  background:none;border:1px solid #151515;
-  border-radius:8px;color:#333;
-  font:11px 'SF Mono',Menlo,Monaco,Consolas,monospace;
-  padding:10px 14px;cursor:pointer;
-  width:100%;text-align:left;
-  transition:color .12s,border-color .12s;
+.metrics-strip .metric{
+  flex:1;
+  padding:12px 16px;
+  border:none;
+  border-right:1px solid var(--separator);
+  border-radius:0;
+  background:transparent;
+  animation:none;
+  opacity:1;
+  transform:none;
 }
-.tbtn:hover{color:#555;border-color:#222}
-.tbtn .ar{display:inline-block;transition:transform .12s;margin-right:6px}
-.tbtn.open .ar{transform:rotate(90deg)}
-.tpnl{display:none;margin-top:8px}
-.tpnl.open{display:block}
+.metrics-strip .metric:last-child{border-right:none}
+.metrics-strip .metric .k{
+  display:block;
+  font:500 9.5px/1 var(--mono);
+  letter-spacing:0.08em;
+  text-transform:uppercase;
+  color:var(--text-3);
+}
+.metrics-strip .metric .v{
+  display:block;
+  margin-top:8px;
+  font-size:20px;
+  font-weight:280;
+  letter-spacing:-0.03em;
+  line-height:1;
+}
+.metrics-strip .metric .u{
+  font-size:.55em;
+  font-weight:400;
+  color:var(--text-3);
+  margin-left:2px;
+}
+.metrics-strip .metric .s{display:none}
 
-.muted{color:#2a2a2a;font-size:12px}
+/* ── Main Header ── */
+.main-header{
+  flex-shrink:0;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:10px 24px;
+  border-bottom:1px solid var(--separator);
+  min-height:40px;
+}
+.main-subtitle{
+  font-size:12px;
+  color:var(--text-3);
+  flex:1;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
 
-@media(max-width:520px){
-  nav{flex-direction:column}
-  .w{padding:48px 16px 80px}
-  .pol .pn{min-width:auto}
+/* ── Main Scroll ── */
+.main-scroll{
+  flex:1;
+  overflow-y:auto;
+  padding:24px;
+}
+.main-scroll>.empty{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  min-height:380px;
+  font-size:14px;
+  color:var(--text-3);
+}
+
+/* ── Badges ── */
+.badge{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  font:500 9px/1 var(--mono);
+  letter-spacing:0.06em;
+  text-transform:uppercase;
+  padding:5px 8px;
+  border-radius:5px;
+  white-space:nowrap;
+}
+.badge.allowed{color:var(--green);background:rgba(48,209,88,0.12)}
+.badge.policy_violation{color:var(--red);background:rgba(255,69,58,0.12)}
+.badge.unmatched_route{color:var(--orange);background:rgba(255,159,10,0.14)}
+.badge.config_error{color:var(--red);background:rgba(255,69,58,0.12)}
+.badge.error{color:var(--red);background:rgba(255,69,58,0.12)}
+.badge.muted{
+  color:var(--text-2);
+  background:rgba(255,255,255,0.06);
+  cursor:pointer;
+  transition:background .12s var(--ease);
+}
+.badge.muted:hover{background:rgba(255,255,255,0.12)}
+
+/* ── Bar Charts ── */
+.bar-row{padding:8px 0}
+.bar-head{
+  display:flex;
+  justify-content:space-between;
+  gap:12px;
+  align-items:center;
+  margin-bottom:6px;
+}
+.bar-label{
+  min-width:0;
+  font-size:12px;
+  color:var(--text-2);
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.bar-value{font:500 11px var(--mono);color:var(--text-2)}
+.bar-track{
+  height:4px;
+  border-radius:999px;
+  background:rgba(255,255,255,0.05);
+  overflow:hidden;
+}
+.bar-fill{
+  height:100%;
+  border-radius:inherit;
+  transition:width .5s var(--ease);
+}
+.bar-row.policy .bar-fill{background:linear-gradient(90deg,var(--red),rgba(255,69,58,0.2))}
+.bar-row.endpoint .bar-fill{background:linear-gradient(90deg,var(--green),rgba(48,209,88,0.2))}
+
+/* ── Drill: Head ── */
+.drill-head{
+  display:flex;
+  justify-content:space-between;
+  gap:18px;
+  align-items:flex-start;
+  position:sticky;
+  top:0;
+  z-index:3;
+  background:rgba(5,5,5,0.92);
+  backdrop-filter:blur(14px);
+  -webkit-backdrop-filter:blur(14px);
+  margin:0 -24px 20px;
+  padding:24px 24px 16px;
+}
+.drill-head h3{
+  font-size:22px;
+  font-weight:600;
+  letter-spacing:-0.03em;
+  line-height:1.1;
+}
+.drill-head p{
+  margin-top:8px;
+  color:var(--text-3);
+  max-width:600px;
+  font-size:13px;
+  line-height:1.55;
+}
+
+/* ── Drill: Meta ── */
+.drill-meta{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:8px;
+  margin-bottom:20px;
+}
+.run-actions{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  margin:-6px 0 20px;
+}
+.run-action-btn{
+  padding:7px 10px;
+  border-radius:7px;
+  background:rgba(255,255,255,0.04);
+  border:1px solid rgba(255,255,255,0.06);
+  color:var(--text-2);
+  font:10px/1 var(--mono);
+  letter-spacing:0.04em;
+  text-transform:uppercase;
+  cursor:pointer;
+  transition:background .12s var(--ease),color .12s var(--ease),border-color .12s var(--ease);
+}
+.run-action-btn:hover{background:rgba(255,255,255,0.08);color:var(--text)}
+.run-action-btn:focus-visible{outline:2px solid rgba(48,209,88,0.4);outline-offset:-2px}
+.run-action-btn[disabled]{
+  opacity:.45;
+  cursor:not-allowed;
+}
+.mini{
+  background:var(--surface-2);
+  border:1px solid rgba(255,255,255,0.05);
+  border-radius:var(--radius-sm);
+  padding:12px 14px;
+}
+.mini .k{
+  display:block;
+  font:500 9px/1 var(--mono);
+  letter-spacing:0.08em;
+  text-transform:uppercase;
+  color:var(--text-3);
+}
+.mini .v{
+  display:block;
+  margin-top:7px;
+  color:var(--text);
+  font:11px/1.5 var(--mono);
+  word-break:break-all;
+  user-select:text;
+}
+
+/* ── Drill: View Tabs ── */
+.drill-nav{
+  display:flex;
+  gap:6px;
+  margin-bottom:18px;
+  flex-wrap:wrap;
+}
+.view-btn{
+  padding:6px 11px;
+  border-radius:6px;
+  background:rgba(255,255,255,0.04);
+  color:var(--text-2);
+  font:10px/1 var(--mono);
+  letter-spacing:0.04em;
+  text-transform:uppercase;
+  cursor:pointer;
+  transition:background .12s var(--ease),color .12s var(--ease),border-color .12s var(--ease);
+  border:1px solid transparent;
+}
+.view-btn:hover{background:var(--surface-hover)}
+.view-btn:focus-visible{outline:2px solid rgba(48,209,88,0.4);outline-offset:-2px}
+.view-btn.active{
+  background:rgba(255,255,255,0.08);
+  border-color:rgba(255,255,255,0.1);
+  color:var(--text);
+}
+.detail-view[hidden]{display:none}
+.detail-view:not([hidden]){animation:view-in .2s var(--ease)}
+
+/* ── Overview View ── */
+.overview{display:grid;gap:10px}
+.overview-hero{
+  padding:20px 22px;
+  border-radius:var(--radius);
+  background:linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.02));
+  border:1px solid rgba(255,255,255,0.07);
+}
+.overview-label{
+  font:500 9px/1 var(--mono);
+  text-transform:uppercase;
+  letter-spacing:0.08em;
+  color:var(--text-3);
+}
+.overview-title{
+  margin-top:10px;
+  font-size:20px;
+  font-weight:600;
+  letter-spacing:-0.03em;
+  line-height:1.1;
+}
+.overview-copy{
+  margin-top:8px;
+  max-width:700px;
+  color:var(--text-2);
+  font-size:13px;
+  line-height:1.6;
+  user-select:text;
+}
+.overview-grid{
+  display:grid;
+  grid-template-columns:1.2fr .8fr;
+  gap:10px;
+}
+.overview-card{
+  background:var(--surface-2);
+  border:1px solid rgba(255,255,255,0.05);
+  border-radius:var(--radius);
+  padding:18px 20px;
+}
+.overview-card h4{
+  font-size:14px;
+  font-weight:600;
+  letter-spacing:-0.02em;
+}
+.overview-card p{
+  margin-top:6px;
+  color:var(--text-3);
+  font-size:12px;
+  line-height:1.55;
+}
+.path-flow{
+  margin-top:14px;
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+  align-items:center;
+}
+.path-step{
+  padding:6px 10px;
+  border-radius:999px;
+  background:rgba(255,255,255,0.04);
+  color:var(--text-2);
+  font-size:11px;
+}
+.path-arrow{
+  color:var(--text-4);
+  font:13px/1 var(--mono);
+}
+.overview-lines{
+  margin-top:14px;
+  display:grid;
+  gap:10px;
+}
+.overview-line{
+  display:flex;
+  justify-content:space-between;
+  gap:16px;
+  padding-bottom:10px;
+  border-bottom:1px solid rgba(255,255,255,0.05);
+}
+.overview-line:last-child{border-bottom:none;padding-bottom:0}
+.overview-line .label{color:var(--text-3);font-size:12px}
+.overview-line .value{color:var(--text-2);font:11px/1.5 var(--mono);text-align:right}
+
+/* ── Timeline ── */
+.timeline{display:grid;gap:8px}
+.event{
+  background:var(--surface-2);
+  border:1px solid rgba(255,255,255,0.05);
+  border-radius:var(--radius);
+  padding:18px 20px;
+  scroll-margin-top:120px;
+}
+.event.risky{border-color:rgba(255,69,58,0.14)}
+.event-hd{
+  display:flex;
+  justify-content:space-between;
+  gap:12px;
+  align-items:flex-start;
+  margin-bottom:10px;
+}
+.event-name{font-weight:600;font-size:14px;letter-spacing:-0.01em}
+.event-time{color:var(--text-3);font:10px var(--mono)}
+.event-rq{
+  color:var(--text-2);
+  font:11px var(--mono);
+  margin-bottom:10px;
+  user-select:text;
+}
+.event-rq b{margin-right:8px;color:var(--text)}
+
+/* ── Chips ── */
+.chips{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px}
+.chip{
+  padding:3px 8px;
+  border-radius:4px;
+  font:10px var(--mono);
+  color:var(--text-2);
+  background:rgba(255,255,255,0.04);
+  user-select:text;
+}
+.chip.ok{color:var(--green);background:rgba(48,209,88,0.1)}
+.chip.bad{color:var(--red);background:rgba(255,69,58,0.1)}
+.chip.warn{color:var(--orange);background:rgba(255,159,10,0.1)}
+
+/* ── Event Messages ── */
+.event-msg{
+  margin:10px 0 0;
+  padding:10px 14px;
+  border-left:2px solid rgba(255,255,255,0.06);
+  font-size:12px;
+  line-height:1.55;
+  color:var(--text-2);
+  user-select:text;
+}
+.event-msg.ok{border-left-color:var(--green);color:#6ee090}
+.event-msg.bad{border-left-color:var(--red);color:#ff8a84}
+.event-msg.warn{border-left-color:var(--orange);color:#ffb84d}
+
+/* ── Run Graph ── */
+.graph{display:grid;gap:10px}
+.graph-summary{
+  padding:14px 16px;
+  border-radius:var(--radius-sm);
+  background:var(--surface-2);
+  border:1px solid rgba(255,255,255,0.05);
+  color:var(--text-2);
+  font-size:12px;
+  line-height:1.55;
+}
+.graph-flow{display:grid;gap:10px}
+.graph-row{
+  display:grid;
+  grid-template-columns:minmax(0,1.2fr) 28px minmax(0,1fr) 28px minmax(0,.9fr) 28px minmax(0,1fr);
+  gap:8px;
+  align-items:stretch;
+}
+.graph-arrow{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:var(--text-4);
+  font:16px/1 var(--mono);
+}
+.graph-stack{display:grid;gap:6px}
+.graph-node{
+  min-height:88px;
+  padding:12px 14px;
+  border-radius:var(--radius-sm);
+  background:var(--surface-2);
+  border:1px solid rgba(255,255,255,0.05);
+}
+.graph-node.request{border-color:rgba(255,255,255,0.08)}
+.graph-node.policy.pass{border-color:rgba(48,209,88,0.2)}
+.graph-node.policy.fail{border-color:rgba(255,69,58,0.2)}
+.graph-node.policy.neutral{border-color:rgba(255,255,255,0.08)}
+.graph-node.outcome.allowed{border-color:rgba(48,209,88,0.2)}
+.graph-node.outcome.policy_violation,
+.graph-node.outcome.config_error{border-color:rgba(255,69,58,0.2)}
+.graph-node.outcome.unmatched_route{border-color:rgba(255,159,10,0.2)}
+.graph-node.artifact{border-color:rgba(255,255,255,0.08)}
+.graph-k{
+  display:block;
+  font:500 9px/1 var(--mono);
+  letter-spacing:0.08em;
+  text-transform:uppercase;
+  color:var(--text-3);
+}
+.graph-v{
+  display:block;
+  margin-top:7px;
+  font-size:12px;
+  font-weight:600;
+  letter-spacing:-0.01em;
+}
+.graph-sub{
+  display:block;
+  margin-top:6px;
+  color:var(--text-2);
+  font-size:11px;
+  line-height:1.5;
+}
+.graph-meta{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px}
+.graph-chip{
+  padding:2px 7px;
+  border-radius:4px;
+  background:rgba(255,255,255,0.04);
+  color:var(--text-2);
+  font:10px/1 var(--mono);
+}
+.graph-chip.ok{color:var(--green);background:rgba(48,209,88,0.1)}
+.graph-chip.bad{color:var(--red);background:rgba(255,69,58,0.1)}
+.graph-chip.warn{color:var(--orange);background:rgba(255,159,10,0.1)}
+
+/* ── Code Blocks ── */
+.event pre,.trace-pane{
+  margin:10px 0 0;
+  padding:14px 16px;
+  border-radius:var(--radius-sm);
+  background:rgba(255,255,255,0.02);
+  border:1px solid rgba(255,255,255,0.04);
+  font:11px/1.7 var(--mono);
+  color:var(--text-2);
+  overflow:auto;
+  user-select:text;
+}
+.trace-pane{margin:0}
+
+/* ── States ── */
+.empty{
+  padding:24px 16px;
+  color:var(--text-3);
+  text-align:center;
+  font-size:12px;
+  line-height:1.6;
+}
+.error{
+  color:#ff8a84;
+  background:rgba(255,69,58,0.06);
+  border-radius:var(--radius-sm);
+  padding:16px 18px;
+  font-size:13px;
+  line-height:1.5;
+}
+.spin{opacity:.5}
+.muted{color:var(--text-3)}
+.run-sub{color:var(--text-3);font-size:11px;margin-top:4px}
+
+/* ── Loading Pulse ── */
+@keyframes pulse{
+  0%,100%{opacity:1}
+  50%{opacity:.3}
+}
+@keyframes shimmer{
+  0%{background-position:-200% 0}
+  100%{background-position:200% 0}
+}
+.loading-skeleton{
+  display:grid;
+  gap:12px;
+  padding:8px 0;
+  animation:fade-in .3s var(--ease);
+}
+.skel-bar{
+  height:12px;
+  border-radius:6px;
+  background:linear-gradient(90deg,rgba(255,255,255,0.03) 25%,rgba(255,255,255,0.06) 50%,rgba(255,255,255,0.03) 75%);
+  background-size:200% 100%;
+  animation:shimmer 1.5s infinite;
+}
+.skel-bar.w60{width:60%}
+.skel-bar.w80{width:80%}
+.skel-bar.w40{width:40%}
+.skel-bar.h20{height:20px;border-radius:8px}
+
+/* ── Empty State ── */
+.empty-state{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  min-height:380px;
+  gap:16px;
+  color:var(--text-3);
+}
+.empty-icon{
+  width:48px;
+  height:48px;
+  border-radius:14px;
+  background:rgba(255,255,255,0.03);
+  border:1px solid rgba(255,255,255,0.06);
+  display:grid;
+  place-items:center;
+  color:var(--text-4);
+  font-size:20px;
+}
+.empty-state p{
+  font-size:13px;
+  text-align:center;
+  max-width:300px;
+  line-height:1.55;
+}
+.empty-state .empty-hint{
+  font:11px var(--mono);
+  color:var(--text-4);
+  letter-spacing:0.02em;
+}
+
+@keyframes fade-in{from{opacity:0}to{opacity:1}}
+@keyframes view-in{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── Responsive ── */
+@media(max-width:1100px){
+  .graph-row{grid-template-columns:1fr}
+  .graph-arrow{display:none}
+}
+@media(max-width:900px){
+  .shell{grid-template-columns:1fr}
+  .sidebar{
+    border-right:none;
+    border-bottom:1px solid var(--separator);
+    max-height:42vh;
+    flex-direction:row;
+    overflow-x:auto;
+  }
+  .sb-queue{min-width:260px;border-bottom:none;border-right:1px solid var(--separator)}
+  .sb-insights{max-height:none;border-bottom:none;border-right:1px solid var(--separator);min-width:220px}
+  .sb-scenarios{min-width:200px}
+  .metrics-strip{flex-wrap:wrap}
+  .metrics-strip .metric{flex:1 0 calc(33.333% - 1px)}
+  .drill-meta,.overview-grid{grid-template-columns:1fr 1fr}
+}
+@media(max-width:600px){
+  .topbar-page,.topbar-sep{display:none}
+  .metrics-strip .metric{flex:1 0 calc(50% - 1px)}
+  .main-scroll{padding:16px}
+  .drill-meta,.overview-grid{grid-template-columns:1fr}
 }
 </style>
 </head>
 <body>
-<div class="w">
-  <header>
-    <h1>Mirage</h1>
-    <p>CI for agent side effects</p>
+<div class="app">
+  <!-- ── Top Bar ── -->
+  <header class="topbar">
+    <div class="topbar-brand">
+      <span class="topbar-dot" id="syncDot"></span>
+      <span>Mirage</span>
+    </div>
+    <div class="topbar-sep"></div>
+    <span class="topbar-page">Action Review</span>
+    <div id="status" class="topbar-status">Loading action metrics&#8230;</div>
+    <div class="topbar-actions">
+      <span id="syncTime" class="topbar-sync"></span>
+      <label class="topbar-check"><input id="followLatest" type="checkbox" checked> follow latest</label>
+      <button id="refreshBtn" class="topbar-btn" type="button">Refresh</button>
+      <button class="sb-collapse-btn" id="sidebarToggle" type="button" title="Toggle sidebar ([)">&#x2759;</button>
+    </div>
   </header>
-  <nav>
-    <button onclick="go('safe',this)">
-      <div class="nm">Safe</div>
-      <div class="ds">$7,500 compliant bid, approved supplier</div>
-    </button>
-    <button onclick="go('risky',this)">
-      <div class="nm">Risky</div>
-      <div class="ds">$50,000 bid, exceeds policy limit</div>
-    </button>
-    <button onclick="go('unmatched',this)">
-      <div class="nm">Unmatched</div>
-      <div class="ds">POST /v1/suppliers, no mock configured</div>
-    </button>
-  </nav>
-  <div id="out"></div>
+
+  <!-- ── Shell ── -->
+  <div class="shell">
+    <!-- ── Sidebar ── -->
+    <aside class="sidebar">
+      <div class="sb-queue">
+        <div class="sb-head">
+          Needs Review
+          <span class="sb-badge" id="runsMeta">waiting</span>
+        </div>
+        <div class="sb-search">
+          <input id="queueSearch" type="text" placeholder="Filter runs..." autocomplete="off" spellcheck="false">
+        </div>
+        <div class="sb-filterbar" id="queueFilters">
+          <button class="filter-btn active" type="button" data-queue-filter="all">All</button>
+          <button class="filter-btn" type="button" data-queue-filter="risky">Risky</button>
+          <button class="filter-btn" type="button" data-queue-filter="allowed">Allowed</button>
+          <button class="filter-btn" type="button" data-queue-filter="unmatched_route">Unmatched</button>
+        </div>
+        <div class="sb-scroll" id="recentRuns">
+          <div class="empty">Loading runs&#8230;</div>
+        </div>
+      </div>
+
+      <div class="sb-insights">
+        <div class="sb-insight">
+          <div class="sb-head">Endpoints</div>
+          <div id="topEndpoints">
+            <div class="empty">Loading&#8230;</div>
+          </div>
+        </div>
+        <div class="sb-insight">
+          <div class="sb-head">Policy Friction</div>
+          <div id="topPolicies">
+            <div class="empty">Loading&#8230;</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="sb-scenarios">
+        <div class="sb-head">
+          Scenarios
+          <span class="sb-badge">demo</span>
+        </div>
+        <button class="scenario-btn" data-scenario="safe" type="button">
+          <span class="scenario-name">Compliant Bid</span>
+          <span class="scenario-hint">$7.5k</span>
+        </button>
+        <button class="scenario-btn" data-scenario="risky" type="button">
+          <span class="scenario-name">Excessive Bid</span>
+          <span class="scenario-hint">$50k</span>
+        </button>
+        <button class="scenario-btn" data-scenario="unmatched" type="button">
+          <span class="scenario-name">New Supplier</span>
+          <span class="scenario-hint">unconfig</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- ── Main ── -->
+    <main class="main">
+      <div class="metrics-strip" id="summaryGrid"></div>
+      <div class="main-header">
+        <span id="drillSubtitle" class="main-subtitle">Select a run to inspect its trace, policy reasoning, and action path.</span>
+        <span id="detailBadge" class="badge muted">idle</span>
+      </div>
+      <div class="main-scroll" id="runDetail">
+        <div class="empty-state">
+          <div class="empty-icon">&#x2736;</div>
+          <p>Select a run from the review queue or launch a demo scenario.</p>
+          <span class="empty-hint">j / k navigate &middot; / search &middot; [ sidebar &middot; 1-4 views</span>
+        </div>
+      </div>
+    </main>
+  </div>
 </div>
+
 <script>
-async function go(name,btn){
-  document.querySelectorAll('nav button').forEach(b=>b.classList.remove('on'));
-  btn.classList.add('on');
-  const out=document.getElementById('out');
-  out.innerHTML='<div class="muted">Running\u2026</div>';
-  try{
-    const r=await fetch('/api/scenario/'+name);
-    out.innerHTML=render(await r.json());
-  }catch(e){
-    out.innerHTML='<div style="color:#e5534b;font-size:12px">'+e.message+'</div>';
-  }
+const numFmt = new Intl.NumberFormat();
+function fmtNum(n) {
+  return typeof n === "number" && Number.isFinite(n) ? numFmt.format(n) : String(n ?? 0);
 }
 
-function render(d){
-  const labels={safe:'Safe Workflow',risky:'Risky Workflow',unmatched:'Unmatched Route'};
-  let h='<div class="hd"><h2>'+labels[d.scenario]+'</h2><code>'+d.run_id+'</code></div>';
-  d.steps.forEach((s,i)=>{h+=step(s,i+1)});
-  h+='<button class="tbtn" onclick="tog(this)"><span class="ar">\u25b8</span>trace</button>';
-  h+='<div class="tpnl"><pre>'+esc(JSON.stringify(d.trace,null,2))+'</pre></div>';
-  return h;
+function relativeTime(value) {
+  if (!value) return "";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return String(value);
+  const s = Math.floor((Date.now() - d.getTime()) / 1000);
+  if (s < 0) return "just now";
+  if (s < 60) return "just now";
+  if (s < 3600) return Math.floor(s / 60) + "m ago";
+  if (s < 86400) return Math.floor(s / 3600) + "h ago";
+  if (s < 604800) return Math.floor(s / 86400) + "d ago";
+  return d.toLocaleDateString([], { month: "short", day: "numeric" });
 }
 
-function step(s,n){
-  const m=s.mirage;
-  let h='<div class="step"><div class="step-hd"><span class="t"><em>'+n+'</em>'+s.name+'</span>';
-  h+='<span class="oc '+m.outcome+'">'+m.outcome.replace(/_/g,' ')+'</span></div>';
-  h+='<div class="rq"><b>'+s.request.method+'</b>'+s.request.path+'</div>';
-  if(s.request.payload)h+='<pre>'+esc(JSON.stringify(s.request.payload,null,2))+'</pre>';
-  if(m.matched_mock)h+='<div class="mock">mock <span>'+m.matched_mock+'</span></div>';
-  if(m.decisions&&m.decisions.length){
-    h+='<div class="lbl">policies</div><div class="pol-list">';
-    m.decisions.forEach(d=>{
-      const ok=d.passed;
-      h+='<div class="pol"><span class="k '+(ok?'pass':'fail')+'">'+(ok?'\u2713':'\u2717')+'</span>';
-      h+='<span class="pn">'+d.name+'</span>';
-      h+='<span class="pd">'+d.field+' '+fop(d.operator)+' '+fv(d.expected);
-      h+=' \u2192 <span class="v'+(ok?'':' bad')+'">'+fv(d.actual)+'</span></span></div>';
+const state = {
+  overview: null,
+  selectedRunId: null,
+  selectedRun: null,
+  detailView: "overview",
+  queueFilter: "all",
+  queueSearch: "",
+  lastUpdated: null,
+  overviewReq: 0,
+  runReq: 0,
+  riskyCursor: 0,
+};
+
+document.addEventListener("DOMContentLoaded", boot);
+
+async function boot() {
+  applyUrlState();
+  document.getElementById("refreshBtn").addEventListener("click", () => refreshOverview({ preserveSelection: false }));
+  document.querySelectorAll("[data-scenario]").forEach((button) => {
+    button.addEventListener("click", () => launchScenario(button.dataset.scenario, button));
+  });
+  document.querySelectorAll("[data-queue-filter]").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.queueFilter = button.dataset.queueFilter || "all";
+      renderOverview();
+      syncUrlState();
     });
-    h+='</div>';
-  }
-  if(m.outcome==='policy_violation')h+='<div class="msg vio">'+esc(m.message)+'</div>';
-  else if(m.outcome==='unmatched_route')h+='<div class="msg unm">'+esc(m.message)+'</div>';
-  const sc=s.response.status_code;
-  h+='<div class="http '+(sc<300?'ok':'warn')+'">'+sc+'</div>';
-  h+='<pre>'+esc(JSON.stringify(s.response.body,null,2))+'</pre></div>';
-  return h;
+  });
+  document.getElementById("queueSearch").addEventListener("input", (event) => {
+    state.queueSearch = event.target.value || "";
+    renderOverview();
+  });
+  window.addEventListener("popstate", async () => {
+    applyUrlState();
+    document.getElementById("queueSearch").value = state.queueSearch;
+    await refreshOverview({ focusRunId: state.selectedRunId, preserveSelection: false });
+  });
+  document.getElementById("queueSearch").value = state.queueSearch;
+  await refreshOverview({ focusRunId: state.selectedRunId, preserveSelection: false });
 }
 
-function fop(o){return{eq:'==',neq:'!=',lt:'<',lte:'\u2264',gt:'>',gte:'\u2265',in:'in',not_in:'not in',exists:'exists'}[o]||o}
-function fv(v){return v==null?'null':typeof v==='string'?'"'+v+'"':String(v)}
-function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
-function tog(b){b.classList.toggle('open');b.nextElementSibling.classList.toggle('open')}
+async function refreshOverview({ focusRunId = null, preserveSelection = true, seedRun = null } = {}) {
+  const req = ++state.overviewReq;
+  setStatus("Loading action metrics\u2026");
+
+  try {
+    const data = await fetchJSON("/api/metrics/overview");
+    if (req !== state.overviewReq) return;
+
+    state.overview = normalizeOverview(data);
+    state.lastUpdated = new Date();
+    renderOverview();
+
+    let target = focusRunId;
+    if (!target && preserveSelection && state.selectedRunId) target = state.selectedRunId;
+    if (!target && document.getElementById("followLatest").checked) target = pickDefaultRunId(state.overview);
+
+    if (target) {
+      await loadRun(target, { seedRun, silent: true });
+    } else if (seedRun) {
+      renderRun(normalizeRun(seedRun), "selected from demo run");
+    } else {
+      renderRunEmpty();
+    }
+
+    setStatus("Updated " + formatClock(state.lastUpdated));
+    updateSyncTime();
+  } catch (error) {
+    if (req !== state.overviewReq) return;
+    state.overview = null;
+    renderOverview();
+    if (seedRun) {
+      renderRun(normalizeRun(seedRun), "selected from demo run");
+      setStatus("Overview unavailable \u2014 showing demo run.", true);
+      return;
+    }
+    renderRunError(error, "Overview endpoint unavailable.");
+    setStatus("Unable to load metrics: " + error.message, true);
+  }
+}
+
+async function launchScenario(name, button) {
+  document.querySelectorAll("[data-scenario]").forEach((el) => el.classList.remove("active"));
+  button.classList.add("active");
+
+  setStatus("Running " + prettyScenario(name) + "\u2026");
+
+  try {
+    const response = await fetchJSON("/api/scenario/" + name);
+    const runId = response.run_id || response.meta?.run_id;
+    state.selectedRunId = runId || null;
+    await refreshOverview({ focusRunId: runId, preserveSelection: false, seedRun: response });
+    setStatus(prettyScenario(name) + " \u2014 opened " + (runId || "new run"));
+  } catch (error) {
+    setStatus("Scenario failed: " + error.message, true);
+    renderRunError(error, "Demo scenario request failed.");
+  }
+}
+
+async function loadRun(runId, { seedRun = null, silent = false } = {}) {
+  const req = ++state.runReq;
+  state.selectedRunId = runId;
+  if (!silent) setDetailBadge("loading");
+
+  try {
+    const response = await fetchJSON("/api/metrics/runs/" + encodeURIComponent(runId));
+    if (req !== state.runReq) return;
+    const run = normalizeRun(response);
+    state.selectedRun = run;
+    renderRun(run, "loaded from metrics API");
+    setDetailBadge(run.outcome || "loaded");
+    highlightSelection();
+    if (!silent) setStatus("Opened run " + run.run_id);
+  } catch (error) {
+    if (req !== state.runReq) return;
+    if (seedRun) {
+      const run = normalizeRun(seedRun);
+      state.selectedRun = run;
+      renderRun(run, "loaded from scenario payload");
+      setDetailBadge(run.outcome || "loaded");
+      highlightSelection();
+      return;
+    }
+    renderRunError(error, "Unable to load run " + runId + ".");
+    setDetailBadge("error");
+    setStatus("Failed to load run " + runId + ": " + error.message, true);
+  }
+}
+
+function renderOverview() {
+  const overview = state.overview;
+  const totals = buildTotals(overview);
+  const flagged = totals.policyViolation + totals.unmatchedRoute + totals.configError;
+  const cards = [
+    metricCard("Total actions", totals.totalActions, "intercepted", "", 0),
+    metricCard("Tracked runs", totals.totalRuns, "reviewed", "", 60),
+    metricCard("Risky", flagged, "flagged", "", 120),
+    metricCard("Allowed", totals.allowed, "clean", "", 180),
+    metricCard("Unmatched", totals.unmatchedRoute, "no mock", "", 240),
+    metricCard("Risk rate", totals.riskRate, "share", "%", 300),
+  ].join("");
+  document.getElementById("summaryGrid").innerHTML = cards;
+
+  const riskEl = document.querySelector(".metrics-strip .metric:last-child");
+  if (riskEl && totals.riskRate > 0) {
+    const c = totals.riskRate > 40 ? "255,69,58" : totals.riskRate > 15 ? "255,159,10" : "48,209,88";
+    riskEl.style.background = "rgba(" + c + ",0.06)";
+  }
+
+  const allRuns = overview?.recentRuns || [];
+  const recentRuns = getVisibleRuns(allRuns);
+  updateQueueFilterUI();
+  document.getElementById("runsMeta").textContent = allRuns.length
+    ? recentRuns.length === allRuns.length
+      ? fmtNum(allRuns.length) + " run" + (allRuns.length === 1 ? "" : "s")
+      : fmtNum(recentRuns.length) + " of " + fmtNum(allRuns.length)
+    : "none";
+  document.getElementById("recentRuns").innerHTML = recentRuns.length
+    ? recentRuns.map((run) => recentRunRow(run)).join("")
+    : allRuns.length
+      ? '<div class="empty">No runs match the current filter.</div>'
+      : '<div class="empty">No runs yet. Launch a scenario to seed the queue.</div>';
+
+  const topEndpoints = overview?.topEndpoints || [];
+  document.getElementById("topEndpoints").innerHTML = topEndpoints.length
+    ? renderBarList(topEndpoints, "endpoint")
+    : '<div class="empty">No endpoint data.</div>';
+
+  const topPolicies = overview?.topPolicies || [];
+  document.getElementById("topPolicies").innerHTML = topPolicies.length
+    ? renderBarList(topPolicies, "policy")
+    : '<div class="empty">No policy data.</div>';
+
+  highlightSelection();
+}
+
+function renderRun(run, sourceLabel) {
+  const detail = document.getElementById("runDetail");
+  const outcome = run.outcome || "unknown";
+  const events = run.events || [];
+  state.selectedRun = run;
+  state.riskyCursor = 0;
+  document.title = run.run_id + " \u2014 Mirage";
+
+  const meta = [
+    miniCard("run id", run.run_id || "unknown"),
+    miniCard("source", run.source || sourceLabel || "metrics"),
+    miniCard("trace path", run.trace_path || "unknown"),
+    miniCard("events", String(events.length)),
+  ].join("");
+
+  const timeline = events.length
+    ? events.map((event, index) => eventCard(event, index + 1)).join("")
+    : '<div class="empty">No events in this run.</div>';
+  const graph = events.length
+    ? renderRunGraph(run)
+    : '<div class="empty">No events in this run.</div>';
+  const overviewPane = renderRunOverview(run);
+  const riskyActions = events.filter(isRiskyEvent).length;
+  const actions = [
+    runActionButton("copy-run-id", "Copy run id"),
+    runActionButton("copy-trace-path", "Copy trace path"),
+    runActionButton("open-trace", "Open raw trace"),
+    runActionButton(
+      "next-risky",
+      riskyActions ? "Next risky action" : "No risky actions",
+      !riskyActions
+    ),
+  ].join("");
+
+  const traceJson = run.trace ? JSON.stringify(run.trace, null, 2) : JSON.stringify(run, null, 2);
+
+  detail.innerHTML = [
+    '<div class="drill-head">',
+      '<div>',
+        '<h3>' + esc(run.run_id || "Run") + '</h3>',
+        '<p>' + esc(run.summaryText || run.headline || run.message || "This run is available for drilldown.") + '</p>',
+      '</div>',
+      '<span class="badge ' + esc(outcome) + '">' + esc(outcome.replace(/_/g, " ")) + '</span>',
+    '</div>',
+    '<div class="drill-meta">' + meta + '</div>',
+    '<div class="run-actions">' + actions + '</div>',
+    '<div class="drill-nav">',
+      viewButton("overview", "Overview"),
+      viewButton("timeline", "Timeline"),
+      viewButton("graph", "Run Graph"),
+      viewButton("trace", "Raw Trace"),
+    '</div>',
+    '<section class="detail-view" data-view-panel="overview">' + overviewPane + '</section>',
+    '<section class="detail-view" data-view-panel="timeline"><div class="timeline">' + timeline + '</div></section>',
+    '<section class="detail-view" data-view-panel="graph">' + graph + '</section>',
+    '<section class="detail-view" data-view-panel="trace"><pre class="trace-pane">' + esc(traceJson) + '</pre></section>',
+  ].join("");
+  document.getElementById("drillSubtitle").textContent = run.summaryText || "Drilldown synced to selected run.";
+  setDetailBadge(outcome || "loaded");
+  applyDetailView();
+  syncUrlState();
+}
+
+function renderRunEmpty() {
+  document.getElementById("runDetail").innerHTML = '<div class="empty-state"><div class="empty-icon">&#x2736;</div><p>Select a run from the review queue or launch a demo scenario.</p><span class="empty-hint">j / k navigate &middot; / search &middot; [ sidebar &middot; 1-4 views</span></div>';
+  document.getElementById("drillSubtitle").textContent = "Select a run to inspect its trace, policy reasoning, and action path.";
+  document.title = "Mirage";
+  setDetailBadge("idle");
+}
+
+function renderRunError(error, prefix) {
+  document.getElementById("runDetail").innerHTML = '<div class="error">' + esc(prefix + " " + error.message) + "</div>";
+  setDetailBadge("error");
+}
+
+function recentRunRow(run) {
+  const runId = getRunId(run);
+  const outcome = getOutcome(run);
+  const desc = getRunDescription(run);
+  const time = getRunTime(run);
+  const events = getCount(run, "event_count", "events", "count");
+  return [
+    '<button class="run-btn' + (state.selectedRunId === runId ? ' active' : '') + '" type="button" data-run-id="' + escAttr(runId) + '" data-outcome="' + escAttr(outcome) + '" data-search="' + escAttr(runId + ' ' + desc + ' ' + outcome) + '">',
+      '<div class="run-top">',
+        '<span class="severity-dot ' + esc(outcome) + '"></span>',
+        '<span class="run-id">' + esc(runId) + '</span>',
+        '<span class="badge ' + esc(outcome) + '">' + esc(outcome.replace(/_/g, " ")) + '</span>',
+      '</div>',
+      '<div class="run-desc">' + esc(desc) + '</div>',
+      '<div class="run-meta-row">',
+        '<span>' + esc(relativeTime(time) || "recent") + '</span>',
+        '<span>\u00b7</span>',
+        '<span>' + esc(fmtNum(events) + " events") + '</span>',
+      '</div>',
+    '</button>',
+  ].join("");
+}
+
+function renderBarList(items, kind) {
+  const max = Math.max(...items.map((item) => getCount(item, "count", "failure_count", "actions", "value")), 1);
+  return items.map((item) => {
+    const label = getLabel(item);
+    const count = getCount(item, "count", "failure_count", "actions", "value");
+    const detail = getDetail(item);
+    const width = Math.max(6, Math.round((count / max) * 100));
+    return [
+      '<div class="bar-row ' + kind + '">',
+        '<div class="bar-head">',
+          '<div class="bar-label">' + esc(label) + '</div>',
+          '<div class="bar-value">' + esc(fmtNum(count)) + '</div>',
+        '</div>',
+        '<div class="bar-track"><div class="bar-fill" style="width:' + width + '%"></div></div>',
+        detail ? '<div class="run-sub">' + esc(detail) + '</div>' : '',
+      '</div>',
+    ].join("");
+  }).join("");
+}
+
+function metricCard(label, value, subtext, suffix, delay) {
+  return [
+    '<div class="metric" style="animation-delay:' + (delay || 0) + 'ms">',
+      '<span class="k">' + esc(label) + '</span>',
+      '<span class="v">' + esc(fmtNum(value)) + (suffix ? '<span class="u">' + esc(suffix) + '</span>' : '') + '</span>',
+      '<span class="s">' + esc(subtext) + '</span>',
+    '</div>',
+  ].join("");
+}
+
+function viewButton(view, label) {
+  return '<button class="view-btn' + (state.detailView === view ? " active" : "") + '" type="button" data-detail-view="' + escAttr(view) + '">' + esc(label) + '</button>';
+}
+
+function renderRunOverview(run) {
+  const events = run.events || [];
+  const latestEvent = events.length ? events[events.length - 1] : null;
+  const decisions = events.flatMap((event) => normalizeDecisions(event.decisions || event.policy_decisions || []));
+  const failingPolicies = decisions.filter((decision) => !decision.passed);
+  const actionPath = events.length
+    ? events.map((event) => '<span class="path-step">' + esc(event.name || event.request?.path || "Action") + '</span>').join('<span class="path-arrow">\u2192</span>')
+    : '<span class="path-step">No actions recorded</span>';
+  const latestRequest = latestEvent?.request
+    ? [latestEvent.request.method, latestEvent.request.path].filter(Boolean).join(" ")
+    : "No primary action";
+  const outcomeText = (run.outcome || "unknown").replace(/_/g, " ");
+  return [
+    '<div class="overview">',
+      '<section class="overview-hero">',
+        '<div class="overview-label">Selected run</div>',
+        '<div class="overview-title">' + esc(run.headline || run.run_id || "Run detail") + '</div>',
+        '<div class="overview-copy">' + esc(run.summaryText || run.message || "Mirage captured this run and made it available for review.") + '</div>',
+      '</section>',
+      '<div class="overview-grid">',
+        '<section class="overview-card">',
+          '<h4>Action path</h4>',
+          '<p>The contained flow before drilling into timeline, graph, or raw trace.</p>',
+          '<div class="path-flow">' + actionPath + '</div>',
+        '</section>',
+        '<section class="overview-card">',
+          '<h4>Review summary</h4>',
+          '<div class="overview-lines">',
+            overviewLine("Final outcome", outcomeText),
+            overviewLine("Latest action", latestRequest || "No request"),
+            overviewLine("Policy failures", fmtNum(failingPolicies.length)),
+            overviewLine("Trace path", run.trace_path || "Stored"),
+            overviewLine("Primary policy", failingPolicies[0]?.name || "None failing"),
+          '</div>',
+        '</section>',
+      '</div>',
+    '</div>',
+  ].join("");
+}
+
+function overviewLine(label, value) {
+  return [
+    '<div class="overview-line">',
+      '<span class="label">' + esc(label) + '</span>',
+      '<span class="value">' + esc(value) + '</span>',
+    '</div>',
+  ].join("");
+}
+
+function miniCard(label, value) {
+  return [
+    '<div class="mini">',
+      '<span class="k">' + esc(label) + '</span>',
+      '<span class="v">' + esc(value) + '</span>',
+    '</div>',
+  ].join("");
+}
+
+function renderRunGraph(run) {
+  const rows = run.events.map((event, index) => graphRow(event, index + 1)).join("");
+  return [
+    '<div class="graph">',
+      '<div class="graph-summary">Run graph maps each intercepted action into a decision path: request \u2192 policy gate \u2192 Mirage outcome \u2192 sandbox artifact.</div>',
+      '<div class="graph-flow">' + rows + '</div>',
+    '</div>',
+  ].join("");
+}
+
+function graphRow(event, index) {
+  const decisions = normalizeDecisions(event.decisions || event.policy_decisions || []);
+  const request = event.request || {};
+  const response = event.response || {};
+  const outcome = event.outcome || "unknown";
+  const policyNodes = decisions.length
+    ? decisions.map((decision) => graphDecisionNode(decision)).join("")
+    : graphPolicyFallback(event);
+  const traceLabel = event.matched_mock ? "mock " + event.matched_mock : "trace artifact";
+  const responseLabel = response.status_code ? "status " + response.status_code : "mocked response";
+  const requestPayload = request.payload && Object.keys(request.payload).length
+    ? Object.keys(request.payload).join(", ")
+    : "no payload";
+  return [
+    '<div class="graph-row">',
+      graphNode("request", "Action " + index, (request.method || "REQUEST") + " " + (request.path || "unknown"), requestPayload, [
+        graphChip(outcome.replace(/_/g, " "), outcomeChipClass(outcome)),
+      ]),
+      '<div class="graph-arrow">\u2192</div>',
+      '<div class="graph-stack">' + policyNodes + '</div>',
+      '<div class="graph-arrow">\u2192</div>',
+      graphNode("outcome " + escAttr(outcome), "Mirage Outcome", outcome.replace(/_/g, " "), event.decision_summary || event.message || "Mirage evaluated this action.", [
+        graphChip(event.policy_passed === false ? "policy fail" : "policy pass", event.policy_passed === false ? "bad" : "ok"),
+      ]),
+      '<div class="graph-arrow">\u2192</div>',
+      graphNode("artifact", "Sandbox Artifact", traceLabel, responseLabel, [
+        response.status_code ? graphChip("HTTP " + response.status_code) : "",
+        event.matched_mock ? graphChip(event.matched_mock) : "",
+        event.timestamp ? graphChip(shortTime(event.timestamp)) : "",
+      ].filter(Boolean)),
+    '</div>',
+  ].join("");
+}
+
+function graphDecisionNode(decision) {
+  const passed = !!decision.passed;
+  const detail = decision.message || decisionLine(decision);
+  return graphNode(
+    "policy " + (passed ? "pass" : "fail"),
+    "Policy Gate",
+    decision.name,
+    detail,
+    [graphChip(passed ? "pass" : "fail", passed ? "ok" : "bad")]
+  );
+}
+
+function graphPolicyFallback(event) {
+  if (event.policy_passed === false) {
+    return graphNode(
+      "policy fail",
+      "Policy Gate",
+      "Policy violation",
+      event.decision_summary || event.message || "Mirage flagged this action.",
+      [graphChip("fail", "bad")]
+    );
+  }
+  return graphNode(
+    "policy neutral",
+    "Policy Gate",
+    "No failing policy",
+    "No structured policy decisions recorded.",
+    [graphChip("pass", "ok")]
+  );
+}
+
+function graphNode(typeClass, label, value, detail, chips) {
+  const chipHtml = Array.isArray(chips) && chips.length
+    ? '<div class="graph-meta">' + chips.join("") + '</div>'
+    : "";
+  return [
+    '<article class="graph-node ' + typeClass + '">',
+      '<span class="graph-k">' + esc(label) + '</span>',
+      '<span class="graph-v">' + esc(value) + '</span>',
+      '<span class="graph-sub">' + esc(detail) + '</span>',
+      chipHtml,
+    '</article>',
+  ].join("");
+}
+
+function graphChip(text, cls) {
+  return '<span class="graph-chip' + (cls ? " " + cls : "") + '">' + esc(text) + '</span>';
+}
+
+function outcomeChipClass(outcome) {
+  if (outcome === "allowed") return "ok";
+  if (outcome === "policy_violation") return "bad";
+  return "warn";
+}
+
+function eventCard(event, index) {
+  const outcome = event.outcome || "unknown";
+  const request = event.request || {};
+  const response = event.response || {};
+  const decisions = normalizeDecisions(event.decisions || event.policy_decisions || []);
+  const chips = [
+    chip(outcome, outcome === "allowed" ? "ok" : outcome === "policy_violation" ? "bad" : "warn"),
+    request.method ? chip(request.method.toUpperCase()) : "",
+    request.path ? chip(request.path) : "",
+    event.matched_mock ? chip("mock " + event.matched_mock) : "",
+  ].filter(Boolean).join("");
+
+  const decisionHtml = decisions.length
+    ? '<div class="chips">' + decisions.map((decision) => chip(decisionLine(decision), decision.passed ? "ok" : "bad")).join("") + '</div>'
+    : "";
+
+  const payloadHtml = request.payload && Object.keys(request.payload).length
+    ? '<div class="event-msg"><strong>Request payload</strong><pre>' + esc(JSON.stringify(request.payload, null, 2)) + "</pre></div>"
+    : "";
+
+  const responseHtml = response.body
+    ? '<div class="event-msg"><strong>Response</strong><pre>' + esc(JSON.stringify(response.body, null, 2)) + "</pre></div>"
+    : "";
+
+  const message = event.decision_summary || event.message || "";
+  const messageClass = outcome === "allowed" ? "ok" : outcome === "policy_violation" ? "bad" : "warn";
+
+  return [
+    '<article class="event' + (isRiskyEvent(event) ? ' risky' : '') + '" data-event-index="' + escAttr(String(index)) + '" data-event-risky="' + escAttr(String(isRiskyEvent(event))) + '">',
+      '<div class="event-hd">',
+        '<div>',
+          '<div class="event-name">' + index + ". " + esc(event.name || request.path || "Action") + '</div>',
+          '<div class="event-time">' + esc(shortTime(event.timestamp || "")) + '</div>',
+        '</div>',
+        '<span class="badge ' + esc(outcome) + '">' + esc(outcome.replace(/_/g, " ")) + '</span>',
+      '</div>',
+      '<div class="event-rq"><b>' + esc(String(request.method || "REQUEST")) + '</b>' + esc(String(request.path || "unknown path")) + '</div>',
+      '<div class="chips">' + chips + '</div>',
+      message ? '<div class="event-msg ' + messageClass + '">' + esc(message) + '</div>' : "",
+      decisionHtml,
+      payloadHtml,
+      responseHtml,
+    '</article>',
+  ].join("");
+}
+
+function chip(text, cls) {
+  return '<span class="chip' + (cls ? " " + cls : "") + '">' + esc(text) + '</span>';
+}
+
+function decisionLine(decision) {
+  const operatorMap = { eq: "==", neq: "!=", lt: "<", lte: "\u2264", gt: ">", gte: "\u2265", in: "in", not_in: "not in", exists: "exists" };
+  const expected = decision.expected === undefined ? "null" : JSON.stringify(decision.expected);
+  const actual = decision.actual === undefined ? "null" : JSON.stringify(decision.actual);
+  return decision.name + ": " + decision.field + " " + (operatorMap[decision.operator] || decision.operator) + " " + expected + " \u2192 " + actual;
+}
+
+function normalizeOverview(data) {
+  const source = safeObject(data);
+  const summary = safeObject(source.summary || source.metrics || source.overview);
+  const recentRuns = pickList(source.recent_risky_runs, source.recent_runs, source.risky_runs, source.runs);
+  const topEndpoints = pickList(source.top_endpoints, source.endpoints, summary.top_endpoints, summary.top_endpoints_by_count);
+  const topPolicies = pickList(source.top_policy_failures, source.top_policies, source.policy_failures, summary.top_policy_failures);
+
+  const totalActions = getCount(summary, "total_actions", "action_count", "actions", "events", "total");
+  const totalRuns = getCount(summary, "total_runs", "run_count", "runs");
+  const allowed = getCount(summary, "allowed", "allowed_count");
+  const policyViolation = getCount(summary, "policy_violation", "policy_violations", "violations");
+  const unmatchedRoute = getCount(summary, "unmatched_route", "unmatched_routes");
+  const configError = getCount(summary, "config_error", "config_errors");
+  const flagTotal = policyViolation + unmatchedRoute + configError;
+  const riskRate = totalActions ? Math.round((flagTotal / totalActions) * 100) : 0;
+
+  return {
+    totalActions,
+    totalRuns,
+    allowed,
+    policyViolation,
+    unmatchedRoute,
+    configError,
+    riskRate,
+    recentRuns,
+    topEndpoints,
+    topPolicies,
+  };
+}
+
+function normalizeRun(data) {
+  const source = safeObject(data);
+  const runId = source.run_id || source.id || source.meta?.run_id || "unknown-run";
+  const trace = source.trace || (Array.isArray(source.events) ? { run_id: runId, events: source.events } : null);
+  const events = Array.isArray(source.events)
+    ? source.events.map((event, index) => normalizeEvent(event, index))
+    : Array.isArray(source.steps)
+      ? source.steps.map((stepData, index) => normalizeEvent({
+          timestamp: stepData.trace_event?.timestamp,
+          name: stepData.name,
+          request: stepData.request,
+          outcome: stepData.mirage?.outcome,
+          policy_passed: stepData.mirage?.policy_passed,
+          matched_mock: stepData.mirage?.matched_mock,
+          message: stepData.mirage?.message,
+          decision_summary: stepData.mirage?.decision_summary,
+          decisions: stepData.mirage?.decisions,
+          response: stepData.response,
+        }, index))
+      : [];
+
+  const lastEvent = events.length ? events[events.length - 1] : null;
+  const outcome = source.outcome || source.summary?.final_outcome || lastEvent?.outcome || source.meta?.final_outcome || "unknown";
+  const tracePath = source.trace_path || source.meta?.trace_path || "";
+  const summaryText = source.summary?.headline || source.headline || source.message || source.summary?.summary || "";
+
+  return {
+    run_id: runId,
+    source: source.meta?.source || source.source || "metrics",
+    trace_path: tracePath,
+    event_count: source.event_count ?? source.meta?.event_count ?? events.length,
+    outcome,
+    summaryText,
+    headline: source.summary?.headline || source.headline || runId,
+    message: source.message || source.summary?.message || "",
+    events,
+    trace: trace || source,
+  };
+}
+
+function normalizeEvent(event, index) {
+  const request = safeObject(event.request);
+  const response = safeObject(event.response);
+  return {
+    index: index + 1,
+    timestamp: event.timestamp || event.time || "",
+    name: event.name || event.step_name || request.path || "Action " + (index + 1),
+    request: {
+      method: request.method || event.method || "REQUEST",
+      path: request.path || event.path || "unknown",
+      payload: request.payload || event.payload || null,
+    },
+    outcome: event.outcome || "unknown",
+    policy_passed: event.policy_passed,
+    matched_mock: event.matched_mock || event.mock_name || "",
+    message: event.message || "",
+    decision_summary: event.decision_summary || "",
+    decisions: normalizeDecisions(event.decisions || event.policy_decisions || []),
+    response: {
+      status_code: response.status_code || event.status_code || "",
+      body: response.body || event.body || null,
+    },
+  };
+}
+
+function normalizeDecisions(decisions) {
+  if (!Array.isArray(decisions)) return [];
+  return decisions.map((decision) => ({
+    name: decision.name || "policy",
+    passed: !!decision.passed,
+    field: decision.field || "field",
+    operator: decision.operator || "eq",
+    expected: decision.expected,
+    actual: decision.actual,
+    message: decision.message || "",
+  }));
+}
+
+function pickDefaultRunId(overview) {
+  const first = getVisibleRuns(overview?.recentRuns || [])[0];
+  return getRunId(first);
+}
+
+function renderRunListSelected() {
+  document.querySelectorAll("[data-run-id]").forEach((button) => {
+    button.classList.toggle("active", button.dataset.runId === state.selectedRunId);
+  });
+}
+
+function highlightSelection() {
+  renderRunListSelected();
+}
+
+function applyDetailView() {
+  document.querySelectorAll("[data-detail-view]").forEach((button) => {
+    button.classList.toggle("active", button.dataset.detailView === state.detailView);
+  });
+  document.querySelectorAll("[data-view-panel]").forEach((panel) => {
+    panel.hidden = panel.dataset.viewPanel !== state.detailView;
+  });
+}
+
+function buildTotals(overview) {
+  return overview || {
+    totalActions: 0,
+    totalRuns: 0,
+    allowed: 0,
+    policyViolation: 0,
+    unmatchedRoute: 0,
+    configError: 0,
+    riskRate: 0,
+  };
+}
+
+function getRunId(item) {
+  return item?.run_id || item?.id || item?.meta?.run_id || item?.runId || "unknown-run";
+}
+
+function getOutcome(item) {
+  return item?.outcome || item?.status || item?.summary?.final_outcome || item?.result || "unknown";
+}
+
+function getRunDescription(item) {
+  const detail = getDetail(item);
+  if (detail) return detail;
+  const method = item?.request?.method || item?.method || "";
+  const path = item?.request?.path || item?.path || "";
+  const summary = [method, path].filter(Boolean).join(" ");
+  return summary || item?.headline || item?.source || "recent run";
+}
+
+function getRunTime(item) {
+  return item?.timestamp || item?.last_seen || item?.updated_at || item?.created_at || item?.meta?.timestamp || "";
+}
+
+function getDetail(item) {
+  return item?.message || item?.summary || item?.description || item?.top_reason || "";
+}
+
+function getCount(item, ...keys) {
+  for (const key of keys) {
+    const value = item?.[key];
+    if (typeof value === "number" && Number.isFinite(value)) return value;
+    if (typeof value === "string" && value.trim() !== "" && !Number.isNaN(Number(value))) return Number(value);
+  }
+  return 0;
+}
+
+function getLabel(item) {
+  return item?.label || item?.name || item?.endpoint || item?.path || item?.field || "item";
+}
+
+function pickList(...lists) {
+  for (const list of lists) {
+    if (Array.isArray(list) && list.length) return list;
+  }
+  return [];
+}
+
+function prettyScenario(name) {
+  return { safe: "Compliant Bid", risky: "Excessive Bid", unmatched: "New Supplier" }[name] || name;
+}
+
+function setStatus(message, error) {
+  const el = document.getElementById("status");
+  el.textContent = message;
+  el.classList.toggle("error", !!error);
+  const dot = document.getElementById("syncDot");
+  if (dot) dot.classList.toggle("syncing", !error && message.includes("\u2026"));
+}
+
+function updateSyncTime() {
+  const el = document.getElementById("syncTime");
+  if (!el || !state.lastUpdated) { if (el) el.textContent = ""; return; }
+  const s = Math.floor((Date.now() - state.lastUpdated.getTime()) / 1000);
+  if (s < 5) el.textContent = "just now";
+  else if (s < 60) el.textContent = s + "s ago";
+  else if (s < 3600) el.textContent = Math.floor(s / 60) + "m ago";
+  else el.textContent = Math.floor(s / 3600) + "h ago";
+}
+setInterval(updateSyncTime, 5000);
+
+function setDetailBadge(text) {
+  const badge = document.getElementById("detailBadge");
+  badge.textContent = text.replace(/_/g, " ");
+  const cls = text === "idle" || text === "loading" || text === "loaded" ? "muted" : text;
+  badge.className = "badge " + cls;
+}
+
+function shortTime(value) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value);
+  return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
+function formatClock(date) {
+  return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
+function esc(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;");
+}
+
+function escAttr(value) {
+  return esc(value).replaceAll('"', "&quot;");
+}
+
+function safeObject(value) {
+  return value && typeof value === "object" ? value : {};
+}
+
+function fetchJSON(url) {
+  return fetch(url).then(async (response) => {
+    const text = await response.text();
+    let data = null;
+    try {
+      data = text ? JSON.parse(text) : null;
+    } catch {
+      data = text;
+    }
+    if (!response.ok) {
+      const message = typeof data === "object" && data ? data.error || data.message || response.statusText : response.statusText;
+      throw new Error(message || "Request failed");
+    }
+    return data;
+  });
+}
+
+document.addEventListener("click", (event) => {
+  const actionTarget = event.target.closest("[data-run-action]");
+  if (actionTarget) {
+    handleRunAction(actionTarget.dataset.runAction);
+    return;
+  }
+  const viewTarget = event.target.closest("[data-detail-view]");
+  if (viewTarget) {
+    state.detailView = viewTarget.dataset.detailView || "timeline";
+    applyDetailView();
+    return;
+  }
+  const target = event.target.closest("[data-run-id]");
+  if (!target) return;
+  if (!state.overview) return;
+  selectRun(target.dataset.runId);
+});
+
+async function selectRun(runId) {
+  state.selectedRunId = runId;
+  await loadRun(runId);
+  highlightSelection();
+}
+
+// ── Sidebar Toggle ──
+document.getElementById("sidebarToggle").addEventListener("click", toggleSidebar);
+function toggleSidebar() {
+  document.querySelector(".shell").classList.toggle("sb-collapsed");
+}
+
+// ── Keyboard Navigation ──
+document.addEventListener("keydown", (e) => {
+  if (e.target.tagName === "TEXTAREA") return;
+  if (e.target.tagName === "INPUT") {
+    if (e.key === "Escape") { e.target.blur(); e.target.value = ""; e.target.dispatchEvent(new Event("input")); }
+    return;
+  }
+  const runs = state.overview?.recentRuns || [];
+  if (e.key === "/" || e.key === "f" && !e.metaKey && !e.ctrlKey) {
+    e.preventDefault();
+    document.getElementById("queueSearch").focus();
+    return;
+  }
+  if (e.key === "[") { toggleSidebar(); return; }
+  if (e.key === "u" && state.selectedRun) {
+    state.detailView = "trace";
+    applyDetailView();
+    setStatus("Opened raw trace for " + state.selectedRun.run_id);
+    return;
+  }
+  const visibleRuns = getVisibleRuns(runs);
+  if (!visibleRuns.length) return;
+  const ids = visibleRuns.map(getRunId);
+  const idx = state.selectedRunId ? ids.indexOf(state.selectedRunId) : -1;
+
+  if (e.key === "j" || e.key === "ArrowDown") {
+    e.preventDefault();
+    const next = Math.min(idx + 1, ids.length - 1);
+    selectRun(ids[next]);
+    scrollRunIntoView(ids[next]);
+  } else if (e.key === "k" || e.key === "ArrowUp") {
+    e.preventDefault();
+    const prev = Math.max(idx - 1, 0);
+    selectRun(ids[prev]);
+    scrollRunIntoView(ids[prev]);
+  } else if (e.key === "Enter" && idx >= 0) {
+    selectRun(ids[idx]);
+  } else if (e.key === "1" || e.key === "2" || e.key === "3" || e.key === "4") {
+    const views = ["overview", "timeline", "graph", "trace"];
+    state.detailView = views[Number(e.key) - 1];
+    applyDetailView();
+  } else if (e.key === "r" && !e.metaKey && !e.ctrlKey) {
+    refreshOverview({ preserveSelection: true });
+  }
+});
+
+function scrollRunIntoView(runId) {
+  const btn = document.querySelector('[data-run-id="' + CSS.escape(runId) + '"]');
+  if (btn) btn.scrollIntoView({ block: "nearest", behavior: "smooth" });
+}
+
+function updateQueueFilterUI() {
+  document.querySelectorAll("[data-queue-filter]").forEach((button) => {
+    button.classList.toggle("active", button.dataset.queueFilter === state.queueFilter);
+  });
+}
+
+function getVisibleRuns(runs) {
+  const search = state.queueSearch.toLowerCase().trim();
+  return (runs || []).filter((run) => {
+    const outcome = getOutcome(run);
+    const matchesFilter = state.queueFilter === "all"
+      ? true
+      : state.queueFilter === "risky"
+        ? outcome !== "allowed"
+        : outcome === state.queueFilter;
+    if (!matchesFilter) return false;
+    if (!search) return true;
+    const haystack = [
+      getRunId(run),
+      getRunDescription(run),
+      outcome,
+      run?.request?.method,
+      run?.request?.path,
+      run?.headline,
+    ].filter(Boolean).join(" ").toLowerCase();
+    return haystack.includes(search);
+  });
+}
+
+function runActionButton(action, label, disabled) {
+  return '<button class="run-action-btn" type="button" data-run-action="' + escAttr(action) + '"' + (disabled ? " disabled" : "") + '>' + esc(label) + '</button>';
+}
+
+function handleRunAction(action) {
+  if (!state.selectedRun) return;
+  if (action === "copy-run-id") {
+    copyToClipboard(state.selectedRun.run_id, "Copied run id");
+    return;
+  }
+  if (action === "copy-trace-path") {
+    copyToClipboard(state.selectedRun.trace_path || "", "Copied trace path");
+    return;
+  }
+  if (action === "open-trace") {
+    state.detailView = "trace";
+    applyDetailView();
+    setStatus("Opened raw trace for " + state.selectedRun.run_id);
+    return;
+  }
+  if (action === "next-risky") {
+    jumpToNextRiskyAction();
+  }
+}
+
+async function copyToClipboard(value, successMessage) {
+  if (!value) {
+    setStatus("Nothing to copy for this run.", true);
+    return;
+  }
+  try {
+    await navigator.clipboard.writeText(value);
+    setStatus(successMessage);
+  } catch (error) {
+    setStatus("Clipboard unavailable: " + error.message, true);
+  }
+}
+
+function jumpToNextRiskyAction() {
+  const riskyEvents = state.selectedRun?.events?.filter(isRiskyEvent) || [];
+  if (!riskyEvents.length) {
+    setStatus("No risky actions in this run.");
+    return;
+  }
+  state.detailView = "timeline";
+  applyDetailView();
+  const target = riskyEvents[state.riskyCursor % riskyEvents.length];
+  state.riskyCursor += 1;
+  requestAnimationFrame(() => {
+    const node = document.querySelector('[data-event-index="' + CSS.escape(String(target.index)) + '"]');
+    if (node) node.scrollIntoView({ block: "center", behavior: "smooth" });
+  });
+  setStatus("Focused risky action " + target.index + " in " + state.selectedRun.run_id);
+}
+
+function isRiskyEvent(event) {
+  return event?.outcome !== "allowed" || event?.policy_passed === false;
+}
+
+function applyUrlState() {
+  const params = new URLSearchParams(window.location.search);
+  const filter = params.get("filter");
+  state.selectedRunId = params.get("run_id");
+  state.queueFilter = filter && ["all", "risky", "allowed", "unmatched_route"].includes(filter) ? filter : "all";
+}
+
+function syncUrlState() {
+  const params = new URLSearchParams(window.location.search);
+  if (state.selectedRunId) params.set("run_id", state.selectedRunId);
+  else params.delete("run_id");
+  if (state.queueFilter && state.queueFilter !== "all") params.set("filter", state.queueFilter);
+  else params.delete("filter");
+  const next = window.location.pathname + (params.toString() ? "?" + params.toString() : "");
+  window.history.replaceState({}, "", next);
+}
 </script>
 </body>
 </html>
