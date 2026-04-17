@@ -259,7 +259,12 @@ The template and index live in [`docs/worklog/`](docs/worklog).
 
 - [`docs/FIRST_INTEGRATION.md`](docs/FIRST_INTEGRATION.md): 30-minute walkthrough for integrating your own `httpx` agent
 - [`docs/CI_INTEGRATION.md`](docs/CI_INTEGRATION.md): pytest and GitHub Actions gating recipes
-- [`PROBLEM_STATEMENT.md`](PROBLEM_STATEMENT.md): concise founder-facing problem and solution framing
-- [`PROJECT_NOTES.md`](PROJECT_NOTES.md): product thesis and implementation notes
-- [`MIRAGE_90_DAY_PLAN.md`](MIRAGE_90_DAY_PLAN.md): current 90-day product and distribution plan
-- [`docs/live-demo-script.md`](docs/live-demo-script.md): recommended founder live demo flow
+- [`examples/procurement_harness/README.md`](examples/procurement_harness/README.md): bundled end-to-end example workflow
+
+## Contributing
+
+Bug reports and pull requests are welcome. See [`CONTRIBUTING.md`](CONTRIBUTING.md) for the local dev loop and expectations.
+
+## License
+
+Mirage is released under the [MIT License](LICENSE).
