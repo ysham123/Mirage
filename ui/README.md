@@ -7,6 +7,13 @@ It does not replace `demo_ui/`. The current split is:
 - `demo_ui/`: FastAPI console API plus the zero-dependency legacy HTML shell
 - `ui/`: Next.js client that consumes that API for a more polished review UX
 
+The current client depends on these shared backend endpoints:
+
+- `/api/metrics/overview`
+- `/api/metrics/runs/{run_id}`
+- `/api/chat/stream?run_id=...`
+- `/api/runs/{run_id}/side-effects/{step_index}/suppress`
+
 ## Local dev
 
 Terminal 1: start the shared console API/backend.

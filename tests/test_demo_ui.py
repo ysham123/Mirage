@@ -11,6 +11,65 @@ def _write_trace(root, run_id, events):
     return path
 
 
+def _assert_has_keys(payload, keys):
+    missing = sorted(set(keys) - set(payload.keys()))
+    assert not missing, f"Missing keys: {missing}"
+
+
+def _assert_run_payload_matches_ui_contract(body):
+    _assert_has_keys(
+        body,
+        {
+            "run_id",
+            "meta",
+            "summary",
+            "risk",
+            "agent_health",
+            "side_effects",
+            "trace",
+            "trace_path",
+        },
+    )
+    _assert_has_keys(body["meta"], {"run_id", "trace_path", "source", "event_count"})
+    _assert_has_keys(
+        body["summary"],
+        {"headline", "final_outcome", "trace_event_count", "trace_path"},
+    )
+    _assert_has_keys(
+        body["risk"],
+        {"score", "level", "total_steps", "risky_steps", "suppressed_steps", "allowed_steps"},
+    )
+    _assert_has_keys(body["agent_health"], {"status", "summary", "confidence", "label"})
+    assert isinstance(body["side_effects"], list)
+    assert body["side_effects"]
+    _assert_has_keys(
+        body["side_effects"][0],
+        {
+            "id",
+            "step_index",
+            "name",
+            "method",
+            "path",
+            "payload",
+            "status_code",
+            "response_body",
+            "outcome",
+            "severity",
+            "message",
+            "decision_summary",
+            "decisions",
+            "matched_mock",
+            "policy_passed",
+            "timestamp",
+            "confidence",
+            "suppressed",
+            "suppression",
+            "status",
+        },
+    )
+    _assert_has_keys(body["trace"], {"run_id", "events"})
+
+
 def test_demo_ui_root_serves_html(tmp_path):
     with TestClient(create_demo_app(artifact_root=tmp_path / "artifacts" / "traces")) as client:
         response = client.get("/")
@@ -77,6 +136,17 @@ def test_demo_ui_risky_scenario_exposes_policy_decisions(tmp_path):
     )
 
 
+def test_demo_ui_scenario_payload_matches_ui_run_contract(tmp_path):
+    with TestClient(create_demo_app(artifact_root=tmp_path / "artifacts" / "traces")) as client:
+        response = client.get("/api/scenario/safe")
+
+    body = response.json()
+    assert response.status_code == 200
+    _assert_run_payload_matches_ui_contract(body)
+    assert body["meta"]["source"] == "proxy-backed procurement harness"
+    assert body["summary"]["final_outcome"] == "allowed"
+
+
 def test_demo_ui_metrics_overview_aggregates_trace_store(tmp_path):
     artifact_root = tmp_path / "artifacts" / "traces"
     _write_trace(
@@ -139,6 +209,58 @@ def test_demo_ui_metrics_overview_aggregates_trace_store(tmp_path):
     assert body["recent_runs"][1]["outcome"] == "policy_violation"
 
 
+def test_demo_ui_metrics_overview_matches_ui_contract(tmp_path):
+    artifact_root = tmp_path / "artifacts" / "traces"
+    _write_trace(
+        artifact_root,
+        "run-overview",
+        [
+            {
+                "timestamp": "2026-03-28T11:00:00+00:00",
+                "run_id": "run-overview",
+                "request": {"method": "GET", "path": "/v1/suppliers/SUP-001", "payload": {}},
+                "outcome": "allowed",
+                "message": "Request matched a Mirage mock and passed all policy checks.",
+                "matched_mock": "get_supplier_sup_001",
+                "policy_passed": True,
+                "policy_decisions": [],
+                "response": {"status_code": 200, "body": {"supplier_id": "SUP-001"}},
+            }
+        ],
+    )
+
+    with TestClient(create_demo_app(artifact_root=artifact_root)) as client:
+        response = client.get("/api/metrics/overview")
+
+    body = response.json()
+    assert response.status_code == 200
+    _assert_has_keys(body, {"summary", "recent_runs", "top_endpoints", "top_policy_failures"})
+    _assert_has_keys(
+        body["summary"],
+        {
+            "total_runs",
+            "total_actions",
+            "allowed",
+            "policy_violation",
+            "unmatched_route",
+            "config_error",
+            "risky_runs",
+            "suppressed_actions",
+        },
+    )
+    assert isinstance(body["recent_runs"], list)
+    assert body["recent_runs"]
+    _assert_has_keys(
+        body["recent_runs"][0],
+        {"run_id", "outcome", "headline", "timestamp", "request", "event_count", "suppressed_count"},
+    )
+    _assert_has_keys(body["recent_runs"][0]["request"], {"method", "path"})
+    assert isinstance(body["top_endpoints"], list)
+    assert body["top_endpoints"]
+    _assert_has_keys(body["top_endpoints"][0], {"label", "description", "count", "method", "path"})
+    assert body["top_policy_failures"] == []
+
+
 def test_demo_ui_metrics_run_drilldown_returns_trace_backed_steps(tmp_path):
     artifact_root = tmp_path / "artifacts" / "traces"
     _write_trace(
@@ -198,6 +320,35 @@ def test_demo_ui_metrics_run_drilldown_returns_trace_backed_steps(tmp_path):
     assert body["agent_health"]["status"] == "watch"
     assert body["side_effects"][1]["path"] == "/v1/submit_bid"
     assert body["side_effects"][1]["suppressed"] is False
+
+
+def test_demo_ui_metrics_run_detail_matches_ui_contract(tmp_path):
+    artifact_root = tmp_path / "artifacts" / "traces"
+    _write_trace(
+        artifact_root,
+        "run-contract",
+        [
+            {
+                "timestamp": "2026-03-28T10:00:00+00:00",
+                "run_id": "run-contract",
+                "request": {"method": "GET", "path": "/v1/suppliers/SUP-001", "payload": {}},
+                "outcome": "allowed",
+                "message": "Request matched a Mirage mock and passed all policy checks.",
+                "matched_mock": "get_supplier_sup_001",
+                "policy_passed": True,
+                "policy_decisions": [],
+                "response": {"status_code": 200, "body": {"supplier_id": "SUP-001"}},
+            }
+        ],
+    )
+
+    with TestClient(create_demo_app(artifact_root=artifact_root)) as client:
+        response = client.get("/api/metrics/runs/run-contract")
+
+    body = response.json()
+    assert response.status_code == 200
+    _assert_run_payload_matches_ui_contract(body)
+    assert body["meta"]["source"] == "trace metrics review"
 
 
 def test_demo_ui_chat_stream_replays_sse_events(tmp_path):
