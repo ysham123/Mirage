@@ -136,4 +136,7 @@ Mirage reaches the next major milestone when one external Python engineer can:
 
 ## Immediate Build Priorities
 
-1. Lock the canonical Python integratio
+1. Lock the canonical Python integration API.
+2. Add clear run-level CI gating and human-readable failure summaries.
+3. Tighten quickstart and onboarding around one real workflow.
+4. Run technical design-partner outreach with engineers who already have action-taking agents.

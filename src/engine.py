@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import re
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Literal
@@ -165,7 +166,7 @@ class MirageEngine:
     def _match_mock(self, config: MirageConfig, method: str, path: str) -> MockRouteConfig | None:
         method_name = method.upper()
         for mock in config.mocks:
-            if mock.method.upper() == method_name and mock.path == path:
+            if mock.method.upper() == method_name and _path_matches(mock.path, path):
                 return mock
         return None
 
@@ -182,7 +183,7 @@ class MirageEngine:
         for policy in config.policies:
             if policy.method and policy.method.upper() != method_name:
                 continue
-            if policy.path and policy.path != path:
+            if policy.path and not _path_matches(policy.path, path):
                 continue
 
             actual, exists = self._extract_field(payload, policy.field)
@@ -301,3 +302,13 @@ def _summarize_decision(decision: PolicyDecision) -> str:
 
 def _format_value(value: Any) -> str:
     return repr(value)
+
+
+_PARAM_RE = re.compile(r"\{([^{}/]+)\}")
+
+
+def _path_matches(pattern: str, path: str) -> bool:
+    if "{" not in pattern:
+        return pattern == path
+    regex = "^" + _PARAM_RE.sub(r"(?P<\1>[^/]+)", re.escape(pattern).replace(r"\{", "{").replace(r"\}", "}")) + "$"
+    return re.match(regex, path) is not None
