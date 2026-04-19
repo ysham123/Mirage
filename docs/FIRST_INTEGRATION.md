@@ -68,7 +68,28 @@ policies:
 Supported operators: `exists`, `eq`, `neq`, `lt`, `lte`, `gt`, `gte`, `in`,
 `not_in`. See [examples/procurement_harness/policies.yaml](../examples/procurement_harness/policies.yaml).
 
-## 4. Start the Mirage proxy with your config
+## 4. Validate config before you start the proxy
+
+Run:
+
+```bash
+python -m src.cli validate-config \
+  --mocks-path ./my_mocks.yaml \
+  --policies-path ./my_policies.yaml
+```
+
+You should see:
+
+```
+Mirage config valid.
+Mocks: 2 from my_mocks.yaml
+Policies: 1 from my_policies.yaml
+```
+
+If this fails, Mirage names the file, entry index, and field before you even
+boot the proxy.
+
+## 5. Start the Mirage proxy with your config
 
 In one terminal:
 
@@ -80,7 +101,7 @@ uvicorn src.proxy:app --reload
 
 Mirage now listens on `http://localhost:8000`.
 
-## 5. Swap your agent's HTTP client for `MirageSession`
+## 6. Swap your agent's HTTP client for `MirageSession`
 
 Before:
 
@@ -105,7 +126,7 @@ If your agent has its own method wrappers (`client.get(...)`), `MirageSession`
 also exposes `get`, `post`, `put`, `patch`, `delete` directly — no client passthrough
 needed.
 
-## 6. Run once and read the summary
+## 7. Run once and read the summary
 
 In a second terminal:
 
@@ -123,7 +144,7 @@ Summary: 2 action(s), 2 safe, 0 risky
 Result: clean run
 ```
 
-## 7. Break a policy on purpose
+## 8. Break a policy on purpose
 
 Make the agent send `total_amount: 9999`. Rerun steps 6. You should see:
 
@@ -141,7 +162,7 @@ That `Next:` line tells you exactly where to look. If you see
 `[config_error]`, the error message names the file, entry index, and field
 that's wrong, plus an example of a correct entry.
 
-## 8. Wire it into pytest
+## 9. Wire it into pytest
 
 In your repo's `conftest.py`:
 
@@ -162,7 +183,29 @@ The fixture derives a stable run_id from the test's nodeid and calls
 `assert_clean()` on teardown, so any risky action fails the test with a
 human-readable summary.
 
-## 9. Next: CI
+If you need to point tests at a non-default proxy URL, artifact root, or a
+negative test that intentionally keeps a risky run, add an options fixture in
+that same `conftest.py`:
+
+```python
+import pytest
+
+from src.pytest_plugin import mirage_session
+
+
+@pytest.fixture
+def mirage_session_options(tmp_path):
+    return {
+        "base_url": "http://127.0.0.1:8000",
+        "artifact_root": tmp_path / "artifacts" / "traces",
+        "auto_assert": False,
+    }
+```
+
+`auto_assert=False` is useful for tests that intentionally inspect a
+`policy_violation` or `unmatched_route` instead of failing in fixture teardown.
+
+## 10. Next: CI
 
 See [CI_INTEGRATION.md](CI_INTEGRATION.md) for the GitHub Actions and script-level
 gating patterns.

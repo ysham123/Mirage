@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 import json
 from pathlib import Path
 from typing import Any, Iterable, Literal
@@ -45,6 +46,23 @@ class MirageConfigError(ValueError):
     """
 
 
+@dataclass(frozen=True)
+class MirageConfigSummary:
+    mocks_path: str
+    policies_path: str
+    mock_count: int
+    policy_count: int
+
+    def to_text(self) -> str:
+        return "\n".join(
+            [
+                "Mirage config valid.",
+                f"Mocks: {self.mock_count} from {self.mocks_path}",
+                f"Policies: {self.policy_count} from {self.policies_path}",
+            ]
+        )
+
+
 _MOCK_EXAMPLE = """mocks:
   - name: get_supplier
     method: GET
@@ -84,6 +102,16 @@ def load_mirage_config(mocks_path: Path, policies_path: Path) -> MirageConfig:
         example=_POLICY_EXAMPLE,
     )
     return MirageConfig(mocks=mocks, policies=policies)
+
+
+def validate_mirage_config(mocks_path: Path, policies_path: Path) -> MirageConfigSummary:
+    config = load_mirage_config(mocks_path, policies_path)
+    return MirageConfigSummary(
+        mocks_path=str(mocks_path),
+        policies_path=str(policies_path),
+        mock_count=len(config.mocks),
+        policy_count=len(config.policies),
+    )
 
 
 def _build_entries(

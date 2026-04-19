@@ -49,6 +49,9 @@ mirage-summary:
 mirage-gate:
 	python -m src.cli gate-run --run-id $(RUN_ID)
 
+mirage-validate-config:
+	python -m src.cli validate-config
+
 test:
 	pytest tests/ -v -s
 

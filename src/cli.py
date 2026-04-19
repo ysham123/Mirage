@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import argparse
+import os
 import sys
 from pathlib import Path
 from typing import Sequence
 
+from src.config import validate_mirage_config
 from src.httpx_client import MirageRunError, assert_mirage_run_clean, mirage_run_summary
 
 
@@ -23,6 +25,23 @@ def build_parser() -> argparse.ArgumentParser:
         help="Exit non-zero when a Mirage run is risky or missing.",
     )
     _add_run_arguments(gate_parser)
+
+    validate_parser = subparsers.add_parser(
+        "validate-config",
+        help="Validate Mirage mocks/policies before starting the proxy or CI run.",
+    )
+    validate_parser.add_argument(
+        "--mocks-path",
+        type=Path,
+        default=None,
+        help="Optional mocks config path. Defaults to MIRAGE_MOCKS_PATH or repo-root mocks.yaml.",
+    )
+    validate_parser.add_argument(
+        "--policies-path",
+        type=Path,
+        default=None,
+        help="Optional policies config path. Defaults to MIRAGE_POLICIES_PATH or repo-root policies.yaml.",
+    )
 
     return parser
 
@@ -45,6 +64,19 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(summary.to_text())
         return 0
 
+    if args.command == "validate-config":
+        mocks_path, policies_path = _resolve_config_paths(
+            mocks_path=args.mocks_path,
+            policies_path=args.policies_path,
+        )
+        try:
+            summary = validate_mirage_config(mocks_path, policies_path)
+        except (FileNotFoundError, OSError, ValueError) as exc:
+            print(f"Mirage config invalid: {exc}")
+            return 1
+        print(summary.to_text())
+        return 0
+
     parser.error(f"Unsupported command: {args.command}")
     return 2
 
@@ -56,6 +88,18 @@ def _add_run_arguments(parser: argparse.ArgumentParser) -> None:
         type=Path,
         default=None,
         help="Optional Mirage trace directory override.",
+    )
+
+
+def _resolve_config_paths(
+    *,
+    mocks_path: Path | None,
+    policies_path: Path | None,
+) -> tuple[Path, Path]:
+    root = Path(__file__).resolve().parent.parent
+    return (
+        mocks_path or Path(os.getenv("MIRAGE_MOCKS_PATH") or root / "mocks.yaml"),
+        policies_path or Path(os.getenv("MIRAGE_POLICIES_PATH") or root / "policies.yaml"),
     )
 
 

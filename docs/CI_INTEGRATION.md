@@ -14,6 +14,24 @@ In `conftest.py`:
 from src.pytest_plugin import mirage_session  # re-export
 ```
 
+Optional override when CI needs a non-default proxy URL, artifact root, or a
+negative test that should inspect risky output without failing in teardown:
+
+```python
+import pytest
+
+from src.pytest_plugin import mirage_session
+
+
+@pytest.fixture
+def mirage_session_options(tmp_path):
+    return {
+        "base_url": "http://127.0.0.1:8000",
+        "artifact_root": tmp_path / "artifacts" / "traces",
+        "auto_assert": False,
+    }
+```
+
 In a test:
 
 ```python
@@ -58,6 +76,12 @@ jobs:
 
       - name: Install
         run: make install
+
+      - name: Validate Mirage config
+        run: |
+          python -m src.cli validate-config \
+            --mocks-path ./my_mocks.yaml \
+            --policies-path ./my_policies.yaml
 
       - name: Start Mirage proxy
         run: |

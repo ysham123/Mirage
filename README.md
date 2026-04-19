@@ -123,9 +123,12 @@ with create_mirage_client(run_id="demo-run") as client:
 
 Mirage adds response metadata headers so tests and agents can inspect what happened without changing the mocked response body:
 
+- `X-Mirage-Run-Id`
 - `X-Mirage-Outcome`
 - `X-Mirage-Policy-Passed`
 - `X-Mirage-Trace-Path`
+- `X-Mirage-Matched-Mock`
+- `X-Mirage-Message`
 - `X-Mirage-Decision-Summary`
 
 ## CI Gating
@@ -142,9 +145,12 @@ Equivalent direct commands:
 ```bash
 python -m src.cli summarize-run --run-id procurement-risky-demo
 python -m src.cli gate-run --run-id procurement-risky-demo
+python -m src.cli validate-config
 ```
 
 `gate-run` exits non-zero when the run is risky or missing, so it can fail CI directly.
+`validate-config` exits non-zero when Mirage config is missing or malformed, so
+you can fail fast before starting the proxy.
 
 For complete GitHub Actions and pytest recipes, see
 [`docs/CI_INTEGRATION.md`](docs/CI_INTEGRATION.md).
@@ -178,6 +184,12 @@ Optional environment variables:
 - `MIRAGE_MOCKS_PATH`
 - `MIRAGE_POLICIES_PATH`
 - `MIRAGE_ARTIFACT_ROOT`
+
+Validate config before a local run or CI job:
+
+```bash
+make mirage-validate-config
+```
 
 ## Procurement Harness
 
