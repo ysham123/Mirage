@@ -1,0 +1,44 @@
+name: Bug report
+description: Report a reproducible Mirage bug
+title: "[bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for filing a Mirage bug report.
+  - type: textarea
+    id: summary
+    attributes:
+      label: What happened?
+      description: Describe the bug and the impact.
+      placeholder: Mirage marked an allowed request as unmatched_route...
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Start Mirage with...
+        2. Run...
+        3. Observe...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect?
+    validations:
+      required: true
+  - type: textarea
+    id: config
+    attributes:
+      label: Relevant config or trace output
+      description: Paste a minimal config snippet or summarize `mirage summarize-run`.
+      render: yaml
+  - type: input
+    id: version
+    attributes:
+      label: Mirage version or commit
+      placeholder: 0.1.0 or ae75d3e

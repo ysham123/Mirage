@@ -68,7 +68,4 @@ Then open `http://127.0.0.1:3000`.
 
 ## Files
 
-- `agent.py`: procurement workflow abstraction
-- `demo.py`: CLI demo entry point built on `MirageSession`
-- `mocks.yaml`: procurement harness mock routes
-- `policies.yaml`: procurement harness policy rules
+- `agent.py`: procurement wor

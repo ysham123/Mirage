@@ -7,3 +7,4 @@ ui/.next/
 ui/playwright-report/
 ui/test-results/
 .claude/
+session_*.md

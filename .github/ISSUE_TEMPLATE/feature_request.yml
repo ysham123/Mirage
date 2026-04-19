@@ -1,0 +1,32 @@
+name: Feature request
+description: Propose a new Mirage capability or workflow improvement
+title: "[feature] "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for proposing an improvement to Mirage.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What user problem does this solve?
+      description: Focus on the workflow pain, not only the implementation idea.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: Describe the change you want to see.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Screenshots, traces, configs, links, or examples.

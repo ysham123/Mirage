@@ -288,12 +288,13 @@ The template and index live in [`docs/worklog/`](docs/worklog).
 
 - [`docs/FIRST_INTEGRATION.md`](docs/FIRST_INTEGRATION.md): 30-minute walkthrough for integrating your own `httpx` agent
 - [`docs/CI_INTEGRATION.md`](docs/CI_INTEGRATION.md): pytest and GitHub Actions gating recipes
+- [`docs/OPEN_SOURCE_FAQ.md`](docs/OPEN_SOURCE_FAQ.md): practical guidance on MIT licensing and commercial use
 - [`examples/procurement_harness/README.md`](examples/procurement_harness/README.md): bundled end-to-end example workflow
 - [`ui/README.md`](ui/README.md): how the Next.js client consumes the shared console API
 
 ## Contributing
 
-Bug reports and pull requests are welcome. See [`CONTRIBUTING.md`](CONTRIBUTING.md) for the local dev loop and expectations.
+Bug reports and pull requests are welcome. See [`CONTRIBUTING.md`](CONTRIBUTING.md) for the local dev loop and expectations, [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md) for community standards, and [`SECURITY.md`](SECURITY.md) for private vulnerability reporting.
 
 ## License
 

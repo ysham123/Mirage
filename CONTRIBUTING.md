@@ -3,6 +3,12 @@
 Thanks for your interest in contributing. This doc covers the local dev loop
 and what to expect when you open a PR.
 
+Please also read:
+
+- [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md)
+- [`SECURITY.md`](SECURITY.md)
+- [`CHANGELOG.md`](CHANGELOG.md)
+
 ## Local Dev
 
 Install Python deps:
@@ -65,6 +71,11 @@ Open an issue with:
 - What you expected
 - What happened (include the trace file and the `summarize-run` output if a
   run is involved)
+
+## Security
+
+If you find a security vulnerability, do not open a public issue. Follow
+[`SECURITY.md`](SECURITY.md) instead.
 
 ## License
 

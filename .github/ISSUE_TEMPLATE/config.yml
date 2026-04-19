@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security vulnerability
+    url: mailto:YosefShammout123@gmail.com
+    about: Report security issues privately.
+  - name: Mirage docs
+    url: https://github.com/ysham123/Mirage/blob/master/README.md
+    about: Start with the README and integration docs before filing a question.

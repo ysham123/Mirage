@@ -121,16 +121,4 @@ Mirage run: ci-1742391
 Trace path: artifacts/traces/ci-1742391.json
 Summary: 3 action(s), 2 safe, 1 risky
 Risky actions:
-- [policy_violation] POST /v1/orders (event 3, mock=create_order): enforce_order_limit: Agents cannot place orders above $1000 without review. (field 'total_amount' must satisfy lte 1000 but got 9999)
-  Next: Tighten the agent or relax this policy in policies.yaml.
-```
-
-Each risky action includes:
-
-- the outcome (`policy_violation`, `unmatched_route`, or `config_error`)
-- the method, path, and matched mock (or `none` for unmatched)
-- the specific policy that failed and what the value was
-- a `Next:` hint with the concrete remediation
-
-Pair that with the uploaded trace artifact and a reviewer can diagnose the
-failure without rerunning the build.
+- [policy_violation] POST

@@ -197,24 +197,4 @@ from src.pytest_plugin import mirage_session
 def mirage_session_options(tmp_path):
     return {
         "base_url": "http://127.0.0.1:8000",
-        "artifact_root": tmp_path / "artifacts" / "traces",
-        "auto_assert": False,
-    }
-```
-
-`auto_assert=False` is useful for tests that intentionally inspect a
-`policy_violation` or `unmatched_route` instead of failing in fixture teardown.
-
-## 10. Next: CI
-
-See [CI_INTEGRATION.md](CI_INTEGRATION.md) for the GitHub Actions and script-level
-gating patterns.
-
-## Common failure modes
-
-| Symptom | What it means | Fix |
-|---|---|---|
-| `httpx.ConnectError: Connection refused` on localhost:8000 | The proxy isn't running | Start it with the command in step 4 |
-| `[unmatched_route]` in the summary | Agent hit a route you didn't mock | Add a mock entry for that `method` + `path` |
-| `[config_error]` with a file/field pointer | YAML schema mismatch | The message tells you the entry index and field — fix and rerun |
-| `has no trace at ...` in the summary | Agent ran but never talked to Mirage | Confirm the agent's client uses `MirageSession.client` (or pass `base_url=MIRAGE_PROXY_URL`) |
+        "a
