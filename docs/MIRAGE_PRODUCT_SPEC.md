@@ -18,6 +18,11 @@ Mirage already has a real technical wedge:
 - Python-first `httpx` integration primitives
 - a lightweight review console over trace artifacts
 
+Current console split:
+
+- `demo_ui/` is the shared FastAPI console API and zero-dependency HTML shell
+- `ui/` is the richer Next.js client over that same API
+
 Mirage is not yet a fully self-serve product:
 
 - the integration path is still narrow
@@ -110,6 +115,7 @@ Mirage reaches the next major milestone when one external Python engineer can:
 - quickstart is reliable and maps to a real workflow, not just a founder demo
 - CI gating is a first-class part of the story
 - traces are readable without opening raw JSON first
+- the console story is explicit: one shared backend, multiple review clients
 - at least one realistic example harness feels close to production usage
 - 1 to 2 external engineer teams agree to try it and give workflow feedback
 

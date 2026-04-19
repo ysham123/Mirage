@@ -1,4 +1,10 @@
-"""Mirage console API and legacy demo shell."""
+"""Mirage console API plus the zero-dependency legacy review shell.
+
+`demo_ui/` is the shared backend for both:
+
+- the single-file HTML review shell served at `/`
+- the richer Next.js operator client under `ui/`
+"""
 
 from __future__ import annotations
 

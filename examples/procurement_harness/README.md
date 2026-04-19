@@ -43,13 +43,22 @@ Run the harness tests:
 make test-procurement
 ```
 
-Run the founder demo UI over the same workflow:
+Run the shared console API plus legacy HTML shell over the same workflow:
 
 ```bash
 make demo-ui
 ```
 
 Then open `http://127.0.0.1:5100`.
+
+If you want the richer Next.js client instead of the legacy shell:
+
+```bash
+make ui-install
+make ui-dev-local
+```
+
+Then open `http://127.0.0.1:3000`.
 
 ## Scenarios
 

@@ -217,9 +217,16 @@ Harness docs:
 
 ## Action Review Console
 
-The demo UI now doubles as a lightweight action review console. It reads Mirage trace artifacts, shows aggregate action metrics, surfaces recent risky runs, and lets you drill into one run at a time.
+Mirage currently ships two console surfaces over the same review backend:
 
-It still supports the scenario launcher for founder demos, but the primary value of the UI is now:
+- `demo_ui/`: the shared FastAPI console API plus a zero-dependency legacy HTML shell
+- `ui/`: a richer Next.js operator client that consumes that API
+
+Both read Mirage trace artifacts, show aggregate action metrics, surface recent
+risky runs, and let you drill into one run at a time.
+
+The shared backend still supports the scenario launcher for founder demos, but
+the primary value of the console is now:
 
 - aggregate action counts across runs
 - review queue for recent runs that need attention
@@ -235,6 +242,15 @@ make demo-ui
 ```
 
 Then open `http://127.0.0.1:5100`. Override the port with `PORT=5101 make demo-ui` if needed.
+
+For the Next.js client:
+
+```bash
+make ui-install
+make ui-dev-local
+```
+
+Then open `http://127.0.0.1:3000`.
 
 For live demos, use the terminal-first script in [`docs/live-demo-script.md`](docs/live-demo-script.md).
 
@@ -260,7 +276,8 @@ The template and index live in [`docs/worklog/`](docs/worklog).
 ## Repo Structure
 
 - [`examples/procurement_harness/`](examples/procurement_harness): primary private-alpha onboarding harness
-- [`demo_ui/`](demo_ui): founder demo UI over the procurement harness
+- [`demo_ui/`](demo_ui): shared console API plus legacy HTML review shell
+- [`ui/`](ui): Next.js operator client over the `demo_ui` API
 - [`src/engine.py`](src/engine.py): core request handling, outcomes, and trace writes
 - [`src/proxy.py`](src/proxy.py): FastAPI proxy boundary and Mirage response headers
 - [`src/httpx_client.py`](src/httpx_client.py): Python `httpx` helper and response assertions
@@ -272,6 +289,7 @@ The template and index live in [`docs/worklog/`](docs/worklog).
 - [`docs/FIRST_INTEGRATION.md`](docs/FIRST_INTEGRATION.md): 30-minute walkthrough for integrating your own `httpx` agent
 - [`docs/CI_INTEGRATION.md`](docs/CI_INTEGRATION.md): pytest and GitHub Actions gating recipes
 - [`examples/procurement_harness/README.md`](examples/procurement_harness/README.md): bundled end-to-end example workflow
+- [`ui/README.md`](ui/README.md): how the Next.js client consumes the shared console API
 
 ## Contributing
 

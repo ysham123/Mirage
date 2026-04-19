@@ -31,11 +31,17 @@ procurement-demo-unmatched:
 demo-ui:
 	python -m demo_ui.server
 
+console-api:
+	python -m demo_ui.server
+
 ui-install:
 	cd ui && pnpm install
 
 ui-dev:
 	cd ui && pnpm dev
+
+ui-dev-local:
+	cd ui && NEXT_PUBLIC_MIRAGE_API_BASE_URL=http://127.0.0.1:5100 pnpm dev
 
 ui-build:
 	cd ui && pnpm build
