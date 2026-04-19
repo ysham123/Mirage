@@ -2,7 +2,18 @@
 
 Mirage is CI for agent side effects.
 
+[![CI](https://github.com/ysham123/Mirage/actions/workflows/ci.yml/badge.svg)](https://github.com/ysham123/Mirage/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+
 It sits between an agent and external APIs, intercepts outbound HTTP actions, evaluates them against policy, returns safe mocked responses, and writes deterministic traces for tests and CI.
+
+## Start Here
+
+- Want to understand the product quickly: read [`docs/README.md`](docs/README.md)
+- Want to integrate Mirage into your own agent: read [`docs/FIRST_INTEGRATION.md`](docs/FIRST_INTEGRATION.md)
+- Want to wire Mirage into CI: read [`docs/CI_INTEGRATION.md`](docs/CI_INTEGRATION.md)
+- Want to try the bundled workflow first: read [`examples/procurement_harness/README.md`](examples/procurement_harness/README.md)
+- Want the straight licensing/commercial answer: read [`docs/OPEN_SOURCE_FAQ.md`](docs/OPEN_SOURCE_FAQ.md)
 
 ## What Mirage Does Today
 
@@ -286,6 +297,7 @@ The template and index live in [`docs/worklog/`](docs/worklog).
 
 ## Supporting Docs
 
+- [`docs/README.md`](docs/README.md): docs hub for the main Mirage paths
 - [`docs/FIRST_INTEGRATION.md`](docs/FIRST_INTEGRATION.md): 30-minute walkthrough for integrating your own `httpx` agent
 - [`docs/CI_INTEGRATION.md`](docs/CI_INTEGRATION.md): pytest and GitHub Actions gating recipes
 - [`docs/OPEN_SOURCE_FAQ.md`](docs/OPEN_SOURCE_FAQ.md): practical guidance on MIT licensing and commercial use
