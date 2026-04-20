@@ -21,6 +21,7 @@ interface SideEffectsPanelProps {
   overview: ConsoleOverview | null;
   view: ConsoleView;
   focusedStepIndex: number | null;
+  suppressingEffectId: string | null;
   className?: string;
   onViewChange: (view: ConsoleView) => void;
   onFocusStep: (stepIndex: number) => void;
@@ -38,6 +39,7 @@ export function SideEffectsPanel({
   overview,
   view,
   focusedStepIndex,
+  suppressingEffectId,
   className,
   onViewChange,
   onFocusStep,
@@ -125,6 +127,7 @@ export function SideEffectsPanel({
             <EffectTimeline
               effects={run.sideEffects}
               focusedStepIndex={focusedStepIndex}
+              suppressingEffectId={suppressingEffectId}
               onFocusStep={onFocusStep}
               onSuppress={onSuppress}
             />

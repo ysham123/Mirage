@@ -200,6 +200,36 @@ describe("ConsoleApp races", () => {
     expect(screen.getByText(/Extra streaming context\./)).toBeInTheDocument();
   });
 
+  it("does not restore a launched run after the user switches selection mid-refresh", async () => {
+    const launchedOverview = deferred<Record<string, unknown>>();
+
+    apiMocks.fetchOverview
+      .mockResolvedValueOnce(createOverviewPayload())
+      .mockImplementationOnce(() => launchedOverview.promise);
+    apiMocks.fetchRun.mockImplementation((runId: string) => Promise.resolve(createRunPayload(runId, `${runId} headline`)));
+    apiMocks.launchScenario.mockResolvedValue(createRunPayload("run-launch", "Launch headline"));
+
+    render(<ConsoleApp />);
+
+    await screen.findByRole("button", { name: /compliant/i });
+
+    fireEvent.click(screen.getByRole("button", { name: /compliant/i }));
+    await screen.findByRole("heading", { name: "run-launch" });
+
+    fireEvent.click(screen.getByRole("button", { name: /run-safe/i }));
+    await waitFor(() => expect(apiMocks.fetchRun).toHaveBeenCalledWith("run-safe"));
+
+    await act(async () => {
+      launchedOverview.resolve(createOverviewPayload());
+      await launchedOverview.promise;
+    });
+
+    await waitFor(() => {
+      expect(screen.getByRole("heading", { name: "run-safe" })).toBeInTheDocument();
+    });
+    expect(screen.queryByRole("heading", { name: "run-launch" })).not.toBeInTheDocument();
+  });
+
   it("merges overlapping snapshot and stream text without duplication", () => {
     expect(
       mergeMessageBodies(

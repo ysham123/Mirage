@@ -272,7 +272,9 @@ def create_demo_app(*, artifact_root: str | Path | None = None) -> FastAPI:
 
 def _cors_middleware_kwargs() -> dict[str, Any]:
     origins = [value.strip() for value in os.getenv("MIRAGE_ALLOWED_ORIGINS", "").split(",") if value.strip()]
-    origin_regex = os.getenv("MIRAGE_ALLOWED_ORIGIN_REGEX") or r"https?://(localhost|127\.0\.0\.1)(:\d+)?"
+    origin_regex = os.getenv("MIRAGE_ALLOWED_ORIGIN_REGEX")
+    if origin_regex is None and not origins:
+        origin_regex = r"https?://(localhost|127\.0\.0\.1)(:\d+)?"
 
     kwargs: dict[str, Any] = {
         "allow_credentials": True,
@@ -677,7 +679,7 @@ app = create_demo_app()
 if __name__ == "__main__":
     uvicorn.run(
         "demo_ui.server:app",
-        host="127.0.0.1",
+        host=os.getenv("HOST", os.getenv("MIRAGE_HOST", "127.0.0.1")),
         port=int(os.getenv("PORT", "5100")),
         reload=True,
     )

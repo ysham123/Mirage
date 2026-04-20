@@ -27,8 +27,12 @@ interface ShortcutHandlers {
   onEscape: () => void;
 }
 
-export function useConsoleShortcuts(handlers: ShortcutHandlers) {
+export function useConsoleShortcuts(handlers: ShortcutHandlers, enabled = true) {
   const onKeyDown = useEffectEvent((event: KeyboardEvent) => {
+    if (!enabled) {
+      return;
+    }
+
     if (isCommandShortcut(event)) {
       event.preventDefault();
       handlers.onCommandPalette();
@@ -86,7 +90,11 @@ export function useConsoleShortcuts(handlers: ShortcutHandlers) {
   });
 
   useEffect(() => {
+    if (!enabled) {
+      return;
+    }
+
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [onKeyDown]);
+  }, [enabled, onKeyDown]);
 }

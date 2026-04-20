@@ -11,6 +11,7 @@ import { TopBar } from "@/components/shell/top-bar";
 import { SideEffectsPanel } from "@/components/side-effects/side-effects-panel";
 import { fetchOverview, fetchRun, launchScenario, streamRun, suppressSideEffect } from "@/lib/api";
 import { adaptOverview, adaptRun, respondToPrompt } from "@/lib/adapters";
+import { handleDialogKeyDown, useDialogFocus } from "@/lib/dialog";
 import { springs } from "@/lib/motion";
 import { useConsoleShortcuts } from "@/lib/shortcuts";
 import type {
@@ -30,11 +31,12 @@ function parseUrlState() {
   const filter = params.get("filter");
   const view = params.get("view");
   const focused = params.get("step");
+  const focusedStepIndex = focused ? Number(focused) : null;
   return {
     runId: params.get("run_id"),
     filter: filter === "risky" || filter === "allowed" || filter === "unmatched_route" ? filter : "all",
     view: view === "timeline" || view === "trace" ? view : "overview",
-    focusedStepIndex: focused ? Number(focused) : null,
+    focusedStepIndex: Number.isFinite(focusedStepIndex) ? focusedStepIndex : null,
   } satisfies {
     runId: string | null;
     filter: QueueFilter;
@@ -143,10 +145,14 @@ export function completeStreamMessages(streamedMessages: StreamMessageStore) {
 export function ConsoleApp() {
   const searchRef = useRef<HTMLInputElement | null>(null);
   const riskyCursor = useRef(0);
+  const overviewRequestRef = useRef(0);
   const selectedRunIdRef = useRef<string | null>(null);
   const runRequestRef = useRef(0);
   const streamSessionRef = useRef(0);
+  const streamFallbackTimerRef = useRef<number | null>(null);
   const streamedMessagesRef = useRef<StreamMessageStore>(new Map());
+  const mobileSidebarDialogRef = useRef<HTMLDivElement | null>(null);
+  const mobileEffectsDialogRef = useRef<HTMLDivElement | null>(null);
 
   const [overview, setOverview] = useState<ConsoleOverview | null>(null);
   const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
@@ -163,7 +169,9 @@ export function ConsoleApp() {
   const [composerValue, setComposerValue] = useState("");
   const [streamStatus, setStreamStatus] = useState("Awaiting run selection");
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [suppressingEffectId, setSuppressingEffectId] = useState<string | null>(null);
   const deferredSearch = useDeferredValue(search);
+  const overlayOpen = commandPaletteOpen || mobileSidebarOpen || mobileEffectsOpen;
 
   const filteredRuns =
     overview?.runs.filter((run) => {
@@ -187,20 +195,49 @@ export function ConsoleApp() {
   const focusedSideEffectId =
     selectedRun?.sideEffects.find((effect) => effect.stepIndex === focusedStepIndex)?.id ?? null;
 
+  useDialogFocus(mobileSidebarOpen, mobileSidebarDialogRef, searchRef);
+  useDialogFocus(mobileEffectsOpen, mobileEffectsDialogRef);
+
   selectedRunIdRef.current = selectedRunId;
 
-  async function refreshOverview(preferredRunId?: string | null) {
+  function clearStreamFallbackTimer() {
+    if (streamFallbackTimerRef.current !== null) {
+      window.clearTimeout(streamFallbackTimerRef.current);
+      streamFallbackTimerRef.current = null;
+    }
+  }
+
+  async function refreshOverview(options?: { preferredRunId?: string | null; expectedSelectedRunId?: string | null }) {
+    const requestId = ++overviewRequestRef.current;
     try {
       const payload = await fetchOverview();
       const nextOverview = adaptOverview(payload);
+      if (requestId !== overviewRequestRef.current) {
+        return;
+      }
+
       setOverview(nextOverview);
-      if (!selectedRunId && !preferredRunId && nextOverview.runs[0]) {
+      const currentSelectedRunId = selectedRunIdRef.current;
+      const preferredRunId = options?.preferredRunId;
+      if (!currentSelectedRunId && !preferredRunId && nextOverview.runs[0]) {
         setSelectedRunId(nextOverview.runs[0].runId);
-      } else if (preferredRunId) {
+      } else if (
+        preferredRunId &&
+        (currentSelectedRunId === options?.expectedSelectedRunId || currentSelectedRunId === null)
+      ) {
         setSelectedRunId(preferredRunId);
+      } else if (
+        currentSelectedRunId &&
+        !nextOverview.runs.some((run) => run.runId === currentSelectedRunId) &&
+        nextOverview.runs[0]
+      ) {
+        setSelectedRunId(nextOverview.runs[0].runId);
       }
       setLoadError(null);
     } catch (error) {
+      if (requestId !== overviewRequestRef.current) {
+        return;
+      }
       setLoadError(error instanceof Error ? error.message : "Failed to load Mirage overview.");
     }
   }
@@ -244,7 +281,7 @@ export function ConsoleApp() {
     if (activeView !== "overview") params.set("view", activeView);
     else params.delete("view");
 
-    if (focusStep) params.set("step", String(focusStep));
+    if (focusStep !== null) params.set("step", String(focusStep));
     else params.delete("step");
 
     const nextUrl = `${window.location.pathname}${params.toString() ? `?${params.toString()}` : ""}`;
@@ -257,7 +294,7 @@ export function ConsoleApp() {
     setQueueFilter(state.filter);
     setView(state.view);
     setFocusedStepIndex(state.focusedStepIndex);
-    void refreshOverview(state.runId);
+    void refreshOverview();
 
     const onPopState = () => {
       const next = parseUrlState();
@@ -273,14 +310,17 @@ export function ConsoleApp() {
 
   useEffect(() => {
     if (!selectedRunId) {
+      clearStreamFallbackTimer();
       streamedMessagesRef.current = new Map();
       runRequestRef.current += 1;
       streamSessionRef.current += 1;
       setSelectedRun(null);
       setConversation([]);
+      setFocusedStepIndex(null);
       return;
     }
 
+    clearStreamFallbackTimer();
     streamedMessagesRef.current = new Map();
     setSelectedRun((current) => (current?.runId === selectedRunId ? current : null));
     setConversation([]);
@@ -300,6 +340,8 @@ export function ConsoleApp() {
         if (streamSessionId !== streamSessionRef.current || selectedRunIdRef.current !== selectedRunId) {
           return;
         }
+        clearStreamFallbackTimer();
+
         if (event.event === "status") {
           setStreamStatus(String(event.data.message ?? "Streaming"));
           return;
@@ -337,11 +379,25 @@ export function ConsoleApp() {
         if (streamSessionId !== streamSessionRef.current || selectedRunIdRef.current !== selectedRunId) {
           return;
         }
-        setStreamStatus("Stream unavailable, using trace snapshot");
+
+        setStreamStatus("Reconnecting to live review stream");
+        if (streamFallbackTimerRef.current !== null) {
+          return;
+        }
+
+        streamFallbackTimerRef.current = window.setTimeout(() => {
+          streamFallbackTimerRef.current = null;
+          if (streamSessionId !== streamSessionRef.current || selectedRunIdRef.current !== selectedRunId) {
+            return;
+          }
+          setStreamStatus("Using trace snapshot while live stream reconnects");
+          void refreshRun(selectedRunId);
+        }, 1500);
       },
     });
 
     return () => {
+      clearStreamFallbackTimer();
       stop();
       if (streamSessionRef.current === streamSessionId) {
         streamSessionRef.current += 1;
@@ -361,28 +417,39 @@ export function ConsoleApp() {
     try {
       const payload = await launchScenario(name);
       const run = adaptRun(payload);
+      setFocusedStepIndex(null);
       setSelectedRunId(run.runId);
       setSelectedRun(run);
       setConversation(run.messages);
-      await refreshOverview(run.runId);
-      setFocusedStepIndex(null);
+      await refreshOverview({ preferredRunId: run.runId, expectedSelectedRunId: run.runId });
     } catch (error) {
       setLoadError(error instanceof Error ? error.message : `Failed to launch ${name} scenario.`);
     }
   }
 
   async function handleSuppress(effect: SideEffect | null) {
-    if (!selectedRunId || !effect) {
+    if (!selectedRunId || !effect || suppressingEffectId) {
       return;
     }
+
+    const runId = selectedRunId;
+    setSuppressingEffectId(effect.id);
     try {
-      await suppressSideEffect(selectedRunId, effect.stepIndex, effect.decisionSummary ?? effect.message ?? undefined);
-      await Promise.all([refreshRun(selectedRunId), refreshOverview(selectedRunId)]);
+      await suppressSideEffect(runId, effect.stepIndex, effect.decisionSummary ?? effect.message ?? undefined);
+      await Promise.all([
+        refreshRun(runId),
+        refreshOverview({ preferredRunId: runId, expectedSelectedRunId: runId }),
+      ]);
+      if (selectedRunIdRef.current !== runId) {
+        return;
+      }
       setView("timeline");
       setFocusedStepIndex(effect.stepIndex);
       setStreamStatus(`Suppressed ${effect.name}`);
     } catch (error) {
       setLoadError(error instanceof Error ? error.message : "Failed to suppress side effect.");
+    } finally {
+      setSuppressingEffectId((current) => (current === effect.id ? null : current));
     }
   }
 
@@ -462,25 +529,29 @@ export function ConsoleApp() {
     const nextIndex = currentIndex < 0 ? 0 : Math.max(0, Math.min(filteredRuns.length - 1, currentIndex + offset));
     const nextRunId = filteredRuns[nextIndex]?.runId;
     if (nextRunId) {
+      setFocusedStepIndex(null);
       setSelectedRunId(nextRunId);
     }
   }
 
-  useConsoleShortcuts({
-    onCommandPalette: () => setCommandPaletteOpen(true),
-    onFocusSearch: () => searchRef.current?.focus(),
-    onToggleSidebar: () => setSidebarCollapsed((current) => !current),
-    onExport: handleExport,
-    onSuppress: suppressNextRisky,
-    onNext: () => selectRelative(1),
-    onPrevious: () => selectRelative(-1),
-    onView: (index) => setView(index === 1 ? "overview" : index === 2 ? "timeline" : "trace"),
-    onEscape: () => {
-      setCommandPaletteOpen(false);
-      setMobileSidebarOpen(false);
-      setMobileEffectsOpen(false);
+  useConsoleShortcuts(
+    {
+      onCommandPalette: () => setCommandPaletteOpen(true),
+      onFocusSearch: () => searchRef.current?.focus(),
+      onToggleSidebar: () => setSidebarCollapsed((current) => !current),
+      onExport: handleExport,
+      onSuppress: suppressNextRisky,
+      onNext: () => selectRelative(1),
+      onPrevious: () => selectRelative(-1),
+      onView: (index) => setView(index === 1 ? "overview" : index === 2 ? "timeline" : "trace"),
+      onEscape: () => {
+        setCommandPaletteOpen(false);
+        setMobileSidebarOpen(false);
+        setMobileEffectsOpen(false);
+      },
     },
-  });
+    !overlayOpen,
+  );
 
   const actions = [
     {
@@ -593,6 +664,7 @@ export function ConsoleApp() {
           focusedStepIndex={focusedStepIndex}
           overview={overview}
           run={selectedRun}
+          suppressingEffectId={suppressingEffectId}
           view={view}
           onFocusStep={(stepIndex) => {
             setFocusedStepIndex(stepIndex);
@@ -620,9 +692,18 @@ export function ConsoleApp() {
               className="h-full w-[88vw] max-w-sm"
               exit={{ x: "-100%" }}
               initial={{ x: "-100%" }}
+              ref={mobileSidebarDialogRef}
+              role="dialog"
+              aria-labelledby="mobile-navigation-title"
+              aria-modal="true"
+              tabIndex={-1}
               transition={springs.snappy}
               onClick={(event) => event.stopPropagation()}
+              onKeyDown={(event) => handleDialogKeyDown(event, mobileSidebarDialogRef, () => setMobileSidebarOpen(false))}
             >
+              <h2 id="mobile-navigation-title" className="sr-only">
+                Run queue
+              </h2>
               <Sidebar
                 filter={queueFilter}
                 overview={sidebarOverview}
@@ -657,14 +738,24 @@ export function ConsoleApp() {
               className="h-full"
               exit={{ y: "100%" }}
               initial={{ y: "100%" }}
+              ref={mobileEffectsDialogRef}
+              role="dialog"
+              aria-labelledby="mobile-side-effects-title"
+              aria-modal="true"
+              tabIndex={-1}
               transition={springs.snappy}
               onClick={(event) => event.stopPropagation()}
+              onKeyDown={(event) => handleDialogKeyDown(event, mobileEffectsDialogRef, () => setMobileEffectsOpen(false))}
             >
+              <h2 id="mobile-side-effects-title" className="sr-only">
+                Side effects panel
+              </h2>
               <SideEffectsPanel
                 className="h-full"
                 focusedStepIndex={focusedStepIndex}
                 overview={overview}
                 run={selectedRun}
+                suppressingEffectId={suppressingEffectId}
                 view={view}
                 onFocusStep={(stepIndex) => {
                   setFocusedStepIndex(stepIndex);

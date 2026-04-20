@@ -17,19 +17,56 @@ function buildUrl(path: string, params?: Record<string, string | number | undefi
   return url.toString();
 }
 
+async function parseResponseBody(response: Response) {
+  const text = await response.text();
+  if (!text) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(text) as unknown;
+  } catch {
+    return text;
+  }
+}
+
+function extractErrorMessage(payload: unknown, status: number) {
+  if (payload && typeof payload === "object") {
+    const record = payload as Record<string, unknown>;
+    if (typeof record.error === "string" && record.error.trim()) {
+      return record.error;
+    }
+    if (typeof record.message === "string" && record.message.trim()) {
+      return record.message;
+    }
+  }
+
+  if (typeof payload === "string" && payload.trim()) {
+    return payload;
+  }
+
+  return `Request failed: ${status}`;
+}
+
 async function requestJson<T>(path: string, init?: RequestInit, params?: Record<string, string | number | undefined>) {
+  const headers = new Headers(init?.headers);
+  if (init?.body !== undefined && init.body !== null && !headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
+  }
+  if (!headers.has("Accept")) {
+    headers.set("Accept", "application/json");
+  }
+
   const response = await fetch(buildUrl(path, params), {
     ...init,
-    headers: {
-      "Content-Type": "application/json",
-      ...(init?.headers ?? {}),
-    },
+    headers,
   });
+  const payload = await parseResponseBody(response);
 
   if (!response.ok) {
-    throw new Error(`Request failed: ${response.status}`);
+    throw new Error(extractErrorMessage(payload, response.status));
   }
-  return (await response.json()) as T;
+  return payload as T;
 }
 
 export function fetchOverview() {
@@ -37,7 +74,7 @@ export function fetchOverview() {
 }
 
 export function fetchRun(runId: string) {
-  return requestJson<Record<string, unknown>>(`/api/metrics/runs/${runId}`);
+  return requestJson<Record<string, unknown>>(`/api/metrics/runs/${encodeURIComponent(runId)}`);
 }
 
 export function launchScenario(name: string) {
@@ -45,7 +82,7 @@ export function launchScenario(name: string) {
 }
 
 export function suppressSideEffect(runId: string, stepIndex: number, reason?: string) {
-  return requestJson<Record<string, unknown>>(`/api/runs/${runId}/side-effects/${stepIndex}/suppress`, {
+  return requestJson<Record<string, unknown>>(`/api/runs/${encodeURIComponent(runId)}/side-effects/${stepIndex}/suppress`, {
     method: "POST",
     body: JSON.stringify(reason ? { reason } : {}),
   });
@@ -63,9 +100,17 @@ export function streamRun(
   const bind = (eventName: StreamEvent["event"]) => {
     source.addEventListener(eventName, (event) => {
       const messageEvent = event as MessageEvent<string>;
+      let payload: Record<string, unknown>;
+      try {
+        payload = JSON.parse(messageEvent.data) as Record<string, unknown>;
+      } catch {
+        handlers.onError?.(new Event("error"));
+        return;
+      }
+
       handlers.onEvent({
         event: eventName,
-        data: JSON.parse(messageEvent.data),
+        data: payload,
       });
     });
   };
@@ -78,7 +123,6 @@ export function streamRun(
 
   source.onerror = (error) => {
     handlers.onError?.(error);
-    source.close();
   };
 
   return () => source.close();

@@ -975,7 +975,7 @@ button,input{font:inherit;border:none;background:none;color:inherit}
     </div>
     <div class="topbar-sep"></div>
     <span class="topbar-page">Action Review</span>
-    <div id="status" class="topbar-status">Loading action metrics&#8230;</div>
+    <div id="status" class="topbar-status" role="status" aria-live="polite">Loading action metrics&#8230;</div>
     <div class="topbar-actions">
       <span id="syncTime" class="topbar-sync"></span>
       <label class="topbar-check"><input id="followLatest" type="checkbox" checked> follow latest</label>
@@ -994,7 +994,7 @@ button,input{font:inherit;border:none;background:none;color:inherit}
           <span class="sb-badge" id="runsMeta">waiting</span>
         </div>
         <div class="sb-search">
-          <input id="queueSearch" type="text" placeholder="Filter runs..." autocomplete="off" spellcheck="false">
+          <input id="queueSearch" type="text" placeholder="Filter runs..." autocomplete="off" spellcheck="false" aria-label="Filter runs">
         </div>
         <div class="sb-filterbar" id="queueFilters">
           <button class="filter-btn active" type="button" data-queue-filter="all">All</button>
@@ -1906,7 +1906,7 @@ document.addEventListener("keydown", (e) => {
     return;
   }
   const runs = state.overview?.recentRuns || [];
-  if (e.key === "/" || e.key === "f" && !e.metaKey && !e.ctrlKey) {
+  if ((e.key === "/" || e.key === "f") && !e.metaKey && !e.ctrlKey) {
     e.preventDefault();
     document.getElementById("queueSearch").focus();
     return;

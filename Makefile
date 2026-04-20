@@ -1,5 +1,7 @@
 PROCUREMENT_MOCKS=examples/procurement_harness/mocks.yaml
 PROCUREMENT_POLICIES=examples/procurement_harness/policies.yaml
+HOST ?= 127.0.0.1
+PORT ?= 5100
 
 install:
 	python -m pip install --no-build-isolation -e '.[dev]'
@@ -29,10 +31,10 @@ procurement-demo-unmatched:
 	MIRAGE_RUN_ID=procurement-unmatched-demo python -m examples.procurement_harness.demo unmatched
 
 demo-ui:
-	python -m demo_ui.server
+	HOST=$(HOST) PORT=$(PORT) python -m demo_ui.server
 
 console-api:
-	python -m demo_ui.server
+	HOST=$(HOST) PORT=$(PORT) python -m demo_ui.server
 
 ui-install:
 	cd ui && pnpm install

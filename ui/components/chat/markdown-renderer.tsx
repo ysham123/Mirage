@@ -13,6 +13,11 @@ export function MarkdownRenderer({ children }: MarkdownRendererProps) {
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={{
+          pre(props) {
+            return (
+              <pre className="overflow-x-auto rounded-[1.2rem] border border-white/10 bg-[rgba(0,0,0,.42)] p-4 text-[13px] text-[rgb(222,245,255)]" {...props} />
+            );
+          },
           code(props) {
             const { children: codeChildren, className, ...rest } = props;
             const isInline = !className;
@@ -24,11 +29,9 @@ export function MarkdownRenderer({ children }: MarkdownRendererProps) {
               );
             }
             return (
-              <pre className="overflow-x-auto rounded-[1.2rem] border border-white/10 bg-[rgba(0,0,0,.42)] p-4 text-[13px] text-[rgb(222,245,255)]">
-                <code className={className} {...rest}>
-                  {codeChildren}
-                </code>
-              </pre>
+              <code className={className} {...rest}>
+                {codeChildren}
+              </code>
             );
           },
         }}

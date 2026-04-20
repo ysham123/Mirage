@@ -11,6 +11,7 @@ import { SuppressAction } from "./suppress-action";
 interface EffectTimelineProps {
   effects: SideEffect[];
   focusedStepIndex: number | null;
+  suppressingEffectId: string | null;
   onFocusStep: (stepIndex: number) => void;
   onSuppress: (effect: SideEffect) => void;
 }
@@ -28,7 +29,13 @@ function toneForEffect(effect: SideEffect) {
   return "warning";
 }
 
-export function EffectTimeline({ effects, focusedStepIndex, onFocusStep, onSuppress }: EffectTimelineProps) {
+export function EffectTimeline({
+  effects,
+  focusedStepIndex,
+  suppressingEffectId,
+  onFocusStep,
+  onSuppress,
+}: EffectTimelineProps) {
   return (
     <div className="space-y-3">
       {effects.map((effect) => (
@@ -73,7 +80,7 @@ export function EffectTimeline({ effects, focusedStepIndex, onFocusStep, onSuppr
 
             <div className="flex shrink-0 flex-col items-end gap-3">
               <Badge tone={toneForEffect(effect)}>{effect.suppressed ? "suppressed" : effect.outcome.replaceAll("_", " ")}</Badge>
-              <SuppressAction effect={effect} onSuppress={onSuppress} />
+              <SuppressAction disabled={suppressingEffectId === effect.id} effect={effect} onSuppress={onSuppress} />
             </div>
           </div>
 

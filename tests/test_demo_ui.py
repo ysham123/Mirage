@@ -117,6 +117,23 @@ def test_demo_ui_cors_allows_configured_origin(tmp_path, monkeypatch):
     assert response.headers["access-control-allow-origin"] == "http://127.0.0.1:3000"
 
 
+def test_demo_ui_cors_blocks_default_localhost_regex_when_allowlist_is_set(tmp_path, monkeypatch):
+    monkeypatch.setenv("MIRAGE_ALLOWED_ORIGINS", "https://console.example.com")
+    monkeypatch.delenv("MIRAGE_ALLOWED_ORIGIN_REGEX", raising=False)
+
+    with TestClient(create_demo_app(artifact_root=tmp_path / "artifacts" / "traces")) as client:
+        response = client.options(
+            "/api/metrics/overview",
+            headers={
+                "Origin": "http://127.0.0.1:3000",
+                "Access-Control-Request-Method": "GET",
+            },
+        )
+
+    assert response.status_code == 400
+    assert "access-control-allow-origin" not in response.headers
+
+
 def test_demo_ui_safe_scenario_uses_procurement_flow(tmp_path):
     with TestClient(create_demo_app(artifact_root=tmp_path / "artifacts" / "traces")) as client:
         response = client.get("/api/scenario/safe")

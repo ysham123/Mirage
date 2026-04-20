@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckCircle2, Sparkles } from "lucide-react";
+import { Sparkles } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -8,10 +8,11 @@ import type { SideEffect } from "@/types/console";
 
 interface SuppressActionProps {
   effect: SideEffect;
+  disabled?: boolean;
   onSuppress: (effect: SideEffect) => void;
 }
 
-export function SuppressAction({ effect, onSuppress }: SuppressActionProps) {
+export function SuppressAction({ effect, disabled, onSuppress }: SuppressActionProps) {
   if (effect.suppressed) {
     return (
       <div className="flex items-center gap-2">
@@ -22,9 +23,22 @@ export function SuppressAction({ effect, onSuppress }: SuppressActionProps) {
   }
 
   return (
-    <Button size="sm" variant="outline" onClick={() => onSuppress(effect)}>
+    <Button
+      disabled={disabled}
+      size="sm"
+      variant="outline"
+      onClick={(event) => {
+        event.stopPropagation();
+        onSuppress(effect);
+      }}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.stopPropagation();
+        }
+      }}
+    >
       <Sparkles className="size-3.5" />
-      Suppress
+      {disabled ? "Suppressing" : "Suppress"}
     </Button>
   );
 }

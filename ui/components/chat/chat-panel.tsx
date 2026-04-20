@@ -19,14 +19,39 @@ interface ChatPanelProps {
 
 export function ChatPanel({ run, messages, streamStatus, focusedSideEffectId }: ChatPanelProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const shouldFollowRef = useRef(true);
+  const lastMessage = messages[messages.length - 1] ?? null;
+  const scrollSignature = lastMessage ? `${lastMessage.id}:${lastMessage.body}:${lastMessage.streaming ? "1" : "0"}` : "empty";
 
   useEffect(() => {
     const node = containerRef.current;
     if (!node) {
       return;
     }
-    node.scrollTo({ top: node.scrollHeight, behavior: "smooth" });
-  }, [messages.length]);
+
+    const updateFollowState = () => {
+      const distanceFromBottom = node.scrollHeight - node.scrollTop - node.clientHeight;
+      shouldFollowRef.current = distanceFromBottom < 72;
+    };
+
+    updateFollowState();
+    node.addEventListener("scroll", updateFollowState);
+    return () => node.removeEventListener("scroll", updateFollowState);
+  }, []);
+
+  useEffect(() => {
+    const node = containerRef.current;
+    if (!node || !shouldFollowRef.current) {
+      return;
+    }
+
+    const prefersReducedMotion =
+      typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    node.scrollTo({
+      top: node.scrollHeight,
+      behavior: prefersReducedMotion || lastMessage?.streaming ? "auto" : "smooth",
+    });
+  }, [lastMessage?.streaming, scrollSignature]);
 
   if (!run) {
     return (
@@ -46,6 +71,9 @@ export function ChatPanel({ run, messages, streamStatus, focusedSideEffectId }: 
 
   return (
     <Card className="flex h-full min-h-[620px] flex-col overflow-hidden">
+      <p className="sr-only" aria-live="polite" role="status">
+        {streamStatus}
+      </p>
       <div className="border-b border-white/10 px-6 py-5">
         <div className="flex flex-wrap items-start gap-3">
           <div className="min-w-0 flex-1">

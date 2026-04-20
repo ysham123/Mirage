@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { handleDialogKeyDown, useDialogFocus } from "@/lib/dialog";
 import { springs } from "@/lib/motion";
 
 interface CommandAction {
@@ -25,12 +26,15 @@ interface CommandPaletteProps {
 
 export function CommandPalette({ open, actions, onClose }: CommandPaletteProps) {
   const [query, setQuery] = useState("");
+  const dialogRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const titleId = "command-palette-title";
+
+  useDialogFocus(open, dialogRef, inputRef);
 
   useEffect(() => {
     if (open) {
       setQuery("");
-      window.setTimeout(() => inputRef.current?.focus(), 40);
     }
   }, [open]);
 
@@ -53,13 +57,23 @@ export function CommandPalette({ open, actions, onClose }: CommandPaletteProps) 
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 10, scale: 0.98 }}
             initial={{ opacity: 0, y: 18, scale: 0.98 }}
+            ref={dialogRef}
+            role="dialog"
+            aria-labelledby={titleId}
+            aria-modal="true"
+            tabIndex={-1}
             transition={springs.snappy}
             onClick={(event) => event.stopPropagation()}
+            onKeyDown={(event) => handleDialogKeyDown(event, dialogRef, onClose)}
           >
             <Card className="w-[min(720px,calc(100vw-2rem))] overflow-hidden">
+              <h2 id={titleId} className="sr-only">
+                Command palette
+              </h2>
               <div className="flex items-center gap-3 border-b border-white/10 px-4 py-4">
                 <Command className="size-4 text-[var(--accent)]" />
                 <Input
+                  aria-label="Search commands"
                   ref={inputRef}
                   className="border-transparent bg-transparent px-0 shadow-none focus:border-transparent focus:bg-transparent focus:ring-0"
                   placeholder="Launch scenarios, export runs, jump to views..."
