@@ -1,1 +1,4 @@
-recursive-include src/defaults *.yaml
+recursive-include mirage/defaults *.yaml
+recursive-include demo_ui *.html
+recursive-include demo_ui/assets *.svg
+recursive-include examples/procurement_harness *.yaml

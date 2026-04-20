@@ -1,3 +1,9 @@
+import os
+from pathlib import Path
+import subprocess
+import sys
+
+from demo_ui.server import create_demo_app
 from mirage import MirageSession
 from mirage.cli import main
 from mirage.httpx_client import create_mirage_client
@@ -40,3 +46,38 @@ def test_engine_falls_back_to_bundled_defaults_outside_repo(monkeypatch, tmp_pat
     assert engine.mocks_path.name == "mocks.yaml"
     assert engine.policies_path.name == "policies.yaml"
     assert engine.trace_store.artifact_root == tmp_path / "artifacts" / "traces"
+
+
+def test_public_package_is_not_coupled_to_top_level_src_name(tmp_path):
+    fake_src = tmp_path / "src"
+    fake_src.mkdir()
+    (fake_src / "__init__.py").write_text("", encoding="utf-8")
+
+    repo_root = Path(__file__).resolve().parent.parent
+    env = os.environ.copy()
+    env["PYTHONPATH"] = os.pathsep.join([str(tmp_path), str(repo_root)])
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            (
+                "from mirage import MirageSession; "
+                "from mirage.cli import main; "
+                "from mirage.proxy import create_app; "
+                "print(MirageSession.__name__); "
+                "print(callable(main)); "
+                "print(callable(create_app))"
+            ),
+        ],
+        capture_output=True,
+        text=True,
+        env=env,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert "MirageSession" in result.stdout
+
+
+def test_demo_ui_server_is_importable_from_public_runtime():
+    assert callable(create_demo_app)

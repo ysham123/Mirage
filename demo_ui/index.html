@@ -1120,9 +1120,9 @@ async function boot() {
   await refreshOverview({ focusRunId: state.selectedRunId, preserveSelection: false });
 }
 
-async function refreshOverview({ focusRunId = null, preserveSelection = true, seedRun = null } = {}) {
+async function refreshOverview({ focusRunId = null, preserveSelection = true, seedRun = null, silent = false } = {}) {
   const req = ++state.overviewReq;
-  setStatus("Loading action metrics\u2026");
+  if (!silent) setStatus("Loading action metrics\u2026");
 
   try {
     const data = await fetchJSON("/api/metrics/overview");
@@ -1144,7 +1144,7 @@ async function refreshOverview({ focusRunId = null, preserveSelection = true, se
       renderRunEmpty();
     }
 
-    setStatus("Updated " + formatClock(state.lastUpdated));
+    if (!silent) setStatus("Updated " + formatClock(state.lastUpdated));
     updateSyncTime();
   } catch (error) {
     if (req !== state.overviewReq) return;
@@ -1812,6 +1812,11 @@ function updateSyncTime() {
   else el.textContent = Math.floor(s / 3600) + "h ago";
 }
 setInterval(updateSyncTime, 5000);
+setInterval(() => {
+  const followLatest = document.getElementById("followLatest");
+  if (!followLatest?.checked || document.hidden) return;
+  refreshOverview({ preserveSelection: false, silent: true });
+}, 5000);
 
 function setDetailBadge(text) {
   const badge = document.getElementById("detailBadge");

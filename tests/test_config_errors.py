@@ -90,3 +90,69 @@ def test_engine_turns_config_error_into_config_error_outcome(tmp_path):
     assert result.policy_passed is False
     assert "policies.yaml" in result.message
     assert "broken_policy" in result.message
+
+
+def test_malformed_yaml_raises_mirage_config_error(tmp_path):
+    mocks = _write(tmp_path / "mocks.yaml", "mocks: []\n")
+    policies = _write(
+        tmp_path / "policies.yaml",
+        "policies:\n"
+        "  - name: broken_policy\n"
+        "    field: bid_amount\n"
+        "    operator: lte\n"
+        "    value: [oops\n"
+        "    message: malformed yaml\n",
+    )
+
+    with pytest.raises(MirageConfigError) as exc_info:
+        load_mirage_config(mocks, policies)
+
+    assert "invalid YAML" in str(exc_info.value)
+
+
+def test_policy_type_validation_rejects_invalid_expected_type(tmp_path):
+    mocks = _write(tmp_path / "mocks.yaml", "mocks: []\n")
+    policies = _write(
+        tmp_path / "policies.yaml",
+        "policies:\n"
+        "  - name: compare_bad_type\n"
+        "    field: bid_amount\n"
+        "    operator: lte\n"
+        "    value: high\n"
+        "    message: bad compare\n",
+    )
+
+    with pytest.raises(MirageConfigError) as exc_info:
+        load_mirage_config(mocks, policies)
+
+    message = str(exc_info.value)
+    assert "compare_bad_type" in message
+    assert "numeric value" in message
+
+
+def test_engine_turns_malformed_yaml_into_config_error(tmp_path):
+    mocks = _write(tmp_path / "mocks.yaml", "mocks: []\n")
+    policies = _write(
+        tmp_path / "policies.yaml",
+        "policies:\n"
+        "  - name: broken_policy\n"
+        "    field: bid_amount\n"
+        "    operator: lte\n"
+        "    value: [oops\n"
+        "    message: malformed yaml\n",
+    )
+
+    engine = MirageEngine(
+        mocks_path=mocks,
+        policies_path=policies,
+        artifact_root=tmp_path / "artifacts" / "traces",
+    )
+    result = engine.handle_request(
+        method="POST",
+        path="/v1/submit_bid",
+        payload={"bid_amount": 1},
+        run_id="malformed-yaml-run",
+    )
+
+    assert result.outcome == "config_error"
+    assert "invalid YAML" in (result.message or "")

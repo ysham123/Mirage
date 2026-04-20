@@ -51,6 +51,14 @@ The Next.js client reads:
 NEXT_PUBLIC_MIRAGE_API_BASE_URL=http://127.0.0.1:5100
 ```
 
+The Next dev rewrites now use the same value, so one variable is enough for local setup.
+
+If the console API is served from a different browser origin, allow that origin on the API server with:
+
+```bash
+MIRAGE_ALLOWED_ORIGINS=http://127.0.0.1:3000
+```
+
 See [.env.example](.env.example) for the local default.
 
 ## Verification

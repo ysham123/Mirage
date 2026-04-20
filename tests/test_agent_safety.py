@@ -104,3 +104,20 @@ def test_missing_config_returns_config_error_and_trace(tmp_path):
     trace = engine.trace_store.read_trace("config-error")
     assert trace["events"][0]["outcome"] == "config_error"
     assert trace["events"][0]["response"]["status_code"] == 500
+
+
+def test_runtime_policy_type_mismatch_fails_closed_without_crashing(mirage_engine):
+    result = mirage_engine.handle_request(
+        method="POST",
+        path="/v1/submit_bid",
+        payload={"contract_id": "BAD-TYPE", "bid_amount": "50000"},
+        run_id="runtime-type-mismatch",
+    )
+
+    assert result.status_code == 200
+    assert result.outcome == "policy_violation"
+    assert result.policy_passed is False
+    assert "policy evaluation failed" in (result.message or "")
+
+    trace = mirage_engine.trace_store.read_trace("runtime-type-mismatch")
+    assert trace["events"][0]["outcome"] == "policy_violation"

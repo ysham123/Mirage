@@ -1,5 +1,5 @@
-from src.engine import MirageEngine, MirageResult, PolicyDecision
-from src.httpx_client import (
+from .engine import MirageEngine, MirageResult, PolicyDecision
+from .httpx_client import (
     MirageRunError,
     MirageRunIssue,
     MirageRunSummary,

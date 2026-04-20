@@ -101,6 +101,22 @@ def test_demo_ui_logo_asset_serves_svg(tmp_path):
     assert response.headers["content-type"] == "image/svg+xml"
 
 
+def test_demo_ui_cors_allows_configured_origin(tmp_path, monkeypatch):
+    monkeypatch.setenv("MIRAGE_ALLOWED_ORIGINS", "http://127.0.0.1:3000")
+
+    with TestClient(create_demo_app(artifact_root=tmp_path / "artifacts" / "traces")) as client:
+        response = client.options(
+            "/api/metrics/overview",
+            headers={
+                "Origin": "http://127.0.0.1:3000",
+                "Access-Control-Request-Method": "GET",
+            },
+        )
+
+    assert response.status_code == 200
+    assert response.headers["access-control-allow-origin"] == "http://127.0.0.1:3000"
+
+
 def test_demo_ui_safe_scenario_uses_procurement_flow(tmp_path):
     with TestClient(create_demo_app(artifact_root=tmp_path / "artifacts" / "traces")) as client:
         response = client.get("/api/scenario/safe")

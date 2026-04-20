@@ -29,9 +29,9 @@ from examples.procurement_harness.agent import (
     ProcurementWorkflowResult,
 )
 from examples.procurement_harness.scenarios import SCENARIO_NAMES, ScenarioName, run_scenario
-from src.engine import MirageEngine
-from src.metrics import build_metrics_overview, build_run_metrics
-from src.proxy import create_app
+from mirage.engine import MirageEngine
+from mirage.metrics import build_metrics_overview, build_run_metrics
+from mirage.proxy import create_app
 
 ROOT = Path(__file__).resolve().parent.parent
 HARNESS = ROOT / "examples" / "procurement_harness"
@@ -70,13 +70,7 @@ def create_demo_app(*, artifact_root: str | Path | None = None) -> FastAPI:
             proxy_client.close()
 
     app = FastAPI(title="Mirage Console API", lifespan=lifespan)
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origin_regex=r"https?://(localhost|127\.0\.0\.1)(:\d+)?",
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
+    app.add_middleware(CORSMiddleware, **_cors_middleware_kwargs())
 
     @app.get("/")
     async def serve_ui():
@@ -274,6 +268,22 @@ def create_demo_app(*, artifact_root: str | Path | None = None) -> FastAPI:
         }
 
     return app
+
+
+def _cors_middleware_kwargs() -> dict[str, Any]:
+    origins = [value.strip() for value in os.getenv("MIRAGE_ALLOWED_ORIGINS", "").split(",") if value.strip()]
+    origin_regex = os.getenv("MIRAGE_ALLOWED_ORIGIN_REGEX") or r"https?://(localhost|127\.0\.0\.1)(:\d+)?"
+
+    kwargs: dict[str, Any] = {
+        "allow_credentials": True,
+        "allow_methods": ["*"],
+        "allow_headers": ["*"],
+    }
+    if origins:
+        kwargs["allow_origins"] = origins
+    if origin_regex:
+        kwargs["allow_origin_regex"] = origin_regex
+    return kwargs
 
 
 def _scenario_steps(

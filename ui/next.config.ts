@@ -1,6 +1,9 @@
 import type { NextConfig } from "next";
 
-const apiBase = process.env.MIRAGE_API_BASE_URL ?? "http://127.0.0.1:5100";
+const apiBase =
+  process.env.NEXT_PUBLIC_MIRAGE_API_BASE_URL ??
+  process.env.MIRAGE_API_BASE_URL ??
+  "http://127.0.0.1:5100";
 
 const nextConfig: NextConfig = {
   async rewrites() {

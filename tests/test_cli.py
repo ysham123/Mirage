@@ -75,3 +75,59 @@ def test_validate_config_cli_fails_for_invalid_files(tmp_path, capsys):
     assert "Mirage config invalid:" in output
     assert "policies.yaml" in output
     assert "broken_policy" in output
+
+
+def test_validate_config_cli_fails_for_malformed_yaml(tmp_path, capsys):
+    mocks = _write(tmp_path / "mocks.yaml", "mocks: []\n")
+    policies = _write(
+        tmp_path / "policies.yaml",
+        "policies:\n"
+        "  - name: broken_policy\n"
+        "    field: bid_amount\n"
+        "    operator: lte\n"
+        "    value: [oops\n"
+        "    message: malformed yaml\n",
+    )
+
+    exit_code = main(
+        [
+            "validate-config",
+            "--mocks-path",
+            str(mocks),
+            "--policies-path",
+            str(policies),
+        ]
+    )
+
+    output = capsys.readouterr().out
+    assert exit_code == 1
+    assert "Mirage config invalid:" in output
+    assert "invalid YAML" in output
+
+
+def test_validate_config_cli_rejects_operator_value_type_mismatch(tmp_path, capsys):
+    mocks = _write(tmp_path / "mocks.yaml", "mocks: []\n")
+    policies = _write(
+        tmp_path / "policies.yaml",
+        "policies:\n"
+        "  - name: compare_bad_type\n"
+        "    field: bid_amount\n"
+        "    operator: lte\n"
+        "    value: high\n"
+        "    message: bad compare\n",
+    )
+
+    exit_code = main(
+        [
+            "validate-config",
+            "--mocks-path",
+            str(mocks),
+            "--policies-path",
+            str(policies),
+        ]
+    )
+
+    output = capsys.readouterr().out
+    assert exit_code == 1
+    assert "compare_bad_type" in output
+    assert "numeric value" in output

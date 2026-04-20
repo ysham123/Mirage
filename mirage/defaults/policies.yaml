@@ -1,0 +1,8 @@
+policies:
+  - name: enforce_bid_limit
+    method: POST
+    path: /v1/submit_bid
+    field: bid_amount
+    operator: lte
+    value: 10000
+    message: Agents cannot submit bids above the approved threshold.

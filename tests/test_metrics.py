@@ -247,3 +247,13 @@ def test_trace_metrics_store_handles_missing_artifacts_directory(tmp_path):
     assert snapshot.recent_runs == []
     assert snapshot.top_endpoints == []
     assert snapshot.top_failing_policies == []
+
+
+def test_trace_metrics_store_skips_malformed_trace_files(tmp_path):
+    broken = tmp_path / "broken.json"
+    broken.write_text('{"run_id": "broken", "events": [', encoding="utf-8")
+
+    snapshot = TraceMetricsStore(tmp_path).snapshot()
+
+    assert snapshot.overview.run_count == 0
+    assert snapshot.recent_runs == []

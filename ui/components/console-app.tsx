@@ -43,9 +43,110 @@ function parseUrlState() {
   };
 }
 
+type StreamMessageStore = Map<string, ChatMessage>;
+
+export function mergeMessageBodies(snapshotBody: string, streamedBody: string) {
+  if (!snapshotBody) {
+    return streamedBody;
+  }
+  if (!streamedBody) {
+    return snapshotBody;
+  }
+  if (snapshotBody === streamedBody) {
+    return snapshotBody;
+  }
+  if (streamedBody.includes(snapshotBody)) {
+    return streamedBody;
+  }
+  if (snapshotBody.includes(streamedBody)) {
+    return snapshotBody;
+  }
+
+  const maxOverlap = Math.min(snapshotBody.length, streamedBody.length);
+  for (let overlap = maxOverlap; overlap > 0; overlap -= 1) {
+    if (snapshotBody.slice(-overlap) === streamedBody.slice(0, overlap)) {
+      return `${snapshotBody}${streamedBody.slice(overlap)}`;
+    }
+  }
+  for (let overlap = maxOverlap; overlap > 0; overlap -= 1) {
+    if (streamedBody.slice(-overlap) === snapshotBody.slice(0, overlap)) {
+      return `${streamedBody}${snapshotBody.slice(overlap)}`;
+    }
+  }
+
+  return `${snapshotBody}${streamedBody}`;
+}
+
+export function mergeConversationMessages(snapshotMessages: ChatMessage[], streamedMessages: StreamMessageStore) {
+  if (!streamedMessages.size) {
+    return snapshotMessages;
+  }
+
+  const mergedStreamIds = new Set<string>();
+  const mergedSnapshot = snapshotMessages.map((message) => {
+    const streamedMessage = streamedMessages.get(message.id);
+    if (!streamedMessage) {
+      return message;
+    }
+    mergedStreamIds.add(message.id);
+    return {
+      ...message,
+      role: streamedMessage.role ?? message.role,
+      title: streamedMessage.title ?? message.title,
+      tone: streamedMessage.tone ?? message.tone,
+      body: mergeMessageBodies(message.body, streamedMessage.body),
+      streaming: streamedMessage.streaming ?? message.streaming,
+    };
+  });
+
+  const appendedStreamMessages = [...streamedMessages.values()]
+    .filter((message) => !mergedStreamIds.has(message.id))
+    .map((message) => ({ ...message }));
+
+  return [...mergedSnapshot, ...appendedStreamMessages];
+}
+
+export function accumulateStreamMessage(
+  streamedMessages: StreamMessageStore,
+  runId: string,
+  data: StreamEvent["data"],
+) {
+  const nextMessages = new Map(streamedMessages);
+  const messageId = String(data.message_id ?? `stream-${runId}`);
+  const delta = String(data.delta ?? "");
+  const current = nextMessages.get(messageId);
+
+  nextMessages.set(messageId, {
+    id: messageId,
+    role: current?.role ?? "assistant",
+    title: current?.title,
+    tone: current?.tone ?? "neutral",
+    body: `${current?.body ?? ""}${delta}`,
+    streaming: true,
+  });
+
+  return nextMessages;
+}
+
+export function completeStreamMessages(streamedMessages: StreamMessageStore) {
+  return new Map(
+    [...streamedMessages.entries()].map(([messageId, message]) => [
+      messageId,
+      {
+        ...message,
+        streaming: false,
+      },
+    ]),
+  );
+}
+
 export function ConsoleApp() {
   const searchRef = useRef<HTMLInputElement | null>(null);
   const riskyCursor = useRef(0);
+  const selectedRunIdRef = useRef<string | null>(null);
+  const runRequestRef = useRef(0);
+  const streamSessionRef = useRef(0);
+  const streamedMessagesRef = useRef<StreamMessageStore>(new Map());
 
   const [overview, setOverview] = useState<ConsoleOverview | null>(null);
   const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
@@ -86,6 +187,8 @@ export function ConsoleApp() {
   const focusedSideEffectId =
     selectedRun?.sideEffects.find((effect) => effect.stepIndex === focusedStepIndex)?.id ?? null;
 
+  selectedRunIdRef.current = selectedRunId;
+
   async function refreshOverview(preferredRunId?: string | null) {
     try {
       const payload = await fetchOverview();
@@ -102,14 +205,20 @@ export function ConsoleApp() {
     }
   }
 
-  async function refreshRun(runId: string) {
+  async function refreshRun(runId: string, requestId = ++runRequestRef.current) {
     try {
       const payload = await fetchRun(runId);
       const nextRun = adaptRun(payload);
+      if (requestId !== runRequestRef.current || selectedRunIdRef.current !== runId) {
+        return;
+      }
       setSelectedRun(nextRun);
-      setConversation(nextRun.messages);
+      setConversation(mergeConversationMessages(nextRun.messages, streamedMessagesRef.current));
       setLoadError(null);
     } catch (error) {
+      if (requestId !== runRequestRef.current || selectedRunIdRef.current !== runId) {
+        return;
+      }
       setLoadError(error instanceof Error ? error.message : `Failed to load run ${runId}.`);
     }
   }
@@ -164,11 +273,17 @@ export function ConsoleApp() {
 
   useEffect(() => {
     if (!selectedRunId) {
+      streamedMessagesRef.current = new Map();
+      runRequestRef.current += 1;
+      streamSessionRef.current += 1;
       setSelectedRun(null);
       setConversation([]);
       return;
     }
 
+    streamedMessagesRef.current = new Map();
+    setSelectedRun((current) => (current?.runId === selectedRunId ? current : null));
+    setConversation([]);
     void refreshRun(selectedRunId);
     syncUrlState({ runId: selectedRunId });
   }, [selectedRunId]);
@@ -178,39 +293,21 @@ export function ConsoleApp() {
       return;
     }
 
+    const streamSessionId = ++streamSessionRef.current;
     setStreamStatus("Connecting to live review stream");
     const stop = streamRun(selectedRunId, {
       onEvent(event: StreamEvent) {
+        if (streamSessionId !== streamSessionRef.current || selectedRunIdRef.current !== selectedRunId) {
+          return;
+        }
         if (event.event === "status") {
           setStreamStatus(String(event.data.message ?? "Streaming"));
           return;
         }
 
         if (event.event === "message_delta") {
-          setConversation((current) => {
-            const messageId = String(event.data.message_id ?? `stream-${selectedRunId}`);
-            const delta = String(event.data.delta ?? "");
-            const index = current.findIndex((message) => message.id === messageId);
-            if (index >= 0) {
-              const next = [...current];
-              next[index] = {
-                ...next[index],
-                body: `${next[index].body}${delta}`,
-                streaming: true,
-              };
-              return next;
-            }
-            return [
-              ...current,
-              {
-                id: messageId,
-                role: "assistant",
-                body: delta,
-                tone: "neutral",
-                streaming: true,
-              },
-            ];
-          });
+          streamedMessagesRef.current = accumulateStreamMessage(streamedMessagesRef.current, selectedRunId, event.data);
+          setConversation((current) => mergeConversationMessages(current, streamedMessagesRef.current));
           return;
         }
 
@@ -232,15 +329,24 @@ export function ConsoleApp() {
 
         if (event.event === "complete") {
           setStreamStatus("Review stream synced");
+          streamedMessagesRef.current = completeStreamMessages(streamedMessagesRef.current);
           setConversation((current) => current.map((message) => ({ ...message, streaming: false })));
         }
       },
       onError() {
+        if (streamSessionId !== streamSessionRef.current || selectedRunIdRef.current !== selectedRunId) {
+          return;
+        }
         setStreamStatus("Stream unavailable, using trace snapshot");
       },
     });
 
-    return stop;
+    return () => {
+      stop();
+      if (streamSessionRef.current === streamSessionId) {
+        streamSessionRef.current += 1;
+      }
+    };
   }, [selectedRunId]);
 
   useEffect(() => {

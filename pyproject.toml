@@ -57,10 +57,12 @@ mirage = "mirage.cli:main"
 include-package-data = true
 
 [tool.setuptools.packages.find]
-include = ["src", "src.*", "mirage", "mirage.*"]
+include = ["src", "src.*", "mirage", "mirage.*", "demo_ui", "demo_ui.*", "examples", "examples.*"]
 
 [tool.setuptools.package-data]
-src = ["defaults/*.yaml"]
+mirage = ["defaults/*.yaml"]
+demo_ui = ["index.html", "assets/*.svg"]
+"examples.procurement_harness" = ["*.yaml"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

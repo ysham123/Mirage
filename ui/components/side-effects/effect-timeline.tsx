@@ -32,7 +32,9 @@ export function EffectTimeline({ effects, focusedStepIndex, onFocusStep, onSuppr
   return (
     <div className="space-y-3">
       {effects.map((effect) => (
-        <button
+        <div
+          aria-pressed={focusedStepIndex === effect.stepIndex}
+          aria-label={`${effect.name} ${effect.method} ${effect.path}`}
           key={effect.id}
           className={cn(
             "relative w-full rounded-[1.4rem] border p-4 text-left transition",
@@ -41,7 +43,14 @@ export function EffectTimeline({ effects, focusedStepIndex, onFocusStep, onSuppr
               : "border-white/10 bg-white/[0.03] hover:border-white/20 hover:bg-white/[0.05]",
           )}
           onClick={() => onFocusStep(effect.stepIndex)}
-          type="button"
+          onKeyDown={(event) => {
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              onFocusStep(effect.stepIndex);
+            }
+          }}
+          role="button"
+          tabIndex={0}
         >
           {effect.outcome !== "allowed" && !effect.suppressed ? <div className="risk-bloom" aria-hidden="true" /> : null}
           <div className="relative flex items-start justify-between gap-3">
@@ -76,7 +85,7 @@ export function EffectTimeline({ effects, focusedStepIndex, onFocusStep, onSuppr
             </span>
             {effect.timestamp ? <span>{new Date(effect.timestamp).toLocaleString()}</span> : null}
           </div>
-        </button>
+        </div>
       ))}
     </div>
   );
