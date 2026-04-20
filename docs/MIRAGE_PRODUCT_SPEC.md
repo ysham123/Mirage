@@ -30,6 +30,15 @@ Current lead positioning:
 - Mirage should not currently be framed first as a generic runtime guard for
   production traffic
 
+Competitive shape:
+
+- adjacent tools will increasingly cluster around runtime hooks, live action
+  scoring, guard models, or human-in-the-loop review
+- Mirage should differentiate on declarative policy, mocked responses,
+  deterministic traces, and CI gating for pre-merge workflows
+- the short version should stay simple: runtime guards protect live traffic;
+  Mirage catches risky action regressions before merge
+
 Mirage is not yet a fully self-serve product:
 
 - the integration path is still narrow

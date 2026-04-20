@@ -30,6 +30,22 @@ actions.
 It is not trying to be a generic runtime guard for production traffic. The
 clearest wedge right now is: catch risky agent actions before they merge.
 
+## How Mirage Is Different
+
+Many adjacent tools focus on runtime protection: intercept a live tool call,
+score or inspect it in the loop, and decide whether to allow it.
+
+Mirage is different:
+
+- it is built for pre-merge testing and CI, not live production arbitration
+- it uses declarative policy plus mocked responses, not a model-in-the-loop
+  safety judge as the primary control
+- it optimizes for deterministic traces, reproducible failures, and build gates
+  that engineers can trust in tests and CI
+
+That is the product wedge: runtime guards try to protect live traffic; Mirage
+tries to stop risky action regressions before they ship.
+
 > Status: `v0.1.0` is the first public alpha. The strongest supported path today
 > is Python integrations through `MirageSession`, run-level CLI gates, and the
 > bundled procurement harness. The review UI is real and useful, but still an
