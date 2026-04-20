@@ -2,7 +2,7 @@
 import os
 import time
 
-from src.httpx_client import create_mirage_client, mirage_response_report
+from mirage.httpx_client import create_mirage_client, mirage_response_report
 
 RUN_ID = os.getenv("MIRAGE_RUN_ID", "safe-agent-demo")
 

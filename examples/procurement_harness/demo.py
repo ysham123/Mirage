@@ -6,7 +6,7 @@ import time
 
 from examples.procurement_harness.agent import ProcurementAgent
 from examples.procurement_harness.scenarios import SCENARIO_NAMES, run_scenario
-from src.httpx_client import MirageSession
+from mirage import MirageSession
 
 
 def main() -> int:

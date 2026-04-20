@@ -73,7 +73,7 @@ Supported operators: `exists`, `eq`, `neq`, `lt`, `lte`, `gt`, `gte`, `in`,
 Run:
 
 ```bash
-python -m src.cli validate-config \
+python -m mirage.cli validate-config \
   --mocks-path ./my_mocks.yaml \
   --policies-path ./my_policies.yaml
 ```
@@ -96,7 +96,7 @@ In one terminal:
 ```bash
 MIRAGE_MOCKS_PATH=./my_mocks.yaml \
 MIRAGE_POLICIES_PATH=./my_policies.yaml \
-uvicorn src.proxy:app --reload
+python -m uvicorn mirage.proxy:app --reload
 ```
 
 Mirage now listens on `http://localhost:8000`.
@@ -115,7 +115,7 @@ with httpx.Client(base_url="https://api.example.com") as client:
 After:
 
 ```python
-from src import MirageSession
+from mirage import MirageSession
 
 with MirageSession(run_id="first-run") as mirage:
     agent.run(mirage.client)  # mirage.client is an httpx.Client
@@ -132,7 +132,7 @@ In a second terminal:
 
 ```bash
 python your_agent.py
-python -m src.cli summarize-run --run-id first-run
+python -m mirage.cli summarize-run --run-id first-run
 ```
 
 A clean run looks like:
@@ -167,7 +167,7 @@ that's wrong, plus an example of a correct entry.
 In your repo's `conftest.py`:
 
 ```python
-from src.pytest_plugin import mirage_session  # re-export as fixture
+from mirage.pytest_plugin import mirage_session  # re-export as fixture
 ```
 
 Then in any test:
@@ -190,7 +190,7 @@ that same `conftest.py`:
 ```python
 import pytest
 
-from src.pytest_plugin import mirage_session
+from mirage.pytest_plugin import mirage_session
 
 
 @pytest.fixture

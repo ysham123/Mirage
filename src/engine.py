@@ -9,6 +9,7 @@ from typing import Any, Literal
 from pydantic import BaseModel, Field, ValidationError
 
 from src.config import MirageConfig, MockRouteConfig, PolicyConfig, load_mirage_config
+from src.runtime_paths import resolve_artifact_root, resolve_config_path
 from src.trace import TraceStore
 
 
@@ -50,14 +51,17 @@ class MirageEngine:
         policies_path: str | Path | None = None,
         artifact_root: str | Path | None = None,
     ):
-        root = Path(__file__).resolve().parent.parent
-        self.mocks_path = Path(mocks_path or os.getenv("MIRAGE_MOCKS_PATH") or root / "mocks.yaml")
-        self.policies_path = Path(
-            policies_path or os.getenv("MIRAGE_POLICIES_PATH") or root / "policies.yaml"
+        self.mocks_path = resolve_config_path(
+            explicit=mocks_path,
+            env_var="MIRAGE_MOCKS_PATH",
+            filename="mocks.yaml",
         )
-        self.trace_store = TraceStore(
-            Path(artifact_root or os.getenv("MIRAGE_ARTIFACT_ROOT") or root / "artifacts" / "traces")
+        self.policies_path = resolve_config_path(
+            explicit=policies_path,
+            env_var="MIRAGE_POLICIES_PATH",
+            filename="policies.yaml",
         )
+        self.trace_store = TraceStore(resolve_artifact_root(artifact_root))
 
     def handle_request(
         self,

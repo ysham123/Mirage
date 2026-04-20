@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Protocol
 
-from src.httpx_client import MirageResponseReport, mirage_response_report
+from mirage.httpx_client import MirageResponseReport, mirage_response_report
 
 
 class SupportsHttpClient(Protocol):

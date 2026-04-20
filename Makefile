@@ -2,13 +2,13 @@ PROCUREMENT_MOCKS=examples/procurement_harness/mocks.yaml
 PROCUREMENT_POLICIES=examples/procurement_harness/policies.yaml
 
 install:
-	pip install -r requirements.txt
+	python -m pip install --no-build-isolation -e '.[dev]'
 
 proxy:
-	uvicorn src.proxy:app --reload
+	python -m uvicorn mirage.proxy:app --reload
 
 proxy-procurement:
-	MIRAGE_MOCKS_PATH=$(PROCUREMENT_MOCKS) MIRAGE_POLICIES_PATH=$(PROCUREMENT_POLICIES) uvicorn src.proxy:app --reload
+	MIRAGE_MOCKS_PATH=$(PROCUREMENT_MOCKS) MIRAGE_POLICIES_PATH=$(PROCUREMENT_POLICIES) python -m uvicorn mirage.proxy:app --reload
 
 agent:
 	python examples/rogue_agent.py
@@ -50,13 +50,13 @@ ui-test:
 	cd ui && pnpm test
 
 mirage-summary:
-	python -m src.cli summarize-run --run-id $(RUN_ID)
+	python -m mirage.cli summarize-run --run-id $(RUN_ID)
 
 mirage-gate:
-	python -m src.cli gate-run --run-id $(RUN_ID)
+	python -m mirage.cli gate-run --run-id $(RUN_ID)
 
 mirage-validate-config:
-	python -m src.cli validate-config
+	python -m mirage.cli validate-config
 
 test:
 	pytest tests/ -v -s

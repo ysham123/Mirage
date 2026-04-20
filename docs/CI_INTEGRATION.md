@@ -11,7 +11,7 @@ fails the test naturally.
 In `conftest.py`:
 
 ```python
-from src.pytest_plugin import mirage_session  # re-export
+from mirage.pytest_plugin import mirage_session  # re-export
 ```
 
 Optional override when CI needs a non-default proxy URL, artifact root, or a
@@ -20,7 +20,7 @@ negative test that should inspect risky output without failing in teardown:
 ```python
 import pytest
 
-from src.pytest_plugin import mirage_session
+from mirage.pytest_plugin import mirage_session
 
 
 @pytest.fixture
@@ -49,7 +49,7 @@ export, a scheduled script). Run the agent, then gate the run.
 
 ```bash
 MIRAGE_RUN_ID=nightly-$(date +%F) python my_agent.py
-python -m src.cli gate-run --run-id nightly-$(date +%F)
+python -m mirage.cli gate-run --run-id nightly-$(date +%F)
 ```
 
 `gate-run` exits non-zero when:
@@ -79,7 +79,7 @@ jobs:
 
       - name: Validate Mirage config
         run: |
-          python -m src.cli validate-config \
+          python -m mirage.cli validate-config \
             --mocks-path ./my_mocks.yaml \
             --policies-path ./my_policies.yaml
 
@@ -87,7 +87,7 @@ jobs:
         run: |
           MIRAGE_MOCKS_PATH=./my_mocks.yaml \
           MIRAGE_POLICIES_PATH=./my_policies.yaml \
-          nohup uvicorn src.proxy:app --host 127.0.0.1 --port 8000 &
+          nohup python -m uvicorn mirage.proxy:app --host 127.0.0.1 --port 8000 &
           for i in {1..20}; do
             curl -fsS http://127.0.0.1:8000/health && break
             sleep 0.5
@@ -99,7 +99,7 @@ jobs:
         run: python my_agent.py
 
       - name: Gate the run
-        run: python -m src.cli gate-run --run-id ci-${{ github.run_id }}
+        run: python -m mirage.cli gate-run --run-id ci-${{ github.run_id }}
 
       - name: Upload Mirage trace
         if: always()

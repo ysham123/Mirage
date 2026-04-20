@@ -80,7 +80,7 @@ Today Mirage is integrated by routing a Python `httpx` client through the local 
 The product should converge on one obvious run-level integration shape:
 
 ```python
-from src.httpx_client import MirageSession
+from mirage import MirageSession
 
 with MirageSession(run_id="procurement-pr-128") as mirage:
     agent = ProcurementAgent(client=mirage.client)

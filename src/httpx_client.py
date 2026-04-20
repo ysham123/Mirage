@@ -8,6 +8,7 @@ from typing import Any
 
 import httpx
 
+from src.runtime_paths import resolve_artifact_root
 from src.trace import TraceStore
 
 
@@ -284,10 +285,7 @@ def assert_mirage_run_clean(
 
 
 def _resolve_artifact_root(artifact_root: str | Path | None) -> Path:
-    if artifact_root is not None:
-        return Path(artifact_root)
-    default_root = Path(__file__).resolve().parent.parent / "artifacts" / "traces"
-    return Path(os.getenv("MIRAGE_ARTIFACT_ROOT", str(default_root)))
+    return resolve_artifact_root(artifact_root)
 
 
 def _coerce_optional_text(value: Any) -> str | None:

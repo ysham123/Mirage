@@ -8,6 +8,7 @@ from typing import Sequence
 
 from src.config import validate_mirage_config
 from src.httpx_client import MirageRunError, assert_mirage_run_clean, mirage_run_summary
+from src.runtime_paths import resolve_config_path
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -34,13 +35,19 @@ def build_parser() -> argparse.ArgumentParser:
         "--mocks-path",
         type=Path,
         default=None,
-        help="Optional mocks config path. Defaults to MIRAGE_MOCKS_PATH or repo-root mocks.yaml.",
+        help=(
+            "Optional mocks config path. Defaults to MIRAGE_MOCKS_PATH, "
+            "./mocks.yaml, or Mirage's bundled example mocks."
+        ),
     )
     validate_parser.add_argument(
         "--policies-path",
         type=Path,
         default=None,
-        help="Optional policies config path. Defaults to MIRAGE_POLICIES_PATH or repo-root policies.yaml.",
+        help=(
+            "Optional policies config path. Defaults to MIRAGE_POLICIES_PATH, "
+            "./policies.yaml, or Mirage's bundled example policies."
+        ),
     )
 
     return parser
@@ -96,10 +103,17 @@ def _resolve_config_paths(
     mocks_path: Path | None,
     policies_path: Path | None,
 ) -> tuple[Path, Path]:
-    root = Path(__file__).resolve().parent.parent
     return (
-        mocks_path or Path(os.getenv("MIRAGE_MOCKS_PATH") or root / "mocks.yaml"),
-        policies_path or Path(os.getenv("MIRAGE_POLICIES_PATH") or root / "policies.yaml"),
+        resolve_config_path(
+            explicit=mocks_path,
+            env_var="MIRAGE_MOCKS_PATH",
+            filename="mocks.yaml",
+        ),
+        resolve_config_path(
+            explicit=policies_path,
+            env_var="MIRAGE_POLICIES_PATH",
+            filename="policies.yaml",
+        ),
     )
 
 

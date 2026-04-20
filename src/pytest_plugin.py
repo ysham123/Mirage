@@ -2,7 +2,7 @@
 
 Usage in a downstream repo's ``conftest.py``:
 
-    from src.pytest_plugin import mirage_session  # re-export as a fixture
+    from mirage.pytest_plugin import mirage_session  # re-export as a fixture
 
 Then any test can request ``mirage_session`` and get a ``MirageSession`` that:
 

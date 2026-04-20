@@ -44,11 +44,20 @@ Mirage currently reports one of four outcomes for every intercepted request:
 
 ## Quickstart
 
-Install dependencies:
+Install Mirage in editable mode:
 
 ```bash
 make install
 ```
+
+Direct pip equivalent:
+
+```bash
+python -m pip install --no-build-isolation -e '.[dev]'
+```
+
+The editable install also exposes a `mirage` console script. If that script is
+not on your `PATH`, use `python -m mirage.cli ...` directly.
 
 ### Integrate your own agent
 
@@ -56,7 +65,7 @@ The canonical Mirage integration is `MirageSession`. One run ID, an `httpx`
 client surface the agent uses directly, one assertion point for CI.
 
 ```python
-from src import MirageSession
+from mirage import MirageSession
 
 with MirageSession(run_id="demo-run") as mirage:
     response = mirage.post(
@@ -108,7 +117,7 @@ For agent code that already expects a client-like object:
 
 ```python
 from examples.procurement_harness.agent import ProcurementAgent
-from src import MirageSession
+from mirage import MirageSession
 
 with MirageSession(run_id="procurement-safe") as mirage:
     agent = ProcurementAgent(mirage)
@@ -124,7 +133,7 @@ If you want per-response access instead of a run-level session, the lower-level
 `httpx` primitives remain available:
 
 ```python
-from src.httpx_client import (
+from mirage.httpx_client import (
     assert_mirage_response_safe,
     create_mirage_client,
     mirage_response_report,
@@ -162,9 +171,9 @@ make mirage-gate RUN_ID=procurement-risky-demo
 Equivalent direct commands:
 
 ```bash
-python -m src.cli summarize-run --run-id procurement-risky-demo
-python -m src.cli gate-run --run-id procurement-risky-demo
-python -m src.cli validate-config
+python -m mirage.cli summarize-run --run-id procurement-risky-demo
+python -m mirage.cli gate-run --run-id procurement-risky-demo
+python -m mirage.cli validate-config
 ```
 
 `gate-run` exits non-zero when the run is risky or missing, so it can fail CI directly.
@@ -181,7 +190,10 @@ The primary onboarding config now lives in:
 - [`examples/procurement_harness/mocks.yaml`](examples/procurement_harness/mocks.yaml)
 - [`examples/procurement_harness/policies.yaml`](examples/procurement_harness/policies.yaml)
 
-The repo-root [`mocks.yaml`](mocks.yaml) and [`policies.yaml`](policies.yaml) remain as the engine's default fallback config when no harness-specific paths are provided.
+When you run Mirage from a repo checkout, local [`mocks.yaml`](mocks.yaml) and
+[`policies.yaml`](policies.yaml) remain the default fallback config. Installed
+Mirage also ships bundled example defaults, so the CLI and proxy still boot
+outside the source tree.
 
 Example policy:
 

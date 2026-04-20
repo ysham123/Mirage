@@ -51,10 +51,16 @@ dev = [
 ]
 
 [project.scripts]
-mirage = "src.cli:main"
+mirage = "mirage.cli:main"
 
 [tool.setuptools]
-packages = ["src"]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+include = ["src", "src.*", "mirage", "mirage.*"]
+
+[tool.setuptools.package-data]
+src = ["defaults/*.yaml"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
