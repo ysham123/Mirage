@@ -7,6 +7,7 @@ This is the fastest way to navigate Mirage from the GitHub repo.
 - New to Mirage: start with the top-level [README](../README.md)
 - Current alpha release notes: [releases/v0.1.0.md](releases/v0.1.0.md)
 - Integrating an existing `httpx` agent: [FIRST_INTEGRATION.md](FIRST_INTEGRATION.md)
+- Integrating through an SDK or framework boundary: [INTEGRATION_PATTERNS.md](INTEGRATION_PATTERNS.md)
 - Adding CI or build gates: [CI_INTEGRATION.md](CI_INTEGRATION.md)
 - Understanding product direction: [MIRAGE_PRODUCT_SPEC.md](MIRAGE_PRODUCT_SPEC.md)
 - Understanding open-source and commercial use: [OPEN_SOURCE_FAQ.md](OPEN_SOURCE_FAQ.md)

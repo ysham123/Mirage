@@ -4,21 +4,63 @@ Mirage is CI for agent side effects.
 
 ![Mirage review console and workflow preview](Mirage%20Photo.png)
 
+_Screenshot: Mirage review console over a risky procurement run trace._
+
 [![CI](https://github.com/ysham123/Mirage/actions/workflows/ci.yml/badge.svg)](https://github.com/ysham123/Mirage/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 It sits between an agent and external APIs, intercepts outbound HTTP actions, evaluates them against policy, returns safe mocked responses, and writes deterministic traces for tests and CI.
+
+## Why Mirage Exists
+
+Agents do not just generate text. They create tickets, submit bids, call billing
+APIs, and mutate real systems through HTTP.
+
+A bad retry, hallucinated route, or out-of-policy payload can create duplicate
+charges, leak data, or ship a regression that only shows up after merge.
+Mirage sits between your agent and its APIs, checks outbound calls against
+declarative policy, returns safe mocked responses, and turns the run into
+deterministic traces you can fail in tests and CI before bad actions ship.
+
+## Positioning
+
+Mirage is strongest today as a testing and CI layer for outbound agent HTTP
+actions.
+
+It is not trying to be a generic runtime guard for production traffic. The
+clearest wedge right now is: catch risky agent actions before they merge.
 
 > Status: `v0.1.0` is the first public alpha. The strongest supported path today
 > is Python integrations through `MirageSession`, run-level CLI gates, and the
 > bundled procurement harness. The review UI is real and useful, but still an
 > alpha console surface rather than a finished product shell.
 
+## See It In 60 Seconds
+
+If you want the fastest proof that Mirage is real:
+
+```bash
+make proxy-procurement
+make procurement-demo-risky
+python -m mirage.cli summarize-run --run-id procurement-risky-demo
+```
+
+You should see Mirage allow the supplier lookup, flag the bid submission as a
+`policy_violation`, and write a trace under `artifacts/traces/`.
+
+```text
+Mirage run: procurement-risky-demo
+Summary: 2 action(s), 1 safe, 1 risky
+Risky actions:
+- [policy_violation] POST /v1/submit_bid ...
+```
+
 ## Start Here
 
 - Want to understand the product quickly: read [`docs/README.md`](docs/README.md)
 - Want the current alpha snapshot: read [`docs/releases/v0.1.0.md`](docs/releases/v0.1.0.md)
 - Want to integrate Mirage into your own agent: read [`docs/FIRST_INTEGRATION.md`](docs/FIRST_INTEGRATION.md)
+- Want the framework-agnostic integration paths: read [`docs/INTEGRATION_PATTERNS.md`](docs/INTEGRATION_PATTERNS.md)
 - Want to wire Mirage into CI: read [`docs/CI_INTEGRATION.md`](docs/CI_INTEGRATION.md)
 - Want to try the bundled workflow first: read [`examples/procurement_harness/README.md`](examples/procurement_harness/README.md)
 - Want the straight licensing/commercial answer: read [`docs/OPEN_SOURCE_FAQ.md`](docs/OPEN_SOURCE_FAQ.md)
@@ -32,7 +74,7 @@ Mirage currently gives a Python-first developer workflow for:
 - deterministic run-scoped traces
 - clear request outcomes for debugging and CI
 - an action review console over trace artifacts
-- an `httpx` helper for agent integrations
+- a Python-first integration path, with `httpx` as the cleanest path today
 - local, test, and container-friendly execution
 
 Mirage currently reports one of four outcomes for every intercepted request:
@@ -182,6 +224,21 @@ you can fail fast before starting the proxy.
 
 For complete GitHub Actions and pytest recipes, see
 [`docs/CI_INTEGRATION.md`](docs/CI_INTEGRATION.md).
+
+## If Your Agent Does Not Already Use `httpx`
+
+Mirage does not require your whole stack to be built directly on `httpx`. It
+only needs the outbound action path to cross a client boundary you control.
+
+- If your SDK or framework lets you inject a base URL, transport, or HTTP
+  client, point that boundary at Mirage.
+- If your orchestration layer hides HTTP completely, wrap the side-effecting
+  calls in your own gateway and test that gateway with Mirage.
+- If you only need a starting point, intercept writes first: bids, orders,
+  ticket creation, CRM updates, or billing actions.
+
+See [`docs/INTEGRATION_PATTERNS.md`](docs/INTEGRATION_PATTERNS.md) for the
+concrete patterns.
 
 ## Config
 

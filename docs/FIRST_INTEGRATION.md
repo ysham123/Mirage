@@ -1,15 +1,21 @@
 # First Integration
 
-This is the zero-to-clean-run path for a Python engineer who already has an
-`httpx`-based agent and wants to route it behind Mirage. Budget: 30 minutes.
+This is the zero-to-clean-run path for a Python engineer who can route outbound
+HTTP through a client boundary and wants to put Mirage in front of it. Budget:
+30 minutes.
 
 If you just want to watch Mirage work on a pre-built harness, run the
 procurement demo from the top-level [README](../README.md) instead.
 
+If your agent does not already use `httpx` directly, start with
+[INTEGRATION_PATTERNS.md](INTEGRATION_PATTERNS.md) first. Mirage only needs the
+outbound action path to cross a client boundary you control.
+
 ## Prereqs
 
 - Python 3.11+
-- An existing agent that makes outbound HTTP calls through `httpx`
+- An existing agent, SDK wrapper, or gateway layer that makes outbound HTTP
+  calls you can route through a client boundary
 - A shell with two tabs free (one for the proxy, one for the agent)
 
 ## 1. Install

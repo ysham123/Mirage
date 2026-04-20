@@ -2,7 +2,7 @@
 
 ## Product Definition
 
-Mirage is a pre-production testing and review layer for agent actions.
+Mirage is a pre-merge testing, CI, and review layer for agent actions.
 
 It sits between an action-taking agent and external APIs, intercepts outbound HTTP requests, evaluates them against configured policy, returns safe mocked responses, and writes deterministic traces for local development and CI.
 
@@ -22,6 +22,13 @@ Current console split:
 
 - `demo_ui/` is the shared FastAPI console API and zero-dependency HTML shell
 - `ui/` is the richer Next.js client over that same API
+
+Current lead positioning:
+
+- Mirage should be framed first as a testing and CI layer for outbound agent
+  HTTP actions
+- Mirage should not currently be framed first as a generic runtime guard for
+  production traffic
 
 Mirage is not yet a fully self-serve product:
 
