@@ -2,7 +2,7 @@
 
 Mirage is CI for agent side effects.
 
-![Mirage review console and workflow preview](Mirage%20Photo.png)
+![Mirage review console and workflow preview](mirage-console-risky-run.png)
 
 _Screenshot: Mirage review console over a risky procurement run trace._
 
