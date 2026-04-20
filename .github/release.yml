@@ -1,0 +1,25 @@
+changelog:
+  exclude:
+    authors:
+      - dependabot[bot]
+    labels:
+      - skip-changelog
+  categories:
+    - title: Core engine and policy
+      labels:
+        - core
+        - engine
+        - policy
+    - title: CLI and CI
+      labels:
+        - cli
+        - ci
+    - title: UI and console
+      labels:
+        - ui
+        - console
+    - title: Docs and repo
+      labels:
+        - docs
+        - repo
+        - meta

@@ -26,6 +26,29 @@ that code keep those license rights for those released versions. A future buyer
 can still acquire the company and continue developing Mirage, but they cannot
 retroactively revoke the MIT license from versions already published.
 
+## No-BS take on MIT and startup value
+
+If you ship Mirage under MIT, anyone can use it, fork it, package it, and build
+commercial work on top of the released code. That is the upside of permissive
+open source, and it is also the cost.
+
+What a future buyer can still buy from you:
+
+- the company and cap table
+- the brand, domain, and distribution
+- maintainership and community trust
+- future roadmap and new code you have not released yet
+- enterprise services, support, and hosted products around Mirage
+
+What they cannot buy back:
+
+- exclusive rights to versions you already published under MIT
+
+If exclusive control over the core product is important, do not open-source the
+core under MIT. Use dual licensing or keep part of the product closed. If your
+goal is adoption first and monetization through execution, support, hosted
+offerings, or enterprise add-ons, MIT is a valid choice.
+
 ## Can I sell commercial offerings around an open-source Mirage?
 
 Yes. Common examples:

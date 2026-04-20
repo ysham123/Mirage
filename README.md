@@ -2,14 +2,22 @@
 
 Mirage is CI for agent side effects.
 
+![Mirage review console and workflow preview](Mirage%20Photo.png)
+
 [![CI](https://github.com/ysham123/Mirage/actions/workflows/ci.yml/badge.svg)](https://github.com/ysham123/Mirage/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 It sits between an agent and external APIs, intercepts outbound HTTP actions, evaluates them against policy, returns safe mocked responses, and writes deterministic traces for tests and CI.
 
+> Status: `v0.1.0` is the first public alpha. The strongest supported path today
+> is Python integrations through `MirageSession`, run-level CLI gates, and the
+> bundled procurement harness. The review UI is real and useful, but still an
+> alpha console surface rather than a finished product shell.
+
 ## Start Here
 
 - Want to understand the product quickly: read [`docs/README.md`](docs/README.md)
+- Want the current alpha snapshot: read [`docs/releases/v0.1.0.md`](docs/releases/v0.1.0.md)
 - Want to integrate Mirage into your own agent: read [`docs/FIRST_INTEGRATION.md`](docs/FIRST_INTEGRATION.md)
 - Want to wire Mirage into CI: read [`docs/CI_INTEGRATION.md`](docs/CI_INTEGRATION.md)
 - Want to try the bundled workflow first: read [`examples/procurement_harness/README.md`](examples/procurement_harness/README.md)

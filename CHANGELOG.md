@@ -14,6 +14,8 @@ and this project aims to follow [Semantic Versioning](https://semver.org/).
 
 ## [0.1.0] - 2026-04-19
 
+Release notes: [docs/releases/v0.1.0.md](docs/releases/v0.1.0.md)
+
 ### Added
 
 - Python-first `MirageSession` integration path for agent workflows
