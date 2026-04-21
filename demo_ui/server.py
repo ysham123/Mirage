@@ -123,7 +123,6 @@ def create_demo_app(*, artifact_root: str | Path | None = None) -> FastAPI:
                 }
             )
 
-        risky_runs = sum(1 for run in recent_runs if run.get("outcome") not in ("allowed", "unknown"))
         return {
             "summary": {
                 "total_runs": overview["overview"]["run_count"],
@@ -132,7 +131,7 @@ def create_demo_app(*, artifact_root: str | Path | None = None) -> FastAPI:
                 "policy_violation": overview["overview"]["policy_violation_count"],
                 "unmatched_route": overview["overview"]["unmatched_route_count"],
                 "config_error": overview["overview"]["config_error_count"],
-                "risky_runs": risky_runs,
+                "risky_runs": overview["overview"]["risky_run_count"],
                 "suppressed_actions": sum(len(run_suppressions) for run_suppressions in suppressions.values()),
             },
             "recent_runs": recent_runs,

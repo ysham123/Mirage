@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useEffectEvent } from "react";
+import { useEffect, useRef } from "react";
 
 export function isTypingTarget(target: EventTarget | null) {
   const element = target as HTMLElement | null;
@@ -28,73 +28,79 @@ interface ShortcutHandlers {
 }
 
 export function useConsoleShortcuts(handlers: ShortcutHandlers, enabled = true) {
-  const onKeyDown = useEffectEvent((event: KeyboardEvent) => {
-    if (!enabled) {
-      return;
-    }
-
-    if (isCommandShortcut(event)) {
-      event.preventDefault();
-      handlers.onCommandPalette();
-      return;
-    }
-
-    if (isTypingTarget(event.target)) {
-      if (event.key === "Escape") {
-        handlers.onEscape();
-      }
-      return;
-    }
-
-    if (event.key === "/" || event.key.toLowerCase() === "f") {
-      event.preventDefault();
-      handlers.onFocusSearch();
-      return;
-    }
-
-    if (event.key === "[") {
-      handlers.onToggleSidebar();
-      return;
-    }
-
-    if (event.key.toLowerCase() === "e") {
-      handlers.onExport();
-      return;
-    }
-
-    if (event.key.toLowerCase() === "s") {
-      handlers.onSuppress();
-      return;
-    }
-
-    if (event.key === "j" || event.key === "ArrowDown") {
-      event.preventDefault();
-      handlers.onNext();
-      return;
-    }
-
-    if (event.key === "k" || event.key === "ArrowUp") {
-      event.preventDefault();
-      handlers.onPrevious();
-      return;
-    }
-
-    if (event.key === "1" || event.key === "2" || event.key === "3") {
-      handlers.onView(Number(event.key) as 1 | 2 | 3);
-      return;
-    }
-
-    if (event.key === "Escape") {
-      handlers.onEscape();
-    }
-  });
+  const handlersRef = useRef(handlers);
+  const enabledRef = useRef(enabled);
 
   useEffect(() => {
-    if (!enabled) {
-      return;
-    }
+    handlersRef.current = handlers;
+    enabledRef.current = enabled;
+  }, [enabled, handlers]);
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (!enabledRef.current) {
+        return;
+      }
+
+      const currentHandlers = handlersRef.current;
+
+      if (isCommandShortcut(event)) {
+        event.preventDefault();
+        currentHandlers.onCommandPalette();
+        return;
+      }
+
+      if (isTypingTarget(event.target)) {
+        if (event.key === "Escape") {
+          currentHandlers.onEscape();
+        }
+        return;
+      }
+
+      if (event.key === "/" || event.key.toLowerCase() === "f") {
+        event.preventDefault();
+        currentHandlers.onFocusSearch();
+        return;
+      }
+
+      if (event.key === "[") {
+        currentHandlers.onToggleSidebar();
+        return;
+      }
+
+      if (event.key.toLowerCase() === "e") {
+        currentHandlers.onExport();
+        return;
+      }
+
+      if (event.key.toLowerCase() === "s") {
+        currentHandlers.onSuppress();
+        return;
+      }
+
+      if (event.key === "j" || event.key === "ArrowDown") {
+        event.preventDefault();
+        currentHandlers.onNext();
+        return;
+      }
+
+      if (event.key === "k" || event.key === "ArrowUp") {
+        event.preventDefault();
+        currentHandlers.onPrevious();
+        return;
+      }
+
+      if (event.key === "1" || event.key === "2" || event.key === "3") {
+        currentHandlers.onView(Number(event.key) as 1 | 2 | 3);
+        return;
+      }
+
+      if (event.key === "Escape") {
+        currentHandlers.onEscape();
+      }
+    };
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [enabled, onKeyDown]);
+  }, []);
 }

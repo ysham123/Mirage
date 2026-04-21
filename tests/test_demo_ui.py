@@ -294,6 +294,56 @@ def test_demo_ui_metrics_overview_matches_ui_contract(tmp_path):
     assert body["top_policy_failures"] == []
 
 
+def test_demo_ui_metrics_overview_counts_risky_runs_across_full_trace_store(tmp_path):
+    artifact_root = tmp_path / "artifacts" / "traces"
+    for index in range(12):
+        outcome = "allowed" if index == 11 else "policy_violation"
+        _write_trace(
+            artifact_root,
+            f"run-{index:02d}",
+            [
+                {
+                    "timestamp": f"2026-03-28T{10 + (index // 60):02d}:{index % 60:02d}:00+00:00",
+                    "run_id": f"run-{index:02d}",
+                    "request": {"method": "POST", "path": "/v1/submit_bid", "payload": {"bid_amount": index + 1}},
+                    "outcome": outcome,
+                    "message": (
+                        "Request matched a Mirage mock and passed all policy checks."
+                        if outcome == "allowed"
+                        else "Mirage policy violation: enforce_bid_limit..."
+                    ),
+                    "matched_mock": "submit_bid",
+                    "policy_passed": outcome == "allowed",
+                    "policy_decisions": (
+                        []
+                        if outcome == "allowed"
+                        else [
+                            {
+                                "name": "enforce_bid_limit",
+                                "passed": False,
+                                "message": "Agents cannot submit bids above the approved threshold.",
+                                "field": "bid_amount",
+                                "operator": "lte",
+                                "expected": 10000,
+                                "actual": index + 1,
+                            }
+                        ]
+                    ),
+                    "response": {"status_code": 200, "body": {"status": "success"}},
+                }
+            ],
+        )
+
+    with TestClient(create_demo_app(artifact_root=artifact_root)) as client:
+        response = client.get("/api/metrics/overview")
+
+    body = response.json()
+    assert response.status_code == 200
+    assert body["summary"]["total_runs"] == 12
+    assert body["summary"]["risky_runs"] == 11
+    assert len(body["recent_runs"]) == 10
+
+
 def test_demo_ui_metrics_run_drilldown_returns_trace_backed_steps(tmp_path):
     artifact_root = tmp_path / "artifacts" / "traces"
     _write_trace(

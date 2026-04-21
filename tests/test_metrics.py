@@ -162,6 +162,7 @@ def test_collect_dashboard_metrics_rolls_up_runs_endpoints_and_policies(tmp_path
     assert snapshot.overview.policy_violation_count == 2
     assert snapshot.overview.unmatched_route_count == 1
     assert snapshot.overview.config_error_count == 1
+    assert snapshot.overview.risky_run_count == 4
 
     assert [run.run_id for run in snapshot.recent_runs] == ["delta", "gamma", "beta"]
     assert snapshot.recent_runs[0].last_event_at == "2026-03-27T13:00:00+00:00"

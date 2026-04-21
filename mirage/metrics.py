@@ -102,6 +102,7 @@ class OverviewSummary:
     policy_violation_count: int
     unmatched_route_count: int
     config_error_count: int
+    risky_run_count: int
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -144,6 +145,9 @@ class TraceMetricsStore:
             policy_violation_count=sum(run.summary.policy_violation_count for run in runs),
             unmatched_route_count=sum(run.summary.unmatched_route_count for run in runs),
             config_error_count=sum(run.summary.config_error_count for run in runs),
+            risky_run_count=sum(
+                1 for run in runs if _final_outcome_for_run(run) not in ("allowed", "unknown")
+            ),
         )
 
         recent_runs = sorted(
