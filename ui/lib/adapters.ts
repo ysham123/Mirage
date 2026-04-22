@@ -70,6 +70,7 @@ function adaptTopEndpoint(payload: Record<string, unknown>): TopEndpoint {
     count: Number(payload.count ?? 0),
     method: String(payload.method ?? "GET"),
     path: String(payload.path ?? "/"),
+    violationCount: Number(payload.policy_violation_count ?? 0),
   };
 }
 
@@ -285,4 +286,25 @@ export function respondToPrompt(prompt: string, run: ConsoleRun): string {
     "",
     "Ask about `risk`, `trace`, or `suppress` for a more targeted summary.",
   ].join("\n");
+}
+
+export function mergeMessageBodies(snapshotBody: string, streamedBody: string): string {
+  if (!snapshotBody) return streamedBody;
+  if (!streamedBody) return snapshotBody;
+  if (snapshotBody === streamedBody) return snapshotBody;
+  if (streamedBody.includes(snapshotBody)) return streamedBody;
+  if (snapshotBody.includes(streamedBody)) return snapshotBody;
+
+  const maxOverlap = Math.min(snapshotBody.length, streamedBody.length);
+  for (let overlap = maxOverlap; overlap > 0; overlap -= 1) {
+    if (snapshotBody.slice(-overlap) === streamedBody.slice(0, overlap)) {
+      return `${snapshotBody}${streamedBody.slice(overlap)}`;
+    }
+  }
+  for (let overlap = maxOverlap; overlap > 0; overlap -= 1) {
+    if (streamedBody.slice(-overlap) === snapshotBody.slice(0, overlap)) {
+      return `${streamedBody}${snapshotBody.slice(overlap)}`;
+    }
+  }
+  return `${snapshotBody}${streamedBody}`;
 }

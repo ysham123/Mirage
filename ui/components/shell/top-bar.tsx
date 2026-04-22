@@ -1,118 +1,112 @@
 "use client";
 
-import { Activity, Command, Download, Layers3, Menu, Sparkles, Workflow } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Check, Layers3, RefreshCw } from "lucide-react";
 
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import type { AgentHealth, ConsoleRun } from "@/types/console";
+import { cn } from "@/lib/utils";
+import type { ConsoleOverview } from "@/types/console";
 
 interface TopBarProps {
-  health: AgentHealth | null;
-  selectedRun: ConsoleRun | null;
-  onOpenPalette: () => void;
-  onLaunchScenario: (name: "safe" | "risky" | "unmatched") => void;
-  onExport: () => void;
-  onToggleSidebar: () => void;
-  onOpenMobileSidebar: () => void;
-  onOpenMobileEffects: () => void;
+  lastUpdated: Date | null;
+  followLatest: boolean;
+  overview: ConsoleOverview | null;
+  onRefresh: () => void;
+  onToggleFollowLatest: () => void;
 }
 
-function healthTone(status: AgentHealth["status"] | undefined) {
-  if (status === "stable") {
-    return "success";
-  }
-  if (status === "critical") {
-    return "critical";
-  }
-  return "warning";
+function useTimeSince(date: Date | null) {
+  const [label, setLabel] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!date) return;
+    const update = () => {
+      const diff = Math.floor((Date.now() - date.getTime()) / 1000);
+      if (diff < 10) setLabel("just now");
+      else if (diff < 60) setLabel(`${diff}s ago`);
+      else setLabel(`${Math.floor(diff / 60)}m ago`);
+    };
+    update();
+    const id = setInterval(update, 5000);
+    return () => clearInterval(id);
+  }, [date]);
+
+  return label;
 }
 
-export function TopBar({
-  health,
-  selectedRun,
-  onOpenPalette,
-  onLaunchScenario,
-  onExport,
-  onToggleSidebar,
-  onOpenMobileSidebar,
-  onOpenMobileEffects,
-}: TopBarProps) {
+export function TopBar({ lastUpdated, followLatest, overview, onRefresh, onToggleFollowLatest }: TopBarProps) {
+  const timeSince = useTimeSince(lastUpdated);
+  const riskyRuns = overview?.summary.riskyRuns ?? 0;
+  const totalRuns = overview?.summary.totalRuns ?? 0;
+
+  const updatedAt = lastUpdated
+    ? lastUpdated.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+    : null;
+
   return (
-    <header className="sticky top-0 z-40 border-b border-white/10 bg-[rgba(3,7,12,.72)] px-4 py-3 backdrop-blur-2xl lg:px-6">
-      <div className="mx-auto flex max-w-[1800px] items-center gap-3">
-        <button
-          aria-label="Open navigation"
-          className="inline-flex size-11 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-[var(--text-secondary)] transition hover:bg-white/[0.08] hover:text-white xl:hidden"
-          onClick={onOpenMobileSidebar}
-          type="button"
-        >
-          <Menu className="size-4" />
-        </button>
-
-        <button
-          aria-label="Toggle sidebar"
-          className="hidden size-11 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-[var(--text-secondary)] transition hover:bg-white/[0.08] hover:text-white xl:inline-flex"
-          onClick={onToggleSidebar}
-          type="button"
-        >
-          <Layers3 className="size-4" />
-        </button>
-
-        <div className="flex min-w-0 items-center gap-3">
-          <div className="flex size-11 items-center justify-center rounded-2xl border border-[rgba(111,231,255,.18)] bg-[radial-gradient(circle_at_35%_30%,rgba(111,231,255,.35),rgba(8,13,20,.9))] shadow-[0_0_40px_rgba(22,205,255,.25)]">
-            <Workflow className="size-5 text-white" />
-          </div>
-          <div className="min-w-0">
-            <p className="text-[0.7rem] uppercase tracking-[0.28em] text-[var(--text-muted)]">CI for Agent Side Effects</p>
-            <div className="flex items-center gap-2">
-              <h1 className="truncate text-lg font-semibold tracking-[-0.03em] text-white">Mirage Console</h1>
-              {health ? <Badge tone={healthTone(health.status)}>{health.label}</Badge> : null}
-            </div>
-          </div>
+    <header className="flex h-11 shrink-0 items-center justify-between border-b border-white/[0.07] bg-[rgba(3,6,12,0.92)] px-4 backdrop-blur-xl">
+      {/* Identity */}
+      <div className="flex items-center gap-3">
+        <Layers3 className="size-3.5 text-white/30" />
+        <div className="flex items-center gap-2">
+          <span className="relative flex size-1.5 shrink-0">
+            <span className="absolute inline-flex size-full animate-ping rounded-full bg-green-500 opacity-50" />
+            <span className="size-1.5 rounded-full bg-green-500" />
+          </span>
+          <span className="text-[13px] font-semibold text-white">Mirage</span>
         </div>
+        <span className="text-white/15">|</span>
+        <span className="text-[13px] text-white/50">Action Review</span>
+      </div>
 
-        <div className="ml-auto hidden min-w-0 flex-1 items-center justify-center xl:flex">
-          <button
-            className="flex min-w-[360px] items-center gap-3 rounded-full border border-white/10 bg-white/[0.04] px-4 py-3 text-left transition hover:border-[var(--border-strong)] hover:bg-white/[0.06]"
-            onClick={onOpenPalette}
-            type="button"
+      {/* Center: timestamp */}
+      {updatedAt && (
+        <span className="text-[11px] text-white/30">Updated {updatedAt}</span>
+      )}
+
+      {/* Right: controls */}
+      <div className="flex items-center gap-5">
+        {totalRuns > 0 && (
+          <div className="flex items-center gap-3 text-[11px] text-white/30">
+            <span>{totalRuns} runs</span>
+            {riskyRuns > 0 && (
+              <span className="text-orange-400/70">{riskyRuns} risky</span>
+            )}
+          </div>
+        )}
+
+        {timeSince && (
+          <span className="text-[11px] text-white/30">{timeSince}</span>
+        )}
+
+        <button
+          className={cn(
+            "flex items-center gap-1.5 text-[11px] transition-colors",
+            followLatest ? "text-white/80" : "text-white/30 hover:text-white/50",
+          )}
+          onClick={onToggleFollowLatest}
+          type="button"
+        >
+          <span
+            className={cn(
+              "flex size-3 items-center justify-center rounded-[2px] border transition-colors",
+              followLatest
+                ? "border-green-500 bg-green-500/25"
+                : "border-white/20 bg-transparent",
+            )}
           >
-            <Command className="size-4 text-[var(--accent)]" />
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm text-white">{selectedRun ? selectedRun.runId : "Jump to a run, launch a scenario, or trigger export"}</p>
-              <p className="truncate text-xs text-[var(--text-muted)]">Cmd/Ctrl+K opens the command palette</p>
-            </div>
-            <span className="rounded-full border border-white/10 px-3 py-1 text-[10px] uppercase tracking-[0.2em] text-[var(--text-muted)]">⌘K</span>
-          </button>
-        </div>
+            {followLatest && <Check className="size-2 text-green-400" strokeWidth={3} />}
+          </span>
+          follow latest
+        </button>
 
-        <div className="hidden items-center gap-2 xl:flex">
-          <Button size="sm" variant="ghost" onClick={() => onLaunchScenario("safe")}>
-            <Sparkles className="size-3.5" />
-            Compliant
-          </Button>
-          <Button size="sm" variant="ghost" onClick={() => onLaunchScenario("risky")}>
-            <Activity className="size-3.5" />
-            Excessive
-          </Button>
-          <Button size="sm" variant="ghost" onClick={() => onLaunchScenario("unmatched")}>
-            <Layers3 className="size-3.5" />
-            New Route
-          </Button>
-          <Button size="sm" variant="outline" onClick={onExport}>
-            <Download className="size-3.5" />
-            Export
-          </Button>
-        </div>
-
-        <div className="flex items-center gap-2 xl:hidden">
-          <Button aria-label="Open command palette" size="icon" variant="outline" onClick={onOpenPalette}>
-            <Command className="size-4" />
-          </Button>
-          <Button aria-label="Open side effects panel" size="icon" variant="outline" onClick={onOpenMobileEffects}>
-            <Activity className="size-4" />
-          </Button>
-        </div>
+        <button
+          className="flex items-center gap-1.5 border border-white/[0.1] bg-white/[0.04] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-widest text-white/70 transition-colors hover:bg-white/[0.08] hover:text-white"
+          onClick={onRefresh}
+          type="button"
+        >
+          <RefreshCw className="size-2.5" />
+          Refresh
+        </button>
       </div>
     </header>
   );

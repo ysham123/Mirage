@@ -18,6 +18,7 @@ export interface TopEndpoint {
   label: string;
   description: string;
   count: number;
+  violationCount: number;
   method: string;
   path: string;
 }

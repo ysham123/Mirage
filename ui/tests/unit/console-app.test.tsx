@@ -21,7 +21,8 @@ vi.mock("@/lib/shortcuts", () => ({
   useConsoleShortcuts: () => undefined,
 }));
 
-import { ConsoleApp, mergeMessageBodies } from "@/components/console-app";
+import { ConsoleApp } from "@/components/console-app";
+import { mergeMessageBodies } from "@/lib/adapters";
 
 function deferred<T>() {
   let resolve!: (value: T) => void;
