@@ -96,23 +96,50 @@ different in each case:
 
 ## See It In 60 Seconds
 
-If you want the fastest proof that Mirage is real:
+The fastest proof that Mirage catches a risky agent action, starting from a
+clean Python 3.11+ environment. No repository clone required.
+
+Install Mirage:
 
 ```bash
-make proxy-procurement
-make procurement-demo-risky
-python -m mirage.cli summarize-run --run-id procurement-risky-demo
+pip install mirage-ci
 ```
 
-You should see Mirage allow the supplier lookup, flag the bid submission as a
-`policy_violation`, and write a trace under `artifacts/traces/`.
+In one terminal, start the Mirage proxy with the bundled example mocks and
+policies:
+
+```bash
+python -m uvicorn mirage.proxy:app --host 127.0.0.1 --port 8000
+```
+
+In a second terminal, from the same working directory, submit a bid above
+the policy limit and gate the run for CI:
+
+```bash
+python <<'PY'
+from mirage import MirageSession
+
+with MirageSession(run_id="sixty-second-demo") as mirage:
+    mirage.post("/v1/submit_bid", json={"bid_amount": 99999})
+PY
+
+mirage gate-run --run-id sixty-second-demo
+```
+
+Mirage flags the bid as a `policy_violation` and `gate-run` exits non-zero
+— the same signal that fails a CI build:
 
 ```text
-Mirage run: procurement-risky-demo
-Summary: 2 action(s), 1 safe, 1 risky
+Mirage run: sixty-second-demo
+Summary: 1 action(s), 0 safe, 1 risky
 Risky actions:
-- [policy_violation] POST /v1/submit_bid ...
+- [policy_violation] POST /v1/submit_bid (event 1, mock=submit_bid):
+  enforce_bid_limit: Agents cannot submit bids above the approved threshold.
+  (bid_amount lte 10000, got 99999)
 ```
+
+For the bundled multi-step procurement harness (requires a repo checkout),
+see [`examples/procurement_harness/README.md`](examples/procurement_harness/README.md).
 
 ## Start Here
 
