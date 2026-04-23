@@ -1,4 +1,5 @@
 from mirage.httpx_client import (
+    MirageProxyUnreachableError,
     MirageRunError,
     MirageRunIssue,
     MirageRunSummary,
@@ -13,6 +14,7 @@ from mirage.httpx_client import (
 )
 
 __all__ = [
+    "MirageProxyUnreachableError",
     "MirageRunError",
     "MirageRunIssue",
     "MirageRunSummary",

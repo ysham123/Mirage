@@ -7,6 +7,13 @@ and this project aims to follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- `MirageProxyUnreachableError`, raised by `MirageSession` when the configured
+  Mirage proxy is not reachable. The error message names the expected proxy
+  URL and the exact `uvicorn` command to start it, so first-run users see an
+  actionable hint instead of a raw `httpx.ConnectError` traceback.
+
 ## [0.1.1] - 2026-04-23
 
 Documentation and packaging release. No behavior changes.

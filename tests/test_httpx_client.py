@@ -5,6 +5,7 @@ import pytest
 
 from src.cli import main
 from src.httpx_client import (
+    MirageProxyUnreachableError,
     MirageRunError,
     MirageSession,
     assert_mirage_run_clean,
@@ -183,6 +184,33 @@ def test_cli_summarize_and_gate_run(tmp_path, capsys):
     assert gate_exit == 0
     assert "Mirage run: clean-run" in summarize_output
     assert "Result: clean run" in gate_output
+
+
+def test_mirage_session_raises_friendly_error_when_proxy_unreachable(tmp_path):
+    with pytest.raises(MirageProxyUnreachableError) as exc_info:
+        with MirageSession(
+            base_url="http://127.0.0.1:1",
+            run_id="unreachable-test",
+            artifact_root=tmp_path,
+        ) as mirage:
+            mirage.post("/v1/anything", json={})
+
+    message = str(exc_info.value)
+    assert "Mirage proxy not reachable" in message
+    assert "http://127.0.0.1:1" in message
+    assert "uvicorn mirage.proxy:app" in message
+
+
+def test_mirage_session_does_not_mask_connect_errors_to_other_hosts(tmp_path):
+    with pytest.raises(httpx.ConnectError) as exc_info:
+        with MirageSession(
+            base_url="http://127.0.0.1:1",
+            run_id="pass-through-test",
+            artifact_root=tmp_path,
+        ) as mirage:
+            mirage.post("http://127.0.0.1:2/v1/anything", json={})
+
+    assert not isinstance(exc_info.value, MirageProxyUnreachableError)
 
 
 def _write_trace(root, run_id, events):
