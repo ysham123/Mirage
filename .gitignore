@@ -10,3 +10,4 @@ ui/playwright-report/
 ui/test-results/
 .claude/
 session_*.md
+WORK_LOG_*.txt

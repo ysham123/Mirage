@@ -46,6 +46,49 @@ Mirage is different:
 That is the product wedge: runtime guards try to protect live traffic; Mirage
 tries to stop risky action regressions before they ship.
 
+## Mirage vs. Adjacent Tools
+
+Mirage overlaps in surface area with several well-loved tools. The wedge is
+different in each case:
+
+- **pytest-httpx / respx:** per-test `httpx` mocking with response stubs. Great
+  for unit-testing a single function's HTTP behavior. Mirage is run-scoped, not
+  per-test: one `MirageSession` spans an entire agent run, enforces declarative
+  policies (not just response stubs), and writes a trace you can gate CI on via
+  `assert_clean()` or `mirage gate-run`.
+- **pytest-httpserver:** a real local HTTP server you can assert against in
+  tests. Mirage also intercepts outbound HTTP, but evaluates each call against
+  a shared `policies.yaml` and emits a four-outcome taxonomy
+  (`allowed` / `policy_violation` / `unmatched_route` / `config_error`) with
+  response headers the agent's own assertions can read.
+- **VCR.py:** record-and-replay cassettes of real HTTP interactions. Excellent
+  for regression-locking an existing integration. Mirage does not record; it
+  enforces policy on synthetic mocks so a brand-new risky action (an agent
+  hallucinating a route, exceeding a bid limit) is caught on its *first*
+  appearance, not only after a cassette exists.
+- **responses:** `requests`-era monkeypatch library. Mirage is `httpx`-native
+  and session-oriented; if your agent stack is on `httpx`, Mirage slots in
+  without a transport rewrite.
+- **WireMock / mitmproxy:** general-purpose mock servers and intercepting
+  proxies. Mirage is narrower and opinionated: declarative policy + mocks +
+  deterministic trace + `assert_clean()`, tuned for LLM-agent side-effect
+  review rather than generic HTTP stubbing.
+- **Runtime LLM-judge guards (NeMo Guardrails, Llama Guard, policy agents):**
+  arbitrate live tool calls in production with a model in the loop. Mirage is
+  pre-merge and deterministic — rules, not judgments — so CI can fail the
+  build before a risky action ever ships.
+
+### When not to use Mirage today
+
+- Your agent isn't Python, or doesn't cross an HTTP boundary you control
+  (`httpx` is the cleanest integration path today).
+- The side effects you care about are not HTTP (direct DB writes, filesystem
+  mutation, subprocess calls).
+- You need live production arbitration of tool calls — that's the runtime-guard
+  wedge, not Mirage's.
+- You have no pytest or CI step that can run the agent; Mirage's value is in
+  failing a build, so without one there's nothing to gate.
+
 > Status: `v0.1.0` is the first public alpha. The strongest supported path today
 > is Python integrations through `MirageSession`, run-level CLI gates, and the
 > bundled procurement harness. The review UI is real and useful, but still an
@@ -102,20 +145,23 @@ Mirage currently reports one of four outcomes for every intercepted request:
 
 ## Quickstart
 
-Install Mirage in editable mode:
+Requires Python 3.11+.
 
 ```bash
-make install
+pip install mirage-ci
 ```
 
-Direct pip equivalent:
+The package installs as `mirage-ci` on PyPI and imports as `mirage`:
 
-```bash
-python -m pip install --no-build-isolation -e '.[dev]'
+```python
+from mirage import MirageSession
 ```
 
-The editable install also exposes a `mirage` console script. If that script is
-not on your `PATH`, use `python -m mirage.cli ...` directly.
+It also exposes a `mirage` console script. If that script is not on your
+`PATH`, use `python -m mirage.cli ...` directly.
+
+For a development checkout (editable install from source), see
+[Contributing](#contributing).
 
 ### Integrate your own agent
 
@@ -400,6 +446,26 @@ The template and index live in [`docs/worklog/`](docs/worklog).
 ## Contributing
 
 Bug reports and pull requests are welcome. See [`CONTRIBUTING.md`](CONTRIBUTING.md) for the local dev loop and expectations, [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md) for community standards, and [`SECURITY.md`](SECURITY.md) for private vulnerability reporting.
+
+### Source install
+
+For a development checkout:
+
+```bash
+git clone https://github.com/ysham123/Mirage
+cd Mirage
+pip install setuptools wheel
+pip install -e '.[dev]'
+```
+
+Or, with the bundled `Makefile`:
+
+```bash
+make install
+```
+
+The editable install exposes the `mirage` console script and the `mirage`
+Python package directly from your checkout.
 
 ## License
 
