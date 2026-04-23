@@ -7,18 +7,6 @@ and this project aims to follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
-### Added
-
-- Open-source repo hygiene: Code of Conduct, Security Policy, issue templates,
-  pull request template, and Python package metadata.
-- Public Python package surface under `mirage`, including `mirage.proxy`,
-  `mirage.pytest_plugin`, and the `mirage` CLI entry point.
-
-### Changed
-
-- Mirage now resolves default trace output under the current working directory
-  and falls back to bundled example configs outside the source tree.
-
 ## [0.1.0] - 2026-04-19
 
 Release notes: [docs/releases/v0.1.0.md](docs/releases/v0.1.0.md)
@@ -30,3 +18,12 @@ Release notes: [docs/releases/v0.1.0.md](docs/releases/v0.1.0.md)
 - Procurement harness onboarding flow
 - Trace-backed action review console
 - Next.js client over the shared console API
+- Open-source repo hygiene: Code of Conduct, Security Policy, issue templates,
+  pull request template, and Python package metadata.
+- Public Python package surface under `mirage`, including `mirage.proxy`,
+  `mirage.pytest_plugin`, and the `mirage` CLI entry point.
+
+### Changed
+
+- Mirage now resolves default trace output under the current working directory
+  and falls back to bundled example configs outside the source tree.
