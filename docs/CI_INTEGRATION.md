@@ -74,8 +74,8 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install
-        run: make install
+      - name: Install Mirage
+        run: pip install mirage-ci
 
       - name: Validate Mirage config
         run: |
