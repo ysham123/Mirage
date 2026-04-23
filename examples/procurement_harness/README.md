@@ -10,7 +10,13 @@ It models a small procurement workflow with one realistic sequence:
 
 ## First Run
 
-Install dependencies:
+This bundled demo runs from a checkout of the Mirage repository, because it
+uses `make` targets and Python modules that live under `examples/`. If you
+only want to integrate Mirage into your own agent, install the package with
+`pip install mirage-ci` and see [`docs/FIRST_INTEGRATION.md`](../../docs/FIRST_INTEGRATION.md)
+instead.
+
+Install dependencies from the repo root:
 
 ```bash
 make install

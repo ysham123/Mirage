@@ -20,11 +20,14 @@ outbound action path to cross a client boundary you control.
 
 ## 1. Install
 
-From a fresh clone of this repo:
+Install Mirage from PyPI into the same environment as your agent:
 
 ```bash
-make install
+pip install mirage-ci
 ```
+
+The distribution name is `mirage-ci`; the import name is `mirage`. You do not
+need to clone this repository to integrate Mirage into your own agent.
 
 ## 2. Write a mocks file for the external API your agent calls
 
