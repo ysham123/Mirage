@@ -20,6 +20,10 @@ class MirageRunError(AssertionError):
     pass
 
 
+class MirageProxyUnreachableError(ConnectionError):
+    pass
+
+
 @dataclass(frozen=True)
 class MirageResponseReport:
     run_id: str | None
@@ -134,9 +138,24 @@ class MirageSession:
         self._client.close()
 
     def request(self, method: str, url: str, **kwargs: Any) -> httpx.Response:
-        response = self._client.request(method, url, **kwargs)
+        try:
+            response = self._client.request(method, url, **kwargs)
+        except httpx.ConnectError as exc:
+            raise self._wrap_proxy_unreachable(exc) from exc
         self._reports.append(mirage_response_report(response))
         return response
+
+    def _wrap_proxy_unreachable(self, exc: httpx.ConnectError) -> Exception:
+        base_url = self._client.base_url
+        attempted = exc.request.url if exc.request is not None else base_url
+        if attempted.host != base_url.host or attempted.port != base_url.port:
+            return exc
+        base_display = str(base_url).rstrip("/")
+        return MirageProxyUnreachableError(
+            f"Mirage proxy not reachable at {base_display}. "
+            "Start it in a separate terminal with: "
+            "python -m uvicorn mirage.proxy:app --host 127.0.0.1 --port 8000"
+        )
 
     def get(self, url: str, **kwargs: Any) -> httpx.Response:
         return self.request("GET", url, **kwargs)

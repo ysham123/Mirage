@@ -1,5 +1,6 @@
 from .engine import MirageEngine, MirageResult, PolicyDecision
 from .httpx_client import (
+    MirageProxyUnreachableError,
     MirageRunError,
     MirageRunIssue,
     MirageRunSummary,
@@ -17,6 +18,7 @@ __all__ = [
     "MirageEngine",
     "MirageResult",
     "PolicyDecision",
+    "MirageProxyUnreachableError",
     "MirageRunError",
     "MirageRunIssue",
     "MirageRunSummary",
