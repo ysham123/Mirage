@@ -9,7 +9,7 @@ from mirage.cli import main
 from mirage.httpx_client import create_mirage_client
 from mirage.pytest_plugin import mirage_session
 from mirage.proxy import create_app
-from src.engine import MirageEngine
+from mirage.engine import MirageEngine
 
 
 def test_public_package_exports_mirage_session():

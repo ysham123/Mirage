@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from src.cli import main
+from mirage.cli import main
 
 
 def _write(path: Path, text: str) -> Path:

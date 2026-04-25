@@ -57,7 +57,7 @@ mirage = "mirage.cli:main"
 include-package-data = true
 
 [tool.setuptools.packages.find]
-include = ["src", "src.*", "mirage", "mirage.*", "demo_ui", "demo_ui.*", "examples", "examples.*"]
+include = ["mirage", "mirage.*", "demo_ui", "demo_ui.*", "examples", "examples.*"]
 
 [tool.setuptools.package-data]
 mirage = ["defaults/*.yaml"]

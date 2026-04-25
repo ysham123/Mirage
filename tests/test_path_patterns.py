@@ -2,7 +2,7 @@ from textwrap import dedent
 
 import pytest
 
-from src.engine import MirageEngine, _path_matches
+from mirage.engine import MirageEngine, _path_matches
 from tests.conftest import write_mirage_config
 
 

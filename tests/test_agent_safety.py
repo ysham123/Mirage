@@ -1,4 +1,4 @@
-from src.engine import MirageEngine
+from mirage.engine import MirageEngine
 
 
 def test_policy_violation_is_recorded_without_breaking_agent_control_flow(mirage_engine):

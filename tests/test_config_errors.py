@@ -2,8 +2,8 @@ from pathlib import Path
 
 import pytest
 
-from src.config import MirageConfigError, load_mirage_config
-from src.engine import MirageEngine
+from mirage.config import MirageConfigError, load_mirage_config
+from mirage.engine import MirageEngine
 
 
 def _write(path: Path, text: str) -> Path:

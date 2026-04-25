@@ -29,7 +29,7 @@ jobs:
       - name: Smoke test Docker image
         run: >
           docker run --rm mirage-ci python -c
-          "from src.engine import MirageEngine;
+          "from mirage.engine import MirageEngine;
           result = MirageEngine().handle_request(method='POST', path='/v1/submit_bid', payload={'contract_id': 'CI-1', 'bid_amount': 1000}, run_id='ci-smoke');
           assert result.outcome == 'allowed';
           assert result.policy_passed is True"

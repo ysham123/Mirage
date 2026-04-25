@@ -4,8 +4,8 @@ from textwrap import dedent
 import pytest
 from fastapi.testclient import TestClient
 
-from src.engine import MirageEngine
-from src.proxy import create_app
+from mirage.engine import MirageEngine
+from mirage.proxy import create_app
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 PROCUREMENT_HARNESS_DIR = REPO_ROOT / "examples" / "procurement_harness"

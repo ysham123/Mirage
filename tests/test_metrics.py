@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 
-from src.metrics import (
+from mirage.metrics import (
     DashboardSnapshot,
     TraceMetricsStore,
     collect_dashboard_metrics,

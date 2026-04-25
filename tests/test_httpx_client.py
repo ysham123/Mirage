@@ -3,8 +3,8 @@ import json
 import httpx
 import pytest
 
-from src.cli import main
-from src.httpx_client import (
+from mirage.cli import main
+from mirage.httpx_client import (
     MirageProxyUnreachableError,
     MirageRunError,
     MirageSession,

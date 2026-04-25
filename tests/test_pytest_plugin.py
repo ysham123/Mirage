@@ -4,7 +4,7 @@ from types import SimpleNamespace
 import httpx
 import pytest
 
-from src import pytest_plugin
+from mirage import pytest_plugin
 
 
 def test_mirage_session_fixture_uses_nodeid_default_and_asserts_clean(tmp_path):

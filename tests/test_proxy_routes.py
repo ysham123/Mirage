@@ -1,13 +1,13 @@
 import pytest
 from fastapi.testclient import TestClient
 
-from src.engine import MirageEngine
-from src.httpx_client import (
+from mirage.engine import MirageEngine
+from mirage.httpx_client import (
     MirageResponseError,
     assert_mirage_response_safe,
     mirage_response_report,
 )
-from src.proxy import create_app
+from mirage.proxy import create_app
 
 
 def test_proxy_exposes_mirage_metadata_headers_for_safe_request(proxy_client):
