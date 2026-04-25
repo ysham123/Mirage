@@ -17,46 +17,72 @@ interface RunDetailProps {
 
 /* ─── helpers ──────────────────────────────────────────────────────────── */
 
-function outcomeBadge(outcome: string): { cls: string; label: string } {
+function outcomeBadge(outcome: string): { tone: string; border: string; label: string } {
   if (outcome === "allowed")
-    return { cls: "border-green-500/25 bg-green-500/8 text-green-400", label: "allowed" };
+    return { tone: "text-[var(--green)]", border: "border-[var(--green)]/40", label: "allowed" };
   if (outcome === "config_error")
-    return { cls: "border-red-400/25 bg-red-500/8 text-red-400", label: "config error" };
+    return { tone: "text-[var(--bad)]", border: "border-[var(--bad)]/40", label: "config error" };
   if (outcome === "unmatched_route")
-    return { cls: "border-orange-400/25 bg-orange-400/8 text-orange-300", label: "unmatched route" };
-  return { cls: "border-orange-400/25 bg-orange-400/8 text-orange-300", label: "policy violation" };
+    return { tone: "text-[var(--warn)]", border: "border-[var(--warn)]/40", label: "unmatched route" };
+  return { tone: "text-[var(--warn)]", border: "border-[var(--warn)]/40", label: "policy violation" };
 }
 
 function useCopy() {
   const [copied, setCopied] = useState<string | null>(null);
   const copy = (text: string, key: string) => {
-    navigator.clipboard.writeText(text).then(() => {
-      setCopied(key);
-      setTimeout(() => setCopied(null), 1500);
-    }).catch(() => null);
+    navigator.clipboard
+      .writeText(text)
+      .then(() => {
+        setCopied(key);
+        setTimeout(() => setCopied(null), 1500);
+      })
+      .catch(() => null);
   };
   return { copied, copy };
 }
 
-/* ─── Stat card ─────────────────────────────────────────────────────────── */
+/* ─── Stat ──────────────────────────────────────────────────────────────── */
 
-function StatCard({
-  label, value, percent, accent,
-}: { label: string; value: number; percent?: boolean; accent?: "orange" | "green" }) {
+function Stat({
+  label,
+  value,
+  percent,
+  tone,
+}: {
+  label: string;
+  value: number;
+  percent?: boolean;
+  tone?: "green" | "warn" | "bad";
+}) {
+  const numeralTone =
+    tone === "green" && value > 0
+      ? "text-[var(--green)]"
+      : tone === "warn" && value > 0
+        ? "text-[var(--warn)]"
+        : tone === "bad" && value > 0
+          ? "text-[var(--bad)]"
+          : "text-[var(--paper)]";
+
+  const railTone =
+    tone === "green" && value > 0
+      ? "bg-[var(--green)]"
+      : tone === "warn" && value > 0
+        ? "bg-[var(--warn)]"
+        : tone === "bad" && value > 0
+          ? "bg-[var(--bad)]"
+          : "bg-transparent";
+
   return (
-    <div className={cn(
-      "flex flex-1 flex-col border-r border-white/[0.07] px-5 py-4 last:border-r-0",
-      accent === "orange" && value > 0 && "border-t border-t-orange-400/30",
-    )}>
-      <span className="text-[9px] font-semibold uppercase tracking-[0.2em] text-white/25">{label}</span>
-      <div className="mt-1.5 flex items-baseline gap-0.5">
-        <span className={cn(
-          "text-[22px] font-semibold leading-none tabular-nums",
-          accent === "orange" && value > 0 ? "text-orange-300" : "text-white",
-        )}>
+    <div className="relative flex flex-1 flex-col justify-between border-r border-[var(--line)] px-6 py-4 last:border-r-0">
+      <span className={cn("absolute left-0 top-0 h-[2px] w-8 transition-colors", railTone)} aria-hidden />
+      <span className="label">{label}</span>
+      <div className="mt-2.5 flex items-baseline gap-1">
+        <span className={cn("numeral text-[34px] tabular-nums leading-[0.9]", numeralTone)}>
           {value}
         </span>
-        {percent && <span className="text-sm text-white/25">%</span>}
+        {percent && (
+          <span className="font-display text-[15px] font-medium text-[var(--paper-mute)]">%</span>
+        )}
       </div>
     </div>
   );
@@ -70,56 +96,82 @@ function OverviewPanel({ run, overview }: { run: ConsoleRun; overview: ConsoleOv
   const primaryPolicy = overview?.topPolicyFailures[0]?.name ?? "—";
 
   const rows = [
-    { label: "Final outcome", value: outcomeBadge(run.finalOutcome).label },
-    { label: "Latest action", value: latestEffect ? `${latestEffect.method} ${latestEffect.path}` : "—" },
-    { label: "Policy failures", value: String(policyFailures) },
-    { label: "Trace path", value: run.tracePath },
-    { label: "Primary policy", value: primaryPolicy },
+    { label: "Final outcome", value: outcomeBadge(run.finalOutcome).label, mono: false },
+    {
+      label: "Latest action",
+      value: latestEffect ? `${latestEffect.method} ${latestEffect.path}` : "—",
+      mono: true,
+    },
+    { label: "Policy failures", value: String(policyFailures), mono: false },
+    { label: "Trace path", value: run.tracePath, mono: true },
+    { label: "Primary policy", value: primaryPolicy, mono: true },
   ];
 
   return (
-    <div className="grid grid-cols-2 gap-4">
+    <div className="grid grid-cols-2 gap-10">
       {/* Action path */}
-      <div className="rounded border border-white/[0.07] bg-white/[0.02] p-5">
-        <h3 className="text-[12px] font-semibold text-white/80">Action path</h3>
-        <p className="mt-0.5 text-[11px] text-white/25">
-          The contained flow before drilling into timeline, graph, or raw trace.
-        </p>
-        <div className="mt-4 flex flex-wrap items-center gap-2">
+      <section>
+        <header className="border-b border-[var(--line)] pb-2">
+          <h3 className="font-display text-[15px] font-medium tracking-tight text-[var(--paper)]">
+            Action path
+          </h3>
+          <p className="mt-1 font-mono text-[9.5px] uppercase tracking-[0.22em] text-[var(--paper-mute)]">
+            ordered side-effects
+          </p>
+        </header>
+        <div className="mt-5 flex flex-wrap items-center gap-x-2 gap-y-2.5">
           {run.sideEffects.length > 0 ? (
             run.sideEffects.map((effect, i) => (
               <span key={effect.id} className="flex items-center gap-2">
-                <span className={cn(
-                  "rounded border px-3 py-1.5 text-[11px] transition-colors",
-                  effect.outcome === "allowed"
-                    ? "border-green-500/20 text-green-400/70"
-                    : "border-orange-400/20 text-orange-300/70",
-                )}>
+                <span
+                  className={cn(
+                    "border px-3 py-1.5 font-mono text-[10.5px]",
+                    effect.outcome === "allowed"
+                      ? "border-[var(--green)]/30 text-[var(--green)]/90"
+                      : "border-[var(--warn)]/30 text-[var(--warn)]/95",
+                  )}
+                >
                   {effect.name}
                 </span>
                 {i < run.sideEffects.length - 1 && (
-                  <span className="text-white/20 text-[11px]">→</span>
+                  <span className="text-[14px] text-[var(--paper-faint)]">→</span>
                 )}
               </span>
             ))
           ) : (
-            <span className="text-[11px] text-white/20">No actions recorded.</span>
+            <span className="text-[12px] text-[var(--paper-mute)]">No actions recorded.</span>
           )}
         </div>
-      </div>
+      </section>
 
       {/* Review summary */}
-      <div className="rounded border border-white/[0.07] bg-white/[0.02] p-5">
-        <h3 className="text-[12px] font-semibold text-white/80">Review summary</h3>
-        <div className="mt-4 divide-y divide-white/[0.05]">
-          {rows.map(({ label, value }) => (
-            <div key={label} className="flex items-start gap-3 py-2 first:pt-0 last:pb-0">
-              <span className="w-28 shrink-0 text-[11px] text-white/30">{label}</span>
-              <span className="min-w-0 break-all font-mono text-[11px] text-white/60">{value}</span>
+      <section>
+        <header className="border-b border-[var(--line)] pb-2">
+          <h3 className="font-display text-[15px] font-medium tracking-tight text-[var(--paper)]">
+            Review summary
+          </h3>
+          <p className="mt-1 font-mono text-[9.5px] uppercase tracking-[0.22em] text-[var(--paper-mute)]">
+            run metadata
+          </p>
+        </header>
+        <dl className="mt-3 divide-y divide-[var(--line)]">
+          {rows.map(({ label, value, mono }) => (
+            <div key={label} className="flex items-baseline gap-4 py-2.5">
+              <dt className="w-32 shrink-0 font-mono text-[9.5px] uppercase tracking-[0.18em] text-[var(--paper-mute)]">
+                {label}
+              </dt>
+              <dd
+                className={cn(
+                  "min-w-0 break-all text-[12px] text-[var(--paper-soft)]",
+                  mono && "font-mono",
+                )}
+              >
+                {value}
+              </dd>
             </div>
           ))}
-        </div>
-      </div>
+        </dl>
+      </section>
     </div>
   );
 }
@@ -139,74 +191,87 @@ function TimelinePanel({
 
   if (effects.length === 0) {
     return (
-      <p className="py-10 text-center text-[11px] text-white/20">No side effects recorded.</p>
+      <p className="py-12 text-center text-[12px] text-[var(--paper-mute)]">
+        No side effects recorded.
+      </p>
     );
   }
 
   return (
-    <div className="relative pl-6">
+    <div className="relative pl-8">
       {/* vertical guide */}
-      <div className="absolute left-[11px] top-2 bottom-2 w-px bg-white/[0.06]" />
+      <div className="absolute left-[14px] top-3 bottom-3 w-px bg-[var(--line)]" />
 
-      <div className="space-y-3">
+      <div className="space-y-3.5">
         {effects.map((effect, i) => {
           const badge = outcomeBadge(effect.outcome);
           const isFocused = focusedIndex === effect.stepIndex;
+          const risky = effect.outcome !== "allowed";
           return (
             <div
               key={effect.id}
               ref={isFocused ? focusRef : null}
               className={cn(
-                "relative rounded border p-4 transition-colors",
+                "relative border bg-[var(--surface)] px-5 py-4 transition-colors",
                 isFocused
-                  ? "border-orange-400/30 bg-orange-400/[0.04]"
-                  : "border-white/[0.07] bg-white/[0.02]",
+                  ? "border-[var(--green)]/40 bg-[var(--green-faint)]"
+                  : "border-[var(--line)] hover:border-[var(--line-strong)]",
               )}
             >
-              {/* step dot */}
+              {/* step marker */}
               <div
                 className={cn(
-                  "absolute -left-[19px] top-[18px] size-2 rounded-full border",
-                  effect.outcome === "allowed"
-                    ? "border-green-500/50 bg-green-500/30"
-                    : "border-orange-400/50 bg-orange-400/30",
+                  "absolute -left-[24px] top-[20px] flex size-[18px] items-center justify-center rounded-full border bg-[var(--ink)]",
+                  risky ? "border-[var(--warn)]/60" : "border-[var(--green)]/60",
                 )}
-              />
+              >
+                <span
+                  className={cn(
+                    "size-1.5 rounded-full",
+                    risky ? "bg-[var(--warn)]" : "bg-[var(--green)]",
+                  )}
+                />
+              </div>
 
               <div className="flex items-start justify-between gap-4">
                 <div className="min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[9px] font-semibold text-white/20 tabular-nums">
+                  <div className="flex items-baseline gap-3">
+                    <span className="numeral text-[15px] tabular-nums text-[var(--paper-mute)]">
                       {String(i + 1).padStart(2, "0")}
                     </span>
-                    <span className="font-mono text-[12px] font-medium text-white/80">
-                      {effect.method} {effect.path}
+                    <span className="font-mono text-[12.5px] font-medium text-[var(--paper)]">
+                      <span className="text-[var(--paper-faint)]">{effect.method}</span>{" "}
+                      {effect.path}
                     </span>
                   </div>
                   {effect.decisionSummary && (
-                    <p className="mt-1.5 text-[11px] leading-relaxed text-white/35">{effect.decisionSummary}</p>
+                    <p className="mt-2 max-w-[60ch] text-[12px] leading-relaxed text-[var(--paper-soft)]">
+                      {effect.decisionSummary}
+                    </p>
                   )}
                 </div>
 
-                <div className="flex shrink-0 items-center gap-2">
+                <div className="flex shrink-0 items-center gap-3">
                   <span
                     className={cn(
-                      "rounded border px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider",
-                      badge.cls,
+                      "font-mono text-[9.5px] uppercase tracking-[0.18em]",
+                      badge.tone,
                     )}
                   >
                     {badge.label}
                   </span>
                   {effect.suppressed ? (
-                    <span className="text-[9px] text-white/20">suppressed</span>
+                    <span className="font-mono text-[9px] uppercase tracking-[0.18em] text-[var(--paper-faint)]">
+                      suppressed
+                    </span>
                   ) : (
                     !effect.policyPassed && (
                       <button
-                        className="rounded border border-white/[0.1] px-2 py-0.5 text-[9px] text-white/30 transition-colors hover:border-white/25 hover:text-white/60"
-                        onClick={() => onSuppress(effect.stepIndex)}
                         type="button"
+                        onClick={() => onSuppress(effect.stepIndex)}
+                        className="border border-[var(--line-strong)] px-2.5 py-1 font-mono text-[9.5px] uppercase tracking-[0.18em] text-[var(--paper-soft)] transition-colors hover:border-[var(--green)]/60 hover:bg-[var(--green-faint)] hover:text-[var(--paper)]"
                       >
-                        Suppress
+                        suppress
                       </button>
                     )
                   )}
@@ -214,10 +279,21 @@ function TimelinePanel({
               </div>
 
               {effect.statusCode && (
-                <div className="mt-2 text-[10px] text-white/20">
-                  Status <span className="font-mono">{effect.statusCode}</span>
+                <div className="mt-3 flex items-baseline gap-4 border-t border-[var(--line)] pt-2.5">
+                  <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--paper-mute)]">
+                    status{" "}
+                    <span className="font-mono text-[12px] tabular-nums tracking-normal text-[var(--paper)]">
+                      {effect.statusCode}
+                    </span>
+                  </span>
                   {effect.confidence > 0 && (
-                    <> · Confidence <span className="font-mono">{Math.round(effect.confidence * 100)}%</span></>
+                    <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--paper-mute)]">
+                      conf{" "}
+                      <span className="font-mono text-[12px] tabular-nums tracking-normal text-[var(--paper)]">
+                        {Math.round(effect.confidence * 100)}
+                      </span>
+                      <span className="text-[var(--paper-faint)]">%</span>
+                    </span>
                   )}
                 </div>
               )}
@@ -233,11 +309,15 @@ function TimelinePanel({
 
 function GraphPanel({ run }: { run: ConsoleRun }) {
   if (run.sideEffects.length === 0) {
-    return <p className="py-10 text-center text-[11px] text-white/20">No graph data.</p>;
+    return (
+      <p className="py-12 text-center text-[12px] text-[var(--paper-mute)]">
+        No graph data.
+      </p>
+    );
   }
 
   return (
-    <div className="flex min-h-[200px] items-center justify-center overflow-x-auto rounded border border-white/[0.07] bg-white/[0.01] p-8">
+    <div className="flex min-h-[220px] items-center overflow-x-auto border border-[var(--line)] bg-[var(--surface)] scan-bg px-10 py-12">
       <div className="flex items-center gap-0">
         {run.sideEffects.map((effect, i) => {
           const isRisky = effect.outcome !== "allowed";
@@ -245,34 +325,40 @@ function GraphPanel({ run }: { run: ConsoleRun }) {
             <div key={effect.id} className="flex items-center">
               <div
                 className={cn(
-                  "flex flex-col items-center gap-2 rounded border px-4 py-3 min-w-[100px]",
+                  "flex min-w-[120px] flex-col items-center gap-2.5 border bg-[var(--ink-elevated)] px-5 py-4",
                   isRisky
-                    ? "border-orange-400/20 bg-orange-400/[0.04]"
-                    : "border-green-500/20 bg-green-500/[0.04]",
+                    ? "border-[var(--warn)]/40"
+                    : "border-[var(--green)]/40",
                 )}
               >
                 <span
                   className={cn(
                     "size-1.5 rounded-full",
-                    isRisky ? "bg-orange-400" : "bg-green-500",
+                    isRisky ? "bg-[var(--warn)]" : "bg-[var(--green)]",
                   )}
                 />
-                <span className="text-center text-[11px] font-medium text-white/70">{effect.name}</span>
-                <span className="font-mono text-[9px] text-white/25">{effect.method}</span>
+                <span className="text-center text-[11.5px] font-medium text-[var(--paper)]">
+                  {effect.name}
+                </span>
+                <span className="font-mono text-[9.5px] uppercase tracking-[0.18em] text-[var(--paper-mute)]">
+                  {effect.method}
+                </span>
                 {effect.statusCode && (
-                  <span className={cn(
-                    "rounded px-1.5 py-0.5 font-mono text-[9px]",
-                    isRisky ? "bg-orange-400/10 text-orange-300" : "bg-green-500/10 text-green-400",
-                  )}>
+                  <span
+                    className={cn(
+                      "font-mono text-[10px] tabular-nums",
+                      isRisky ? "text-[var(--warn)]" : "text-[var(--green)]",
+                    )}
+                  >
                     {effect.statusCode}
                   </span>
                 )}
               </div>
               {i < run.sideEffects.length - 1 && (
-                <div className="flex items-center px-2">
-                  <div className="h-px w-6 bg-white/10" />
-                  <span className="text-[10px] text-white/15">→</span>
-                  <div className="h-px w-6 bg-white/10" />
+                <div className="flex items-center px-3">
+                  <div className="h-px w-7 bg-[var(--line-strong)]" />
+                  <span className="text-[14px] text-[var(--paper-mute)]">→</span>
+                  <div className="h-px w-7 bg-[var(--line-strong)]" />
                 </div>
               )}
             </div>
@@ -292,14 +378,14 @@ function TracePanel({ trace }: { trace: Record<string, unknown> }) {
   return (
     <div className="relative">
       <button
-        className="absolute right-3 top-3 flex items-center gap-1.5 rounded border border-white/[0.1] bg-black/40 px-2 py-1 text-[9px] text-white/40 transition-colors hover:text-white/70 z-10"
-        onClick={() => copy(json, "trace")}
         type="button"
+        onClick={() => copy(json, "trace")}
+        className="absolute right-3 top-3 z-10 flex items-center gap-1.5 border border-[var(--line-strong)] bg-[var(--ink)]/80 px-2.5 py-1 font-mono text-[9.5px] uppercase tracking-[0.18em] text-[var(--paper-mute)] backdrop-blur transition-colors hover:border-[var(--green)]/60 hover:text-[var(--paper)]"
       >
         {copied === "trace" ? <Check className="size-2.5" /> : <Copy className="size-2.5" />}
-        {copied === "trace" ? "Copied" : "Copy"}
+        {copied === "trace" ? "copied" : "copy"}
       </button>
-      <pre className="overflow-x-auto rounded border border-white/[0.07] bg-black/25 p-4 pt-10 text-[11px] leading-relaxed text-[rgb(180,220,255)]">
+      <pre className="overflow-x-auto border border-[var(--line)] bg-black p-5 pt-12 font-mono text-[11.5px] leading-relaxed text-[var(--paper-soft)]">
         {json}
       </pre>
     </div>
@@ -314,9 +400,10 @@ export function RunDetail({ overview, run, loading, onSuppress }: RunDetailProps
   const { copied, copy } = useCopy();
 
   const summary = overview?.summary;
-  const riskRate = summary && summary.totalRuns > 0
-    ? Math.round((summary.riskyRuns / summary.totalRuns) * 100)
-    : 0;
+  const riskRate =
+    summary && summary.totalRuns > 0
+      ? Math.round((summary.riskyRuns / summary.totalRuns) * 100)
+      : 0;
 
   const firstRiskyStep = run?.sideEffects.find((e) => !e.policyPassed && !e.suppressed);
 
@@ -327,173 +414,196 @@ export function RunDetail({ overview, run, loading, onSuppress }: RunDetailProps
   };
 
   const VIEWS: Array<{ value: RunView; label: string }> = [
-    { value: "overview", label: "Overview" },
-    { value: "timeline", label: "Timeline" },
-    { value: "graph", label: "Run Graph" },
-    { value: "trace", label: "Raw Trace" },
+    { value: "overview", label: "overview" },
+    { value: "timeline", label: "timeline" },
+    { value: "graph", label: "run graph" },
+    { value: "trace", label: "raw trace" },
   ];
 
   return (
-    <div className="flex flex-1 flex-col overflow-hidden">
-
+    <div className="relative z-10 flex flex-1 flex-col overflow-hidden">
       {/* Stats bar */}
-      <div className="flex shrink-0 border-b border-white/[0.07]">
-        <StatCard label="Total Actions" value={summary?.totalActions ?? 0} />
-        <StatCard label="Tracked Runs" value={summary?.totalRuns ?? 0} />
-        <StatCard label="Risky" value={summary?.riskyRuns ?? 0} accent="orange" />
-        <StatCard label="Allowed" value={summary?.allowed ?? 0} accent="green" />
-        <StatCard label="Unmatched" value={summary?.unmatchedRoute ?? 0} />
-        <StatCard label="Risk Rate" value={riskRate} percent accent={riskRate > 20 ? "orange" : undefined} />
+      <div className="flex shrink-0 border-b border-[var(--line)]">
+        <Stat label="Total actions" value={summary?.totalActions ?? 0} />
+        <Stat label="Tracked runs" value={summary?.totalRuns ?? 0} />
+        <Stat label="Risky" value={summary?.riskyRuns ?? 0} tone="warn" />
+        <Stat label="Allowed" value={summary?.allowed ?? 0} tone="green" />
+        <Stat label="Unmatched" value={summary?.unmatchedRoute ?? 0} />
+        <Stat
+          label="Risk rate"
+          value={riskRate}
+          percent
+          tone={riskRate > 20 ? "warn" : undefined}
+        />
       </div>
 
       {/* Empty / loading state */}
       {!run && (
-        <div className="flex flex-1 items-center justify-center">
-          <p className="text-[12px] text-white/20">
-            {loading ? "Loading run…" : "Select a run to inspect."}
+        <div className="flex flex-1 flex-col items-center justify-center px-6 text-center">
+          <p className="font-display text-[26px] font-medium leading-none tracking-tight text-[var(--paper)]">
+            {loading ? "Loading run" : "Console idle"}
+          </p>
+          <p className="mt-3 font-mono text-[10.5px] uppercase tracking-[0.22em] text-[var(--paper-mute)]">
+            {loading ? "fetching trace" : "select a run from the queue to inspect"}
           </p>
         </div>
       )}
 
       {run && (
         <>
-          {/* Context banner */}
-          <div className="flex shrink-0 items-center justify-between gap-4 border-b border-white/[0.06] px-6 py-2.5">
-            <p className="text-[12px] text-white/40 truncate">{run.headline}</p>
-            <span
-              className={cn(
-                "shrink-0 rounded border px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider",
-                outcomeBadge(run.finalOutcome).cls,
-              )}
-            >
-              {outcomeBadge(run.finalOutcome).label}
-            </span>
-          </div>
-
           {/* Scrollable content */}
-          <div className="flex-1 overflow-y-auto">
-
-            {/* Run heading */}
-            <div className="border-b border-white/[0.05] px-6 py-5">
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <h1
-                    role="heading"
-                    className="font-mono text-xl font-semibold text-white"
-                  >
-                    {run.runId}
-                  </h1>
-                  <p className="mt-1 text-[11px] text-white/30">{run.headline}</p>
-                </div>
-                <span
-                  className={cn(
-                    "mt-0.5 shrink-0 rounded border px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider",
-                    outcomeBadge(run.finalOutcome).cls,
-                  )}
-                >
-                  {outcomeBadge(run.finalOutcome).label}
+          <div className="flex-1 overflow-y-auto fade-in">
+            {/* Sticky context strip — persists while scrolling */}
+            <div className="sticky top-0 z-20 flex items-center justify-between gap-4 border-b border-[var(--line)] bg-[rgba(10,10,10,0.92)] px-7 py-3 backdrop-blur-xl">
+              <div className="flex min-w-0 items-baseline gap-3">
+                <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-[var(--paper-mute)]">
+                  run
+                </span>
+                <span className="truncate font-mono text-[12.5px] tracking-tight text-[var(--paper)]">
+                  {run.runId}
                 </span>
               </div>
+              <span
+                className={cn(
+                  "shrink-0 border px-2.5 py-0.5 font-mono text-[9.5px] uppercase tracking-[0.22em]",
+                  outcomeBadge(run.finalOutcome).tone,
+                  outcomeBadge(run.finalOutcome).border,
+                )}
+              >
+                {outcomeBadge(run.finalOutcome).label}
+              </span>
+            </div>
 
-              {/* Info cards */}
-              <div className="mt-4 grid grid-cols-4 gap-2.5">
-                {[
-                  { label: "Run ID", value: run.runId, mono: true },
-                  { label: "Source", value: run.source, mono: true },
-                  { label: "Trace Path", value: run.tracePath, mono: true },
-                  { label: "Events", value: String(run.eventCount), mono: false },
-                ].map(({ label, value, mono }) => (
-                  <div
-                    key={label}
-                    className="rounded border border-white/[0.07] bg-white/[0.02] p-3"
-                  >
-                    <p className="text-[8.5px] font-semibold uppercase tracking-[0.18em] text-white/25">{label}</p>
-                    <p className={cn(
-                      "mt-1.5 break-all text-[10px] text-white/55",
-                      mono && "font-mono",
-                    )}>
-                      {value}
-                    </p>
-                  </div>
-                ))}
-              </div>
+            {/* Run heading */}
+            <div className="border-b border-[var(--line)] px-7 py-6">
+              <p className="max-w-[72ch] font-display text-[19px] font-medium leading-snug tracking-tight text-[var(--paper)]">
+                {run.headline}
+              </p>
 
-              {/* Action buttons */}
-              <div className="mt-3.5 flex flex-wrap gap-2">
+              {/* Info row */}
+              <dl className="mt-6 grid grid-cols-4 divide-x divide-[var(--line)] border-y border-[var(--line)]">
                 {[
                   {
-                    label: "Copy Run ID",
+                    label: "Risk level",
+                    value: run.risk.level,
+                    mono: false,
+                    big: false,
+                    tone:
+                      run.risk.level === "critical" || run.risk.level === "elevated"
+                        ? "text-[var(--bad)]"
+                        : run.risk.level === "guarded"
+                          ? "text-[var(--warn)]"
+                          : "text-[var(--green)]",
+                  },
+                  { label: "Source", value: run.source, mono: true, big: false },
+                  { label: "Trace path", value: run.tracePath, mono: true, big: false },
+                  { label: "Events", value: String(run.eventCount), mono: false, big: true },
+                ].map(({ label, value, mono, big, tone }, i) => (
+                  <div key={label} className={cn("py-3", i === 0 ? "pr-4" : "px-4")}>
+                    <dt className="label">{label}</dt>
+                    <dd
+                      className={cn(
+                        "mt-1.5 break-all",
+                        big
+                          ? "numeral text-[20px] tabular-nums text-[var(--paper)]"
+                          : mono
+                            ? "font-mono text-[11px] text-[var(--paper-soft)]"
+                            : "text-[12px] text-[var(--paper-soft)]",
+                        tone,
+                      )}
+                    >
+                      {big ? value : <span className={tone ? "uppercase tracking-[0.05em]" : ""}>{value}</span>}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+
+              {/* Actions */}
+              <div className="mt-5 flex flex-wrap gap-2">
+                {[
+                  {
+                    label: "copy run id",
                     key: "runId",
                     action: () => copy(run.runId, "runId"),
                     icon: copied === "runId" ? Check : Copy,
                   },
                   {
-                    label: "Copy Trace Path",
+                    label: "copy trace path",
                     key: "tracePath",
                     action: () => copy(run.tracePath, "tracePath"),
                     icon: copied === "tracePath" ? Check : Copy,
                   },
                   {
-                    label: "Open Raw Trace",
+                    label: "open raw trace",
                     key: "rawTrace",
                     action: () => setView("trace"),
                     icon: null,
                   },
                   {
-                    label: firstRiskyStep ? "Next Risky Action" : "No Risky Actions",
+                    label: firstRiskyStep ? "next risky action" : "no risky actions",
                     key: "nextRisky",
                     action: handleNextRisky,
                     icon: null,
                     disabled: !firstRiskyStep,
                   },
-                ].map(({ label, key, action, icon: Icon, disabled }) => (
-                  <button
-                    key={key}
-                    disabled={disabled}
-                    className={cn(
-                      "flex items-center gap-1.5 rounded border px-3 py-1.5 text-[9px] font-semibold uppercase tracking-[0.14em] transition-colors",
-                      disabled
-                        ? "border-white/[0.05] text-white/15 cursor-default"
-                        : "border-white/[0.1] text-white/40 hover:border-white/25 hover:text-white/70",
-                      key === "runId" && copied === "runId" && "border-green-500/20 text-green-400",
-                      key === "tracePath" && copied === "tracePath" && "border-green-500/20 text-green-400",
-                    )}
-                    onClick={action}
-                    type="button"
-                  >
-                    {Icon && <Icon className="size-2.5" />}
-                    {label}
-                  </button>
-                ))}
+                ].map(({ label, key, action, icon: Icon, disabled }) => {
+                  const justCopied =
+                    (key === "runId" && copied === "runId") ||
+                    (key === "tracePath" && copied === "tracePath");
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      disabled={disabled}
+                      onClick={action}
+                      className={cn(
+                        "flex items-center gap-1.5 border px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.18em] transition-colors",
+                        disabled
+                          ? "cursor-default border-[var(--line)] text-[var(--paper-faint)]"
+                          : "border-[var(--line-strong)] text-[var(--paper-soft)] hover:border-[var(--green)]/60 hover:bg-[var(--green-faint)] hover:text-[var(--paper)]",
+                        justCopied && "border-[var(--green)]/60 text-[var(--green)] bg-[var(--green-faint)]",
+                      )}
+                    >
+                      {Icon && <Icon className="size-2.5" />}
+                      {label}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
             {/* Tabs */}
-            <div className="flex border-b border-white/[0.07] px-6">
+            <div className="flex items-end gap-7 border-b border-[var(--line)] px-7">
               {VIEWS.map(({ value: v, label }) => (
                 <button
                   key={v}
-                  className={cn(
-                    "border-b-2 px-3 py-2.5 text-[10px] font-semibold uppercase tracking-[0.15em] transition-colors",
-                    view === v
-                      ? "border-white/70 text-white/90"
-                      : "border-transparent text-white/25 hover:text-white/50",
-                  )}
-                  onClick={() => setView(v)}
                   type="button"
+                  onClick={() => setView(v)}
+                  className={cn(
+                    "relative pb-3 pt-3 font-mono text-[10.5px] uppercase tracking-[0.22em] transition-colors",
+                    view === v
+                      ? "text-[var(--paper)]"
+                      : "text-[var(--paper-mute)] hover:text-[var(--paper-soft)]",
+                  )}
                 >
                   {label}
+                  {view === v && (
+                    <span
+                      className="absolute -bottom-px left-0 right-0 h-[2px] bg-[var(--green)] shadow-[0_0_10px_var(--green-glow)]"
+                      aria-hidden
+                    />
+                  )}
                 </button>
               ))}
               {loading && (
-                <span className="ml-auto flex items-center self-center text-[10px] text-white/20">
-                  Refreshing…
+                <span className="ml-auto self-center font-mono text-[10px] uppercase tracking-[0.22em] text-[var(--paper-mute)]">
+                  refreshing
                 </span>
               )}
             </div>
 
             {/* Tab content */}
-            <div className="p-6">
+            <div className="px-7 py-7">
               {view === "overview" && <OverviewPanel overview={overview} run={run} />}
               {view === "timeline" && (
                 <TimelinePanel
