@@ -10,9 +10,13 @@ export default defineConfig({
       "@": dirname,
     },
   },
+  esbuild: {
+    jsx: "automatic",
+  },
   test: {
     environment: "jsdom",
     globals: true,
     setupFiles: ["./vitest.setup.ts"],
+    include: ["tests/unit/**/*.{test,spec}.{ts,tsx}"],
   },
 });

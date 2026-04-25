@@ -1,4 +1,4 @@
-import { adaptOverview, adaptRun, respondToPrompt } from "@/lib/adapters";
+import { adaptOverview, adaptRun, mergeMessageBodies, respondToPrompt } from "@/lib/adapters";
 
 import { overviewFixture, runFixture } from "../fixtures/console";
 
@@ -24,5 +24,14 @@ describe("adapter layer", () => {
     const run = adaptRun(runFixture);
     expect(respondToPrompt("summarize risk", run)).toContain("Mirage marked");
     expect(respondToPrompt("where is the trace", run)).toContain("artifacts/traces/run-risky.json");
+  });
+
+  it("merges overlapping snapshot and stream bodies without duplication", () => {
+    expect(
+      mergeMessageBodies(
+        "Risky action gets flagged ",
+        "Risky action gets flagged while the workflow keeps moving.",
+      ),
+    ).toBe("Risky action gets flagged while the workflow keeps moving.");
   });
 });

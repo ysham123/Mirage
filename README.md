@@ -7,6 +7,8 @@ Mirage is CI for agent side effects.
 _Screenshot: Mirage review console over a risky procurement run trace._
 
 [![CI](https://github.com/ysham123/Mirage/actions/workflows/ci.yml/badge.svg)](https://github.com/ysham123/Mirage/actions/workflows/ci.yml)
+[![PyPI](https://img.shields.io/pypi/v/mirage-ci.svg)](https://pypi.org/project/mirage-ci/)
+[![Python](https://img.shields.io/pypi/pyversions/mirage-ci.svg)](https://pypi.org/project/mirage-ci/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 It sits between an agent and external APIs, intercepts outbound HTTP actions, evaluates them against policy, returns safe mocked responses, and writes deterministic traces for tests and CI.

@@ -8,7 +8,7 @@ export function isTypingTarget(target: EventTarget | null) {
     return false;
   }
   const tag = element.tagName;
-  return tag === "INPUT" || tag === "TEXTAREA" || element.isContentEditable;
+  return tag === "INPUT" || tag === "TEXTAREA" || Boolean(element.isContentEditable);
 }
 
 export function isCommandShortcut(event: KeyboardEvent) {
