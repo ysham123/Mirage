@@ -7,6 +7,32 @@ and this project aims to follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.1.3] - 2026-04-26
+
+Console redesign release. The Mirage review console (`ui/`) gets a full
+visual rewrite to a precision-instrument aesthetic. Internal package
+layout cleanup — no public API or behavior changes for `mirage-ci`
+Python users since 0.1.2.
+
+Release notes: [docs/releases/v0.1.3.md](docs/releases/v0.1.3.md)
+
+### Changed
+
+- Review console: redesigned with a precision-instrument visual language.
+  Bricolage Grotesque + Geist + JetBrains Mono typography paired with a
+  single NVIDIA-toned green accent. Tighter header chrome, sticky run
+  context strip, denser stats bar, environment indicator in the top bar.
+- `README.md` screenshot regenerated against the redesigned console.
+- `README.md`: PyPI version and Python version badges added above the
+  fold so visitors can see the published distribution at a glance.
+
+### Removed
+
+- `src/` package re-export shim. Tests, Dockerfile, and the CI smoke
+  test now import from the `mirage` package directly. `pip install
+  mirage-ci` has always exposed `mirage` as the public import path —
+  no user-facing change.
+
 ## [0.1.2] - 2026-04-23
 
 First-run UX release. Also includes README, documentation, and CI recipe
