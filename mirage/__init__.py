@@ -1,4 +1,11 @@
-from .engine import MirageEngine, MirageResult, PolicyDecision
+from .engine import MirageEngine, MirageResult
+from .gateway import (
+    GatewayMode,
+    GatewayOutcome,
+    GatewayResult,
+    MirageGateway,
+    create_gateway_app,
+)
 from .httpx_client import (
     MirageProxyUnreachableError,
     MirageRunError,
@@ -13,11 +20,18 @@ from .httpx_client import (
     mirage_run_summary,
     mirage_response_report,
 )
+from .policy import PolicyDecision, PolicyEvaluator
 
 __all__ = [
     "MirageEngine",
     "MirageResult",
     "PolicyDecision",
+    "PolicyEvaluator",
+    "MirageGateway",
+    "GatewayMode",
+    "GatewayOutcome",
+    "GatewayResult",
+    "create_gateway_app",
     "MirageProxyUnreachableError",
     "MirageRunError",
     "MirageRunIssue",

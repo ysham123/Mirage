@@ -6,7 +6,7 @@ professional without building a separate website.
 ## About Box
 
 - Description:
-  `CI for agent side effects. Intercept agent HTTP actions, enforce policy, and write deterministic traces for tests and CI.`
+  `Deterministic policy runtime for AI agents. Same policy file gates your CI build and enforces in production. No LLM in the decision loop.`
 - Website:
   leave blank for now unless you start active outreach
 - Links to feature:
@@ -15,12 +15,15 @@ professional without building a separate website.
 ## Suggested Topics
 
 - `agent-safety`
+- `agent-infrastructure`
 - `ai-agents`
 - `ci`
 - `developer-tools`
 - `fastapi`
+- `guardrails`
 - `httpx`
 - `policy-engine`
+- `policy-runtime`
 - `testing`
 
 ## Social Preview
