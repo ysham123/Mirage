@@ -1,4 +1,18 @@
-export type RunOutcome = "allowed" | "policy_violation" | "unmatched_route" | "config_error" | "unknown";
+// CI-mode outcomes (mirage.proxy / MirageEngine):
+//   allowed | policy_violation | unmatched_route | config_error
+// Gateway-mode outcomes (mirage.gateway / MirageGateway):
+//   allowed | flagged | blocked | error
+// `unknown` is the fallback when a trace event predates the v0.2 taxonomy
+// or arrives with a value the runtime does not recognize.
+export type RunOutcome =
+  | "allowed"
+  | "policy_violation"
+  | "unmatched_route"
+  | "config_error"
+  | "blocked"
+  | "flagged"
+  | "error"
+  | "unknown";
 export type ConsoleView = "overview" | "timeline" | "trace";
 export type QueueFilter = "all" | "risky" | "allowed" | "unmatched_route";
 export type ChatRole = "system" | "user" | "assistant";
@@ -10,6 +24,9 @@ export interface OverviewSummary {
   policyViolation: number;
   unmatchedRoute: number;
   configError: number;
+  blocked: number;
+  flagged: number;
+  error: number;
   riskyRuns: number;
   suppressedActions: number;
 }

@@ -26,15 +26,21 @@ const SCENARIOS = [
 
 function outcomeDot(outcome: string) {
   if (outcome === "allowed") return "bg-[var(--green)]";
-  if (outcome === "config_error") return "bg-[var(--bad)]";
+  if (outcome === "config_error" || outcome === "error" || outcome === "blocked") return "bg-[var(--bad)]";
   return "bg-[var(--warn)]";
 }
 
 function outcomeBadge(outcome: string): { tone: string; label: string } {
+  // CI-mode outcomes.
   if (outcome === "allowed") return { tone: "text-[var(--green)]", label: "allowed" };
   if (outcome === "config_error") return { tone: "text-[var(--bad)]", label: "config" };
   if (outcome === "unmatched_route") return { tone: "text-[var(--warn)]", label: "unmatched" };
-  return { tone: "text-[var(--warn)]", label: "violation" };
+  if (outcome === "policy_violation") return { tone: "text-[var(--warn)]", label: "violation" };
+  // Gateway-mode outcomes.
+  if (outcome === "blocked") return { tone: "text-[var(--bad)]", label: "blocked" };
+  if (outcome === "flagged") return { tone: "text-[var(--warn)]", label: "flagged" };
+  if (outcome === "error") return { tone: "text-[var(--bad)]", label: "error" };
+  return { tone: "text-[var(--paper-mute)]", label: "unknown" };
 }
 
 function timeAgo(ts: string | null | undefined) {

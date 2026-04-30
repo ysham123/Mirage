@@ -18,13 +18,23 @@ interface RunDetailProps {
 /* ─── helpers ──────────────────────────────────────────────────────────── */
 
 function outcomeBadge(outcome: string): { tone: string; border: string; label: string } {
+  // CI-mode outcomes.
   if (outcome === "allowed")
     return { tone: "text-[var(--green)]", border: "border-[var(--green)]/40", label: "allowed" };
   if (outcome === "config_error")
     return { tone: "text-[var(--bad)]", border: "border-[var(--bad)]/40", label: "config error" };
   if (outcome === "unmatched_route")
     return { tone: "text-[var(--warn)]", border: "border-[var(--warn)]/40", label: "unmatched route" };
-  return { tone: "text-[var(--warn)]", border: "border-[var(--warn)]/40", label: "policy violation" };
+  if (outcome === "policy_violation")
+    return { tone: "text-[var(--warn)]", border: "border-[var(--warn)]/40", label: "policy violation" };
+  // Gateway-mode outcomes.
+  if (outcome === "blocked")
+    return { tone: "text-[var(--bad)]", border: "border-[var(--bad)]/40", label: "blocked" };
+  if (outcome === "flagged")
+    return { tone: "text-[var(--warn)]", border: "border-[var(--warn)]/40", label: "flagged" };
+  if (outcome === "error")
+    return { tone: "text-[var(--bad)]", border: "border-[var(--bad)]/40", label: "error" };
+  return { tone: "text-[var(--paper-mute)]", border: "border-[var(--line-strong)]", label: "unknown" };
 }
 
 function useCopy() {

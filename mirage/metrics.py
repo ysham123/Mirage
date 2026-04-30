@@ -44,10 +44,15 @@ class RunSummary:
     event_count: int
     first_event_at: str | None
     last_event_at: str | None
+    # CI-mode outcomes (mirage.proxy / MirageEngine).
     allowed_count: int
     policy_violation_count: int
     unmatched_route_count: int
     config_error_count: int
+    # Gateway-mode outcomes (mirage.gateway / MirageGateway).
+    blocked_count: int = 0
+    flagged_count: int = 0
+    error_count: int = 0
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -74,6 +79,9 @@ class EndpointSummary:
     policy_violation_count: int
     unmatched_route_count: int
     config_error_count: int
+    blocked_count: int
+    flagged_count: int
+    error_count: int
     run_count: int
     last_seen_at: str | None
 
@@ -98,10 +106,16 @@ class PolicyFailureSummary:
 class OverviewSummary:
     run_count: int
     action_count: int
+    # CI-mode outcomes.
     allowed_count: int
     policy_violation_count: int
     unmatched_route_count: int
     config_error_count: int
+    # Gateway-mode outcomes.
+    blocked_count: int
+    flagged_count: int
+    error_count: int
+    # Cross-mode rollup: any non-allowed final outcome counts as risky.
     risky_run_count: int
 
     def to_dict(self) -> dict[str, Any]:
@@ -145,6 +159,9 @@ class TraceMetricsStore:
             policy_violation_count=sum(run.summary.policy_violation_count for run in runs),
             unmatched_route_count=sum(run.summary.unmatched_route_count for run in runs),
             config_error_count=sum(run.summary.config_error_count for run in runs),
+            blocked_count=sum(run.summary.blocked_count for run in runs),
+            flagged_count=sum(run.summary.flagged_count for run in runs),
+            error_count=sum(run.summary.error_count for run in runs),
             risky_run_count=sum(
                 1 for run in runs if _final_outcome_for_run(run) not in ("allowed", "unknown")
             ),
@@ -216,6 +233,9 @@ class TraceMetricsStore:
             policy_violation_count=counts["policy_violation"],
             unmatched_route_count=counts["unmatched_route"],
             config_error_count=counts["config_error"],
+            blocked_count=counts["blocked"],
+            flagged_count=counts["flagged"],
+            error_count=counts["error"],
         )
         return RunDetail(summary=summary, events=events)
 
@@ -262,6 +282,9 @@ class TraceMetricsStore:
                         "policy_violation_count": 0,
                         "unmatched_route_count": 0,
                         "config_error_count": 0,
+                        "blocked_count": 0,
+                        "flagged_count": 0,
+                        "error_count": 0,
                         "run_ids": set(),
                         "last_seen_at": None,
                     },
@@ -280,6 +303,9 @@ class TraceMetricsStore:
                 policy_violation_count=stats["policy_violation_count"],
                 unmatched_route_count=stats["unmatched_route_count"],
                 config_error_count=stats["config_error_count"],
+                blocked_count=stats["blocked_count"],
+                flagged_count=stats["flagged_count"],
+                error_count=stats["error_count"],
                 run_count=len(stats["run_ids"]),
                 last_seen_at=stats["last_seen_at"],
             )
@@ -437,6 +463,7 @@ def _final_outcome_for_run(detail: RunDetail) -> str:
 
 
 def _headline_for_outcome(outcome: str) -> str:
+    # CI-mode outcomes.
     if outcome == "allowed":
         return "Compliant run stays green."
     if outcome == "policy_violation":
@@ -445,4 +472,11 @@ def _headline_for_outcome(outcome: str) -> str:
         return "Unconfigured route fails clearly."
     if outcome == "config_error":
         return "Config error stops the run before interception."
+    # Gateway-mode outcomes.
+    if outcome == "blocked":
+        return "Gateway blocked a policy-violating action before it reached the upstream."
+    if outcome == "flagged":
+        return "Gateway flagged a policy violation in passthrough mode and let the call through."
+    if outcome == "error":
+        return "Gateway hit an error decision path; check upstream and config."
     return "Mirage run review."

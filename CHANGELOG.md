@@ -7,6 +7,58 @@ and this project aims to follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+Repositioning release. Mirage moves from "CI for agent side effects" to
+**deterministic policy runtime for AI agents** — same policy file gates
+the CI build and enforces in production, no LLM in the decision loop.
+
+### Added
+
+- `mirage.policy` — `PolicyEvaluator` extracted as a pure, mock-free
+  evaluator. Shared by both CI mode (`MirageEngine`) and the new
+  gateway mode.
+- `mirage.gateway` — production runtime gateway. Same policy file as
+  CI, evaluated against real upstream traffic.
+  - `passthrough` mode: forwards every request to the upstream and logs
+    policy decisions without blocking. The right starting mode for a
+    new deployment.
+  - `enforce` mode: forwards when policy passes, blocks with HTTP 403
+    when it fails. Same policy file, now load-bearing for production.
+  - Unified outcome taxonomy across modes:
+    `allowed` / `flagged` / `blocked` / `error`.
+  - Trace events carry a `mode` discriminator so downstream tooling can
+    distinguish gateway events from legacy CI events.
+- `mirage gateway` CLI subcommand (`--upstream`, `--mode`,
+  `--policies-path`, `--host`, `--port`, `--artifact-root`).
+- Console metrics: `RunSummary`, `OverviewSummary`, and `EndpointSummary`
+  expose `blocked_count` / `flagged_count` / `error_count` so dashboards
+  surface gateway runs honestly.
+- TypeScript types: `RunOutcome` union extended with `blocked` /
+  `flagged` / `error`; `OverviewSummary` gains the new fields; sidebar
+  + run-detail badges color the new outcomes correctly.
+- `tests/test_gateway.py` — 8 tests covering passthrough/enforce, config
+  errors, upstream errors, and the FastAPI surface.
+
+### Changed
+
+- `MirageEngine` now delegates policy evaluation to `PolicyEvaluator`.
+  Public API unchanged.
+- `mirage.config.load_policies_only()` helper added; the gateway uses it
+  instead of double-loading the policies file as both mocks and policies.
+- README rewritten around the new mission. Differentiation block names
+  Salus, Playgent, the Microsoft Agent Governance Toolkit, Future AGI,
+  and the LLM-judge cohort explicitly.
+- `pyproject.toml` description and `docs/GITHUB_REPO_SETUP.md` aligned
+  with the new mission sentence.
+
+### Security
+
+- New README "Gateway forwarding behavior" section documenting which
+  request headers Mirage strips, which it forwards, and the operator's
+  responsibility to point `--upstream` at the right host. The gateway
+  forwards `Authorization`, `Cookie`, and other application headers
+  unchanged so upstream auth keeps working — pointing the gateway at an
+  unintended host would forward those credentials with the request.
+
 ## [0.1.3] - 2026-04-26
 
 Console redesign release. The Mirage review console (`ui/`) gets a full

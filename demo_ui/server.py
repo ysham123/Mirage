@@ -131,6 +131,9 @@ def create_demo_app(*, artifact_root: str | Path | None = None) -> FastAPI:
                 "policy_violation": overview["overview"]["policy_violation_count"],
                 "unmatched_route": overview["overview"]["unmatched_route_count"],
                 "config_error": overview["overview"]["config_error_count"],
+                "blocked": overview["overview"]["blocked_count"],
+                "flagged": overview["overview"]["flagged_count"],
+                "error": overview["overview"]["error_count"],
                 "risky_runs": overview["overview"]["risky_run_count"],
                 "suppressed_actions": sum(len(run_suppressions) for run_suppressions in suppressions.values()),
             },
@@ -552,6 +555,15 @@ def _build_agent_health(final_outcome: str, risk: dict[str, Any]) -> dict[str, A
     elif final_outcome == "config_error":
         status = "critical"
         summary = "Mirage config needs repair before the workflow can be trusted."
+    elif final_outcome == "blocked":
+        status = "watch"
+        summary = "Gateway enforced a policy and blocked a risky action from reaching upstream."
+    elif final_outcome == "flagged":
+        status = "watch"
+        summary = "Gateway flagged a policy violation in passthrough mode; enforcement was off."
+    elif final_outcome == "error":
+        status = "critical"
+        summary = "Gateway hit an error decision path; check upstream and config."
     if risk["suppressed_steps"] and status == "watch":
         summary += " Suppression is active while the team reviews the trace."
     return {
@@ -572,6 +584,10 @@ def _confidence_for_outcome(outcome: str, decision_count: int) -> float:
         "policy_violation": 0.63,
         "unmatched_route": 0.57,
         "config_error": 0.41,
+        # Gateway-mode outcomes.
+        "blocked": 0.55,
+        "flagged": 0.6,
+        "error": 0.41,
     }.get(outcome, 0.5)
     modifier = min(0.06, decision_count * 0.01)
     return round(max(0.32, min(0.98, base + modifier)), 2)
@@ -582,11 +598,11 @@ def _severity_for_outcome(outcome: str, suppression: dict[str, Any] | None) -> s
         return "suppressed"
     if outcome == "allowed":
         return "nominal"
-    if outcome == "config_error":
+    if outcome == "config_error" or outcome == "error":
         return "critical"
-    if outcome == "policy_violation":
+    if outcome == "policy_violation" or outcome == "blocked":
         return "high"
-    if outcome == "unmatched_route":
+    if outcome == "unmatched_route" or outcome == "flagged":
         return "medium"
     return "low"
 

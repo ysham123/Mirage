@@ -20,7 +20,15 @@ function asArray<T = Record<string, unknown>>(value: unknown): T[] {
 }
 
 function normalizeOutcome(value: unknown): RunOutcome {
-  if (value === "allowed" || value === "policy_violation" || value === "unmatched_route" || value === "config_error") {
+  if (
+    value === "allowed" ||
+    value === "policy_violation" ||
+    value === "unmatched_route" ||
+    value === "config_error" ||
+    value === "blocked" ||
+    value === "flagged" ||
+    value === "error"
+  ) {
     return value;
   }
   return "unknown";
@@ -40,6 +48,9 @@ export function adaptOverview(payload: Record<string, unknown>): ConsoleOverview
       policyViolation: Number(summary.policy_violation ?? 0),
       unmatchedRoute: Number(summary.unmatched_route ?? 0),
       configError: Number(summary.config_error ?? 0),
+      blocked: Number(summary.blocked ?? 0),
+      flagged: Number(summary.flagged ?? 0),
+      error: Number(summary.error ?? 0),
       riskyRuns: Number(summary.risky_runs ?? 0),
       suppressedActions: Number(summary.suppressed_actions ?? 0),
     },
@@ -234,10 +245,10 @@ function toneForOutcome(outcome: RunOutcome): ChatMessage["tone"] {
   if (outcome === "allowed") {
     return "success";
   }
-  if (outcome === "policy_violation" || outcome === "unmatched_route") {
+  if (outcome === "policy_violation" || outcome === "unmatched_route" || outcome === "flagged") {
     return "warning";
   }
-  if (outcome === "config_error") {
+  if (outcome === "config_error" || outcome === "error" || outcome === "blocked") {
     return "critical";
   }
   return "neutral";

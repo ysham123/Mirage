@@ -26,17 +26,17 @@ distinguish gateway events from legacy CI events.
 from __future__ import annotations
 
 import os
+from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Literal
-from urllib.parse import urljoin
+from typing import Any, AsyncIterator, Literal
 
 import httpx
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel, Field, ValidationError
 
-from .config import load_mirage_config
+from .config import load_policies_only
 from .policy import (
     PolicyDecision,
     PolicyEvaluator,
@@ -124,7 +124,7 @@ class MirageGateway:
         resolved_run_id = self._resolve_run_id(run_id, headers)
 
         try:
-            config = load_mirage_config(self.policies_path, self.policies_path)
+            config = load_policies_only(self.policies_path)
         except (FileNotFoundError, OSError, ValueError, ValidationError) as exc:
             return self._handle_config_error(exc, resolved_run_id, method, path, body, headers)
 
@@ -206,7 +206,9 @@ class MirageGateway:
         return self.upstream.request(
             method.upper(),
             path,
-            json=body if body else None,
+            # Forward `{}`, `[]`, `0`, and `False` literally — only None means
+            # "no body." Anything else is a payload the agent meant to send.
+            json=body if body is not None else None,
             headers=forward_headers,
         )
 
@@ -385,7 +387,11 @@ class MirageGateway:
 def create_gateway_app(gateway: MirageGateway | None = None) -> FastAPI:
     """Build a FastAPI app for the gateway. Mirrors create_app() in proxy.py
     so deployment shape is symmetric: the legacy CI-mode proxy and the new
-    runtime gateway are both `uvicorn module:app` style."""
+    runtime gateway are both `uvicorn module:app` style.
+
+    The lifespan handler closes the upstream httpx client on shutdown, so
+    `uvicorn`'s graceful-shutdown signal does not leak the connection pool.
+    """
 
     upstream_url = os.getenv("MIRAGE_UPSTREAM_URL")
     if gateway is None:
@@ -401,11 +407,24 @@ def create_gateway_app(gateway: MirageGateway | None = None) -> FastAPI:
             )
         gateway = MirageGateway(upstream_url=upstream_url, mode=mode)  # type: ignore[arg-type]
 
-    app = FastAPI()
+    bound_gateway = gateway
+
+    @asynccontextmanager
+    async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
+        try:
+            yield
+        finally:
+            bound_gateway.close()
+
+    app = FastAPI(lifespan=lifespan)
 
     @app.get("/health")
     async def healthcheck() -> dict[str, str]:
-        return {"status": "ok", "mode": gateway.mode, "upstream": gateway.upstream_url}
+        return {
+            "status": "ok",
+            "mode": bound_gateway.mode,
+            "upstream": bound_gateway.upstream_url,
+        }
 
     @app.api_route(
         "/{full_path:path}",
@@ -418,7 +437,7 @@ def create_gateway_app(gateway: MirageGateway | None = None) -> FastAPI:
             payload = {}
 
         path = f"/{full_path}" if full_path else "/"
-        result = gateway.handle_request(
+        result = bound_gateway.handle_request(
             method=request.method,
             path=path,
             payload=payload,
