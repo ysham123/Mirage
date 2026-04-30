@@ -49,6 +49,55 @@ def build_parser() -> argparse.ArgumentParser:
         ),
     )
 
+    gateway_parser = subparsers.add_parser(
+        "gateway",
+        help=(
+            "Start the Mirage runtime gateway. Same policy file as CI, real "
+            "upstream traffic, configurable enforcement."
+        ),
+    )
+    gateway_parser.add_argument(
+        "--upstream",
+        required=True,
+        help="Upstream base URL the gateway forwards requests to.",
+    )
+    gateway_parser.add_argument(
+        "--mode",
+        choices=["passthrough", "enforce"],
+        default="passthrough",
+        help=(
+            "Enforcement mode. 'passthrough' forwards every request and logs "
+            "policy decisions; 'enforce' blocks requests that fail policy with "
+            "a 403. Default: passthrough."
+        ),
+    )
+    gateway_parser.add_argument(
+        "--policies-path",
+        type=Path,
+        default=None,
+        help=(
+            "Optional policies config path. Defaults to MIRAGE_POLICIES_PATH, "
+            "./policies.yaml, or Mirage's bundled example policies."
+        ),
+    )
+    gateway_parser.add_argument(
+        "--host",
+        default="127.0.0.1",
+        help="Host for the gateway server (default: 127.0.0.1).",
+    )
+    gateway_parser.add_argument(
+        "--port",
+        type=int,
+        default=8001,
+        help="Port for the gateway server (default: 8001).",
+    )
+    gateway_parser.add_argument(
+        "--artifact-root",
+        type=Path,
+        default=None,
+        help="Optional Mirage trace directory override.",
+    )
+
     return parser
 
 
@@ -83,8 +132,32 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(summary.to_text())
         return 0
 
+    if args.command == "gateway":
+        return _run_gateway(args)
+
     parser.error(f"Unsupported command: {args.command}")
     return 2
+
+
+def _run_gateway(args: argparse.Namespace) -> int:
+    import uvicorn
+
+    from .gateway import MirageGateway, create_gateway_app
+
+    gateway = MirageGateway(
+        upstream_url=args.upstream,
+        mode=args.mode,
+        policies_path=args.policies_path,
+        artifact_root=args.artifact_root,
+    )
+    app = create_gateway_app(gateway=gateway)
+
+    print(
+        f"Mirage gateway: mode={args.mode} upstream={args.upstream} "
+        f"listening on http://{args.host}:{args.port}"
+    )
+    uvicorn.run(app, host=args.host, port=args.port, log_level="info")
+    return 0
 
 
 def _add_run_arguments(parser: argparse.ArgumentParser) -> None:

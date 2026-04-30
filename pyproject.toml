@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "mirage-ci"
 version = "0.1.3"
-description = "CI for agent side effects."
+description = "Deterministic policy runtime for AI agents — same policy file gates CI and enforces in production, no LLM in the decision loop."
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "MIT" }
@@ -21,11 +21,16 @@ dependencies = [
 ]
 keywords = [
   "agent-safety",
+  "agent-infrastructure",
+  "ai-agents",
   "ci",
   "fastapi",
+  "guardrails",
   "httpx",
   "llm",
   "policy",
+  "policy-engine",
+  "policy-runtime",
   "testing",
 ]
 classifiers = [

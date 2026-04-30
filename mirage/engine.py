@@ -1,26 +1,28 @@
 from __future__ import annotations
 
 import os
-import re
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Literal
 
 from pydantic import BaseModel, Field, ValidationError
 
-from .config import MirageConfig, MockRouteConfig, PolicyConfig, load_mirage_config
+from .config import MirageConfig, MockRouteConfig, load_mirage_config
+from .policy import (
+    PolicyDecision,
+    PolicyEvaluator,
+    build_policy_violation_message,
+    path_matches,
+    summarize_decision,
+)
 from .runtime_paths import resolve_artifact_root, resolve_config_path
 from .trace import TraceStore
 
-
-class PolicyDecision(BaseModel):
-    name: str
-    passed: bool
-    message: str
-    field: str
-    operator: str
-    expected: Any = None
-    actual: Any = None
+__all__ = [
+    "MirageEngine",
+    "MirageResult",
+    "PolicyDecision",
+]
 
 
 class MirageResult(BaseModel):
@@ -41,7 +43,7 @@ class MirageResult(BaseModel):
         decisions = self.failed_decisions()
         if not decisions:
             return None
-        return " | ".join(_summarize_decision(decision) for decision in decisions)
+        return " | ".join(summarize_decision(decision) for decision in decisions)
 
 
 class MirageEngine:
@@ -170,7 +172,7 @@ class MirageEngine:
     def _match_mock(self, config: MirageConfig, method: str, path: str) -> MockRouteConfig | None:
         method_name = method.upper()
         for mock in config.mocks:
-            if mock.method.upper() == method_name and _path_matches(mock.path, path):
+            if mock.method.upper() == method_name and path_matches(mock.path, path):
                 return mock
         return None
 
@@ -181,82 +183,10 @@ class MirageEngine:
         path: str,
         payload: Any,
     ) -> list[PolicyDecision]:
-        decisions: list[PolicyDecision] = []
-        method_name = method.upper()
-
-        for policy in config.policies:
-            if policy.method and policy.method.upper() != method_name:
-                continue
-            if policy.path and not _path_matches(policy.path, path):
-                continue
-
-            actual, exists = self._extract_field(payload, policy.field)
-            try:
-                passed = self._apply_operator(policy, actual, exists)
-                message = policy.message
-            except TypeError as exc:
-                passed = False
-                message = self._build_policy_evaluation_error(policy, exc)
-
-            decisions.append(
-                PolicyDecision(
-                    name=policy.name,
-                    passed=passed,
-                    message=message,
-                    field=policy.field,
-                    operator=policy.operator,
-                    expected=policy.value,
-                    actual=actual,
-                )
-            )
-
-        return decisions
-
-    def _extract_field(self, payload: Any, field: str) -> tuple[Any, bool]:
-        current = payload
-        for part in field.split("."):
-            if isinstance(current, dict) and part in current:
-                current = current[part]
-                continue
-            return None, False
-        return current, True
-
-    def _apply_operator(self, policy: PolicyConfig, actual: Any, exists: bool) -> bool:
-        operator = policy.operator
-        expected = policy.value
-
-        if operator == "exists":
-            return exists
-        if not exists:
-            return False
-        if operator == "eq":
-            return actual == expected
-        if operator == "neq":
-            return actual != expected
-        if operator == "lt":
-            return actual < expected
-        if operator == "lte":
-            return actual <= expected
-        if operator == "gt":
-            return actual > expected
-        if operator == "gte":
-            return actual >= expected
-        if operator == "in":
-            return actual in expected
-        if operator == "not_in":
-            return actual not in expected
-        raise ValueError(f"Unsupported operator: {operator}")
+        return PolicyEvaluator(config).evaluate(method=method, path=path, payload=payload)
 
     def _build_policy_violation_message(self, decisions: list[PolicyDecision]) -> str:
-        failed = [decision for decision in decisions if not decision.passed]
-        if not failed:
-            return "Mirage detected a policy violation."
-        return "Mirage policy violation: " + " | ".join(
-            _summarize_decision(decision) for decision in failed
-        )
-
-    def _build_policy_evaluation_error(self, policy: PolicyConfig, exc: TypeError) -> str:
-        return f"{policy.message} (policy evaluation failed: {exc})"
+        return build_policy_violation_message(decisions)
 
     def _write_trace(
         self,
@@ -300,28 +230,3 @@ def _model_to_dict(model: BaseModel) -> dict[str, Any]:
     if hasattr(model, "model_dump"):
         return model.model_dump()
     return model.dict()
-
-
-def _summarize_decision(decision: PolicyDecision) -> str:
-    if decision.operator == "exists":
-        detail = f"field '{decision.field}' must exist"
-    else:
-        detail = (
-            f"field '{decision.field}' must satisfy "
-            f"{decision.operator} {_format_value(decision.expected)} but got {_format_value(decision.actual)}"
-        )
-    return f"{decision.name}: {decision.message} ({detail})"
-
-
-def _format_value(value: Any) -> str:
-    return repr(value)
-
-
-_PARAM_RE = re.compile(r"\{([^{}/]+)\}")
-
-
-def _path_matches(pattern: str, path: str) -> bool:
-    if "{" not in pattern:
-        return pattern == path
-    regex = "^" + _PARAM_RE.sub(r"(?P<\1>[^/]+)", re.escape(pattern).replace(r"\{", "{").replace(r"\}", "}")) + "$"
-    return re.match(regex, path) is not None
