@@ -112,6 +112,26 @@ def load_mirage_config(mocks_path: Path, policies_path: Path) -> MirageConfig:
     return MirageConfig(mocks=mocks, policies=policies)
 
 
+def load_policies_only(policies_path: Path) -> MirageConfig:
+    """Load only the policy section from a policies file.
+
+    Used by the gateway, which never dispatches mocks — it forwards to a
+    real upstream. Returns a `MirageConfig` with an empty `mocks` list and
+    populated `policies`, which lets `PolicyEvaluator` consume it without
+    knowing whether the surrounding runtime is the CI engine or the gateway.
+    """
+
+    policies_data = _load_mapping_file(policies_path)
+    policies = _build_entries(
+        policies_data.get("policies", []),
+        PolicyConfig,
+        file_path=policies_path,
+        section="policies",
+        example=_POLICY_EXAMPLE,
+    )
+    return MirageConfig(mocks=[], policies=policies)
+
+
 def validate_mirage_config(mocks_path: Path, policies_path: Path) -> MirageConfigSummary:
     config = load_mirage_config(mocks_path, policies_path)
     return MirageConfigSummary(

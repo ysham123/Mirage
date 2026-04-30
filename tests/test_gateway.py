@@ -194,3 +194,77 @@ def test_gateway_app_exposes_health_and_decision_headers(tmp_path):
 def test_gateway_rejects_invalid_mode():
     with pytest.raises(ValueError):
         MirageGateway(upstream_url="", mode="passthrough")
+
+
+def test_load_policies_only_returns_empty_mocks(tmp_path):
+    """`load_policies_only` is the helper the gateway uses to avoid the
+    'load policies file as mocks file' hack. The result must always have
+    an empty mocks list, even if the policies file doesn't define mocks."""
+    from mirage.config import load_policies_only
+
+    _, policies_path = write_mirage_config(tmp_path)
+    config = load_policies_only(policies_path)
+
+    assert config.mocks == []
+    assert len(config.policies) == 1
+    assert config.policies[0].name == "enforce_bid_limit"
+
+
+def test_gateway_forwards_explicit_empty_dict_body(tmp_path):
+    """A POST with an explicit empty JSON body should still forward as `{}`,
+    not as 'no body.'"""
+    captured: dict[str, Any] = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        captured["content"] = request.content
+        captured["content_type"] = request.headers.get("content-type")
+        return httpx.Response(200, json={"echoed": True})
+
+    transport = httpx.MockTransport(handler)
+    upstream_client = httpx.Client(transport=transport, base_url="https://upstream.example.com")
+    _, policies_path = write_mirage_config(tmp_path)
+    gateway = MirageGateway(
+        upstream_url="https://upstream.example.com",
+        mode="passthrough",
+        policies_path=policies_path,
+        artifact_root=tmp_path / "artifacts" / "traces",
+        upstream_client=upstream_client,
+    )
+    gateway.handle_request(
+        method="POST",
+        path="/v1/empty",
+        payload={},
+        run_id="empty-body",
+    )
+    gateway.close()
+
+    assert captured["content"] == b"{}"
+
+
+def test_gateway_app_lifespan_closes_upstream(tmp_path):
+    """When the FastAPI app shuts down, the lifespan handler must close
+    the upstream httpx client so uvicorn doesn't leak the connection pool."""
+    from typing import Any as _Any
+
+    closed: dict[str, bool] = {"value": False}
+
+    class _RecordingClient(httpx.Client):
+        def close(self) -> None:  # type: ignore[override]
+            closed["value"] = True
+            super().close()
+
+    transport = httpx.MockTransport(lambda r: httpx.Response(200, json={}))
+    upstream_client = _RecordingClient(transport=transport, base_url="https://upstream.example.com")
+    _, policies_path = write_mirage_config(tmp_path)
+    gateway = MirageGateway(
+        upstream_url="https://upstream.example.com",
+        mode="passthrough",
+        policies_path=policies_path,
+        artifact_root=tmp_path / "artifacts" / "traces",
+        upstream_client=upstream_client,
+    )
+    app = create_gateway_app(gateway=gateway)
+    with TestClient(app):
+        pass  # Entering and exiting the context invokes the lifespan handler.
+
+    assert closed["value"] is True

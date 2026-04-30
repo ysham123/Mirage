@@ -122,12 +122,11 @@ is run-scoped policy enforcement, not per-test response stubbing:
   can route through a gateway — Mirage's value is enforcement at one of
   those two boundaries.
 
-> Status: `v0.1.3` ships the **CI mode** of the policy runtime — `MirageSession`,
-> `mirage gate-run`, the procurement harness, and the review console. The
-> **gateway mode** (production passthrough + enforcement against the same
-> policy file) is the next release on the roadmap. The mission is the
-> deterministic policy runtime; v0.1 is the first half of that runtime
-> shipped to PyPI today.
+> Status: `v0.2.0.dev0` (on the `phase-2-positioning` branch) ships **both
+> halves** of the policy runtime — CI mode (`MirageSession`, `mirage gate-run`)
+> and gateway mode (`mirage gateway`, runtime enforcement against the same
+> policy file). v0.1.3 on PyPI is the last CI-mode-only cut; pin to that
+> until 0.2.0 is released.
 
 ## See It In 60 Seconds
 
@@ -186,37 +185,73 @@ see [`examples/procurement_harness/README.md`](examples/procurement_harness/READ
 - Want to try the bundled workflow first: read [`examples/procurement_harness/README.md`](examples/procurement_harness/README.md)
 - Want the straight licensing/commercial answer: read [`docs/OPEN_SOURCE_FAQ.md`](docs/OPEN_SOURCE_FAQ.md)
 
-## What ships today
+## What ships today (v0.2.0.dev0)
 
-The current release (`v0.1.3`) is the **CI mode** of the Mirage policy runtime —
-the same policy file the gateway will enforce in production, evaluated against
-mocked responses in your build pipeline:
+The deterministic policy runtime, both halves:
 
+**CI mode** (`mirage.proxy`, `MirageSession`, `mirage gate-run`)
 - declarative policy DSL (`policies.yaml`)
 - mocked responses (`mocks.yaml`) for deterministic CI runs
 - run-scoped trace store with structured policy decisions
 - `mirage gate-run` exits non-zero on regression; drop-in fail-build for any CI
+- four outcomes per action: `allowed`, `policy_violation`, `unmatched_route`, `config_error`
+
+**Gateway mode** (`mirage.gateway`, `mirage gateway`)
+- same `policies.yaml` evaluated against real upstream traffic
+- `passthrough` mode: forward every request, log policy decisions, do not block
+  (the right starting mode for a new deployment)
+- `enforce` mode: forward when policy passes, block with HTTP 403 when it fails
+- four outcomes per action: `allowed`, `flagged`, `blocked`, `error`
+- trace events carry a `mode` discriminator so dashboards can distinguish CI runs
+  from gateway runs
+
+**Shared substrate**
+- `PolicyEvaluator` — pure, deterministic, mock-free; identical decisions in CI
+  and gateway
 - review console over the trace store, both legacy HTML and a Next.js operator client
-- Python-first integration via `MirageSession`; `httpx`-native, framework-agnostic
+- Python-first integration via `MirageSession` (CI) or any HTTP client (gateway);
+  `httpx`-native, framework-agnostic
 - container-ready (Dockerfile + docker-compose)
 
-Each evaluated action emits one of four outcomes in CI mode:
-`allowed`, `policy_violation`, `unmatched_route`, `config_error`.
+## What ships next (v0.3 and beyond)
 
-## What ships next
-
-The deterministic policy runtime is complete only when the same policy file
-that gates a build also enforces in production. The next milestone, on a
-`phase-2-positioning` working branch:
-
-- `mirage gateway` — production gateway mode, real upstreams, log-only or hard-block enforcement
-- portable `PolicyEvaluator` — shared core between CI and gateway, no mock dependency
 - containment-rate / FNR / time-to-detect metrics surfaced in the console
 - first framework integration (target: OpenAI Agents SDK; LangChain to follow)
-- chaos-library testing harness for proving policies hold under hostile environments
+- rate-limit and sequence-rule policy operators (cross-call state)
+- chaos-library testing harness — prove policies hold under hostile environments
+- console "Gateway" tab with a live decision feed and mode toggle
 
 The mission sentence is the contract: same policy file, CI and production,
 no LLM in the decision loop.
+
+## Gateway forwarding behavior
+
+The gateway is a deliberate, in-line proxy. When you point `mirage gateway` at
+an upstream URL, every request the agent makes flows through it on the way to
+that upstream. A few load-bearing details, intentional but worth being explicit
+about:
+
+- **`Authorization`, `Cookie`, and other application headers are forwarded
+  unchanged.** Upstream auth has to keep working through the gateway, so the
+  gateway does not strip credentials. Pointing `--upstream` at an unintended
+  host would forward those credentials to the wrong destination.
+- **Mirage strips `X-Mirage-*` headers** before forwarding (so internal trace
+  metadata never leaks to the upstream) and **strips standard hop-by-hop
+  headers** (`Connection`, `Transfer-Encoding`, `Upgrade`, `Host`,
+  `Content-Length`, etc.) before forwarding so they do not interfere with the
+  outbound request.
+- **The gateway never holds plaintext secrets in the trace.** Request and
+  response bodies are stored verbatim in the trace store; if your payload
+  contains secrets, you are responsible for either redacting in policy or not
+  putting them in the body.
+- **Operator responsibility.** `--upstream` is the load-bearing config knob.
+  The right deployment posture is: bind the gateway to a private network,
+  scope the upstream URL to a single host you own, and start in `passthrough`
+  mode before flipping to `enforce`.
+- **Log-only first.** `passthrough` mode is the recommended starting state.
+  Run real traffic through it, watch the trace store fill with `flagged`
+  events, tune your policies, then switch to `enforce` once containment rate
+  is at the floor you want.
 
 ## Quickstart
 
