@@ -1,0 +1,17 @@
+# Outbound URL allowlist.
+#
+# Confines an agent's outbound traffic to a fixed set of approved hosts.
+# The agent supplies a `target_url` field on the action payload; the
+# policy rejects the action when the URL host is not in the allowlist.
+# Use this to prevent data exfiltration to unknown domains and to keep
+# tool calls inside a known integration surface.
+policies:
+  - name: enforce_outbound_host_allowlist
+    method: POST
+    field: target_url
+    operator: host_in
+    value:
+      - api.example.com
+      - api.partner.example.com
+      - internal.corp
+    message: Outbound URL host is not on the allowlist.

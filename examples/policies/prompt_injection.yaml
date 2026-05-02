@@ -1,0 +1,17 @@
+# Prompt-injection markers.
+#
+# Block payloads that contain known prompt-injection patterns before they
+# reach a downstream tool or model. The alternation list is intentionally
+# small and conservative; production deployments should extend it with
+# patterns observed in their own traffic. Markers covered:
+#   ignore previous instructions
+#   disregard the above
+#   system prompt:
+#   you are now
+policies:
+  - name: block_prompt_injection_markers
+    method: POST
+    field: payload.text
+    operator: not_regex_match
+    value: "(?i)(ignore previous instructions|disregard the above|system prompt:|you are now)"
+    message: Payload contains a known prompt-injection marker.

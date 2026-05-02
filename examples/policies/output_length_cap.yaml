@@ -1,0 +1,19 @@
+# Output length cap.
+#
+# Prevents an agent from emitting unbounded text fields that could flood
+# downstream systems, blow up logs, or trigger upstream pagination
+# pathologies. Caps the length of common output fields. Tune the limits
+# to your domain.
+policies:
+  - name: cap_response_text_length
+    method: POST
+    field: response_text
+    operator: length_lte
+    value: 4000
+    message: Agent response_text exceeds the maximum allowed length.
+  - name: cap_summary_length
+    method: POST
+    field: summary
+    operator: length_lte
+    value: 1000
+    message: Agent summary exceeds the maximum allowed length.
