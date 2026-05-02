@@ -30,7 +30,7 @@ from examples.procurement_harness.agent import (
 )
 from examples.procurement_harness.scenarios import SCENARIO_NAMES, ScenarioName, run_scenario
 from mirage.engine import MirageEngine
-from mirage.metrics import build_metrics_overview, build_run_metrics
+from mirage.metrics import build_metrics_overview, build_run_metrics, get_run_containment
 from mirage.proxy import create_app
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -135,6 +135,7 @@ def create_demo_app(*, artifact_root: str | Path | None = None) -> FastAPI:
                 "flagged": overview["overview"]["flagged_count"],
                 "error": overview["overview"]["error_count"],
                 "risky_runs": overview["overview"]["risky_run_count"],
+                "containment_rate": overview["overview"].get("containment_rate"),
                 "suppressed_actions": sum(len(run_suppressions) for run_suppressions in suppressions.values()),
             },
             "recent_runs": recent_runs,
@@ -163,6 +164,13 @@ def create_demo_app(*, artifact_root: str | Path | None = None) -> FastAPI:
         if payload is None:
             return JSONResponse(status_code=404, content={"error": f"Unknown run: {run_id}"})
         return payload
+
+    @app.get("/api/runs/{run_id}/containment")
+    async def run_containment(run_id: str):
+        metrics = get_run_containment(app.state.engine.trace_store.artifact_root, run_id)
+        if metrics is None:
+            return JSONResponse(status_code=404, content={"error": f"Unknown run: {run_id}"})
+        return metrics.to_dict()
 
     @app.get("/api/chat/stream")
     async def chat_stream(run_id: str = Query(..., description="Mirage run ID to replay as a chat stream.")):
@@ -453,7 +461,7 @@ def _build_run_payload(app: FastAPI, run_id: str) -> dict[str, Any] | None:
     run_metrics = build_run_metrics(app.state.engine.trace_store.artifact_root, run_id)
     if run_metrics is None:
         return None
-    return _run_detail_payload(
+    payload = _run_detail_payload(
         run_id=run_metrics["run_id"],
         trace=run_metrics["trace"],
         trace_path=run_metrics["trace_path"],
@@ -463,6 +471,10 @@ def _build_run_payload(app: FastAPI, run_id: str) -> dict[str, Any] | None:
         steps=_trace_events_to_steps(run_metrics["trace"].get("events", [])),
         suppressions=_suppression_store(app).get(run_id, {}),
     )
+    containment = get_run_containment(app.state.engine.trace_store.artifact_root, run_id)
+    if containment is not None:
+        payload["containment"] = containment.to_dict()
+    return payload
 
 
 def _decorate_step(

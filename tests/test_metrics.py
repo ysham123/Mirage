@@ -2,9 +2,13 @@ import json
 from pathlib import Path
 
 from mirage.metrics import (
+    ContainmentMetrics,
     DashboardSnapshot,
+    RunEventRecord,
     TraceMetricsStore,
     collect_dashboard_metrics,
+    compute_containment_metrics,
+    get_run_containment,
     get_run_metrics,
 )
 
@@ -258,3 +262,195 @@ def test_trace_metrics_store_skips_malformed_trace_files(tmp_path):
 
     assert snapshot.overview.run_count == 0
     assert snapshot.recent_runs == []
+
+
+def _gateway_event(
+    *,
+    outcome: str,
+    decisions_passed: bool,
+    time_to_decide_us: int | None = None,
+    decision_latency_us: int = 0,
+    timestamp: str = "2026-04-01T00:00:00+00:00",
+) -> dict:
+    return {
+        "timestamp": timestamp,
+        "run_id": "g",
+        "mode": "enforce" if outcome == "blocked" else "passthrough",
+        "request": {
+            "method": "POST",
+            "path": "/v1/submit_bid",
+            "payload": {},
+            "headers": {},
+        },
+        "outcome": outcome,
+        "message": None,
+        "upstream_url": "https://upstream.example.com",
+        "upstream_status": None if outcome == "blocked" else 200,
+        "policy_passed": decisions_passed,
+        "time_to_decide_us": time_to_decide_us,
+        "policy_decisions": [
+            {
+                "name": "enforce_bid_limit",
+                "passed": decisions_passed,
+                "message": "msg",
+                "field": "bid_amount",
+                "operator": "lte",
+                "expected": 100,
+                "actual": 50,
+                "decision_latency_us": decision_latency_us,
+            }
+        ],
+        "response": {"status_code": 403 if outcome == "blocked" else 200, "body": {}},
+    }
+
+
+def test_compute_containment_metrics_returns_blocked_share():
+    events = [
+        RunEventRecord(
+            timestamp=None,
+            request={},
+            outcome="blocked",
+            message=None,
+            matched_mock=None,
+            policy_passed=False,
+            response={},
+            policy_decisions=[],
+        ),
+        RunEventRecord(
+            timestamp=None,
+            request={},
+            outcome="blocked",
+            message=None,
+            matched_mock=None,
+            policy_passed=False,
+            response={},
+            policy_decisions=[],
+        ),
+        RunEventRecord(
+            timestamp=None,
+            request={},
+            outcome="flagged",
+            message=None,
+            matched_mock=None,
+            policy_passed=False,
+            response={},
+            policy_decisions=[],
+        ),
+        RunEventRecord(
+            timestamp=None,
+            request={},
+            outcome="allowed",
+            message=None,
+            matched_mock=None,
+            policy_passed=True,
+            response={},
+            policy_decisions=[],
+        ),
+    ]
+    metrics = compute_containment_metrics(events, run_id="r")
+    assert metrics.blocked_count == 2
+    assert metrics.flagged_count == 1
+    assert metrics.allowed_count == 1
+    assert metrics.containment_rate == 2 / 3
+    assert metrics.decision_latency_p50_us is None
+    assert metrics.time_to_decide_p50_us is None
+
+
+def test_compute_containment_metrics_returns_none_when_no_decisions():
+    events = [
+        RunEventRecord(
+            timestamp=None,
+            request={},
+            outcome="allowed",
+            message=None,
+            matched_mock=None,
+            policy_passed=True,
+            response={},
+            policy_decisions=[],
+        ),
+    ]
+    metrics = compute_containment_metrics(events, run_id="r")
+    assert metrics.containment_rate is None
+
+
+def test_compute_containment_metrics_percentiles_match_known_distribution():
+    decisions = [
+        {
+            "name": "p",
+            "passed": True,
+            "message": "",
+            "field": "x",
+            "operator": "exists",
+            "expected": None,
+            "actual": True,
+            "decision_latency_us": value,
+        }
+        for value in [10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
+    ]
+    events = [
+        _gateway_event(
+            outcome="allowed",
+            decisions_passed=True,
+            time_to_decide_us=t,
+            decision_latency_us=d["decision_latency_us"],
+        )
+        for t, d in zip([100, 200, 300, 400, 500, 600, 700, 800, 900, 1000], decisions)
+    ]
+    parsed = [_parse_event(e) for e in events]
+    metrics = compute_containment_metrics(parsed, run_id="r")
+    assert metrics.decision_latency_p50_us is not None
+    assert metrics.time_to_decide_p50_us is not None
+    assert 50 <= metrics.decision_latency_p50_us <= 60
+    assert 90 <= metrics.decision_latency_p95_us <= 100
+    assert 95 <= metrics.decision_latency_p99_us <= 100
+    assert 500 <= metrics.time_to_decide_p50_us <= 600
+
+
+def test_get_run_containment_returns_metrics_for_known_run(tmp_path):
+    _write_trace(
+        tmp_path,
+        "g-run",
+        [
+            _gateway_event(outcome="blocked", decisions_passed=False, time_to_decide_us=80),
+            _gateway_event(outcome="allowed", decisions_passed=True, time_to_decide_us=60),
+        ],
+    )
+    metrics = get_run_containment(tmp_path, "g-run")
+    assert metrics is not None
+    assert isinstance(metrics, ContainmentMetrics)
+    assert metrics.run_id == "g-run"
+    assert metrics.blocked_count == 1
+    assert metrics.allowed_count == 1
+    assert metrics.containment_rate == 1.0
+
+
+def test_get_run_containment_returns_none_for_missing_run(tmp_path):
+    assert get_run_containment(tmp_path, "missing") is None
+
+
+def test_overview_summary_exposes_fleet_containment_rate(tmp_path):
+    _write_trace(
+        tmp_path,
+        "fleet-1",
+        [
+            _gateway_event(outcome="blocked", decisions_passed=False),
+            _gateway_event(outcome="flagged", decisions_passed=False),
+        ],
+    )
+    snapshot = collect_dashboard_metrics(tmp_path)
+    assert snapshot.overview.containment_rate == 0.5
+
+
+def test_overview_summary_returns_none_containment_when_no_decisions(tmp_path):
+    _write_trace(
+        tmp_path,
+        "fleet-2",
+        [_gateway_event(outcome="allowed", decisions_passed=True)],
+    )
+    snapshot = collect_dashboard_metrics(tmp_path)
+    assert snapshot.overview.containment_rate is None
+
+
+def _parse_event(payload: dict) -> RunEventRecord:
+    store = TraceMetricsStore("/tmp")
+    return store._parse_event(payload)

@@ -475,6 +475,118 @@ def test_demo_ui_chat_stream_replays_sse_events(tmp_path):
     assert "run-stream" in response.text
 
 
+def test_demo_ui_containment_endpoint_returns_metrics_for_known_run(tmp_path):
+    artifact_root = tmp_path / "artifacts" / "traces"
+    _write_trace(
+        artifact_root,
+        "run-containment",
+        [
+            {
+                "timestamp": "2026-04-01T10:00:00+00:00",
+                "run_id": "run-containment",
+                "mode": "enforce",
+                "request": {"method": "POST", "path": "/v1/submit_bid", "payload": {}},
+                "outcome": "blocked",
+                "message": "blocked",
+                "policy_passed": False,
+                "time_to_decide_us": 80,
+                "policy_decisions": [
+                    {
+                        "name": "p",
+                        "passed": False,
+                        "message": "msg",
+                        "field": "f",
+                        "operator": "lte",
+                        "expected": 1,
+                        "actual": 2,
+                        "decision_latency_us": 50,
+                    }
+                ],
+                "response": {"status_code": 403, "body": {}},
+            },
+            {
+                "timestamp": "2026-04-01T10:00:01+00:00",
+                "run_id": "run-containment",
+                "mode": "passthrough",
+                "request": {"method": "POST", "path": "/v1/submit_bid", "payload": {}},
+                "outcome": "allowed",
+                "message": "ok",
+                "policy_passed": True,
+                "time_to_decide_us": 60,
+                "policy_decisions": [
+                    {
+                        "name": "p",
+                        "passed": True,
+                        "message": "ok",
+                        "field": "f",
+                        "operator": "lte",
+                        "expected": 1,
+                        "actual": 0,
+                        "decision_latency_us": 30,
+                    }
+                ],
+                "response": {"status_code": 200, "body": {}},
+            },
+        ],
+    )
+
+    with TestClient(create_demo_app(artifact_root=artifact_root)) as client:
+        response = client.get("/api/runs/run-containment/containment")
+
+    body = response.json()
+    assert response.status_code == 200
+    assert body["run_id"] == "run-containment"
+    assert body["blocked_count"] == 1
+    assert body["allowed_count"] == 1
+    assert body["containment_rate"] == 1.0
+    assert body["decision_latency_p50_us"] is not None
+    assert body["time_to_decide_p50_us"] is not None
+
+
+def test_demo_ui_containment_endpoint_returns_404_for_unknown_run(tmp_path):
+    with TestClient(create_demo_app(artifact_root=tmp_path / "artifacts" / "traces")) as client:
+        response = client.get("/api/runs/unknown/containment")
+
+    assert response.status_code == 404
+
+
+def test_demo_ui_overview_summary_exposes_fleet_containment_rate(tmp_path):
+    artifact_root = tmp_path / "artifacts" / "traces"
+    _write_trace(
+        artifact_root,
+        "fleet-containment",
+        [
+            {
+                "timestamp": "2026-04-01T10:00:00+00:00",
+                "run_id": "fleet-containment",
+                "mode": "enforce",
+                "request": {"method": "POST", "path": "/v1/x", "payload": {}},
+                "outcome": "blocked",
+                "policy_passed": False,
+                "policy_decisions": [],
+                "response": {"status_code": 403, "body": {}},
+            },
+            {
+                "timestamp": "2026-04-01T10:00:01+00:00",
+                "run_id": "fleet-containment",
+                "mode": "passthrough",
+                "request": {"method": "POST", "path": "/v1/x", "payload": {}},
+                "outcome": "flagged",
+                "policy_passed": False,
+                "policy_decisions": [],
+                "response": {"status_code": 200, "body": {}},
+            },
+        ],
+    )
+
+    with TestClient(create_demo_app(artifact_root=artifact_root)) as client:
+        response = client.get("/api/metrics/overview")
+
+    body = response.json()
+    assert response.status_code == 200
+    assert body["summary"]["containment_rate"] == 0.5
+
+
 def test_demo_ui_can_suppress_side_effect(tmp_path):
     artifact_root = tmp_path / "artifacts" / "traces"
     _write_trace(

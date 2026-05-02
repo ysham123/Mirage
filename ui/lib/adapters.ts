@@ -3,6 +3,7 @@ import type {
   ChatMessage,
   ConsoleOverview,
   ConsoleRun,
+  ContainmentMetrics,
   PolicyFailure,
   RiskSnapshot,
   RunListItem,
@@ -53,10 +54,37 @@ export function adaptOverview(payload: Record<string, unknown>): ConsoleOverview
       error: Number(summary.error ?? 0),
       riskyRuns: Number(summary.risky_runs ?? 0),
       suppressedActions: Number(summary.suppressed_actions ?? 0),
+      containmentRate: nullableNumber(summary.containment_rate),
     },
     runs,
     topEndpoints: endpoints,
     topPolicyFailures: policyFailures,
+  };
+}
+
+function nullableNumber(value: unknown): number | null {
+  if (value === null || value === undefined) {
+    return null;
+  }
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : null;
+}
+
+function adaptContainment(payload: Record<string, unknown>): ContainmentMetrics {
+  return {
+    runId: String(payload.run_id ?? ""),
+    totalActions: Number(payload.total_actions ?? 0),
+    blockedCount: Number(payload.blocked_count ?? 0),
+    flaggedCount: Number(payload.flagged_count ?? 0),
+    allowedCount: Number(payload.allowed_count ?? 0),
+    policyViolationCount: Number(payload.policy_violation_count ?? 0),
+    containmentRate: nullableNumber(payload.containment_rate),
+    decisionLatencyP50Us: nullableNumber(payload.decision_latency_p50_us),
+    decisionLatencyP95Us: nullableNumber(payload.decision_latency_p95_us),
+    decisionLatencyP99Us: nullableNumber(payload.decision_latency_p99_us),
+    timeToDecideP50Us: nullableNumber(payload.time_to_decide_p50_us),
+    timeToDecideP95Us: nullableNumber(payload.time_to_decide_p95_us),
+    timeToDecideP99Us: nullableNumber(payload.time_to_decide_p99_us),
   };
 }
 
@@ -101,6 +129,10 @@ export function adaptRun(payload: Record<string, unknown>): ConsoleRun {
   const agentHealth = adaptHealth(asRecord(payload.agent_health));
   const sideEffects = asArray<Record<string, unknown>>(payload.side_effects).map(adaptSideEffect);
   const trace = asRecord(payload.trace);
+  const containment =
+    payload.containment && typeof payload.containment === "object"
+      ? adaptContainment(payload.containment as Record<string, unknown>)
+      : null;
 
   return {
     runId: String(payload.run_id ?? ""),
@@ -114,6 +146,7 @@ export function adaptRun(payload: Record<string, unknown>): ConsoleRun {
     risk,
     agentHealth,
     messages: buildMessages(payload, sideEffects),
+    containment,
   };
 }
 

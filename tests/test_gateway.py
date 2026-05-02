@@ -140,6 +140,27 @@ def test_trace_event_carries_mode_and_unified_outcome(tmp_path):
     assert event["upstream_status"] is None
 
 
+def test_trace_event_carries_decision_latency_and_time_to_decide(tmp_path):
+    gateway = _build_gateway(tmp_path=tmp_path, mode="enforce")
+    gateway.handle_request(
+        method="POST",
+        path="/v1/submit_bid",
+        payload={"bid_amount": 50000},
+        run_id="latency-trace",
+    )
+    gateway.close()
+
+    trace_path = tmp_path / "artifacts" / "traces" / "latency-trace.json"
+    event = json.loads(trace_path.read_text(encoding="utf-8"))["events"][0]
+    assert "time_to_decide_us" in event
+    assert isinstance(event["time_to_decide_us"], int)
+    assert event["time_to_decide_us"] >= 0
+    decisions = event["policy_decisions"]
+    assert decisions
+    assert all("decision_latency_us" in decision for decision in decisions)
+    assert all(decision["decision_latency_us"] >= 0 for decision in decisions)
+
+
 def test_upstream_error_returns_502_outcome_error(tmp_path):
     def boom(request: httpx.Request) -> httpx.Response:
         raise httpx.ConnectError("upstream offline")
