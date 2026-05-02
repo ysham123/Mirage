@@ -66,5 +66,11 @@ test:
 test-procurement:
 	pytest tests/test_procurement_harness.py -v -s
 
+bench:
+	python -m benchmarks.run_benchmark
+
+bench-baseline:
+	python -m benchmarks.baseline_runner
+
 worklog:
 	python scripts/new_worklog.py "$(TITLE)"

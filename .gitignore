@@ -5,6 +5,7 @@ build/
 dist/
 *.egg-info/
 artifacts/
+benchmarks/results/
 node_modules/
 ui/node_modules/
 ui/.next/
