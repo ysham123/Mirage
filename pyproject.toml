@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "mirage-ci"
-version = "0.2.0.dev0"
+version = "0.2.0"
 description = "Deterministic policy runtime for AI agents. Same policy file gates CI and enforces in production, with no LLM in the decision loop."
 readme = "README.md"
 requires-python = ">=3.11"

@@ -7,21 +7,28 @@ and this project aims to follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
-Repositioning release. Mirage moves from "CI for agent side effects" to
-**deterministic policy runtime for AI agents** — same policy file gates
-the CI build and enforces in production, no LLM in the decision loop.
+Phase 2 work. See `docs/releases/v0.2.0.md` for what shipped in 0.2.0.
+
+## [0.2.0] - 2026-05-03
+
+Production runtime release. Mirage repositions from "CI for agent side
+effects" to the open-source policy gateway for AI agents in
+production. The same YAML policy file enforces a runtime gateway and
+gates the CI build pre-merge. No LLM in the decision loop.
+
+Release notes: [docs/releases/v0.2.0.md](docs/releases/v0.2.0.md)
 
 ### Added
 
-- `mirage.policy` — `PolicyEvaluator` extracted as a pure, mock-free
+- `mirage.policy`: `PolicyEvaluator` extracted as a pure, mock-free
   evaluator. Shared by both CI mode (`MirageEngine`) and the new
   gateway mode.
-- `mirage.gateway` — production runtime gateway. Same policy file as
+- `mirage.gateway`: production runtime gateway. Same policy file as
   CI, evaluated against real upstream traffic.
-  - `passthrough` mode: forwards every request to the upstream and logs
+  - `passthrough` mode forwards every request to the upstream and logs
     policy decisions without blocking. The right starting mode for a
     new deployment.
-  - `enforce` mode: forwards when policy passes, blocks with HTTP 403
+  - `enforce` mode forwards when policy passes, blocks with HTTP 403
     when it fails. Same policy file, now load-bearing for production.
   - Unified outcome taxonomy across modes:
     `allowed` / `flagged` / `blocked` / `error`.
@@ -29,41 +36,81 @@ the CI build and enforces in production, no LLM in the decision loop.
     distinguish gateway events from legacy CI events.
 - `mirage gateway` CLI subcommand (`--upstream`, `--mode`,
   `--policies-path`, `--host`, `--port`, `--artifact-root`).
-- Console metrics: `RunSummary`, `OverviewSummary`, and `EndpointSummary`
-  expose `blocked_count` / `flagged_count` / `error_count` so dashboards
-  surface gateway runs honestly.
+- Eleven new policy operators that express real production risks:
+  `regex_match`, `not_regex_match`, `contains`, `not_contains`,
+  `starts_with`, `not_starts_with`, `ends_with`, `length_lte`,
+  `length_gte`, `host_in`, `host_not_in`. Config-load validation
+  rejects bad regex strings, non-string starts/ends prefixes, negative
+  length values, and empty host lists. Type mismatches at runtime
+  return `passed=False` gracefully without raising.
+- `examples/policies/`: five real-world example policies (PII
+  redaction, prompt injection, outbound URL allowlist, cost guard,
+  output length cap) plus a directory README explaining each and the
+  load command.
+- `mirage.integrations.openai_agents.wrap_with_mirage`: thin adapter
+  for the OpenAI Agents SDK that routes tool calls through a Mirage
+  gateway for a policy decision before the underlying tool runs.
+  Lazy import; available via `pip install mirage-ci[openai-agents]`.
+  Documented in `docs/INTEGRATIONS_OPENAI_AGENTS_SDK.md`.
+- `mirage.metrics.ContainmentMetrics` plus
+  `compute_containment_metrics` and `get_run_containment`. Surfaces
+  containment rate (formula:
+  `blocked / max(1, blocked + policy_violation_count + flagged)`),
+  decision-latency p50/p95/p99 (per-policy evaluation), and
+  time-to-decide p50/p95/p99 (gateway-internal request entry to
+  decision). `OverviewSummary` gains a fleet-wide `containment_rate`.
+- `PolicyDecision.decision_latency_us` captured by `PolicyEvaluator`
+  using `time.perf_counter_ns()`. Gateway trace events now carry
+  `time_to_decide_us`.
+- `GET /api/runs/{run_id}/containment` console endpoint returning the
+  `ContainmentMetrics` dataclass JSON.
+- Containment row in the Next.js console run-detail stats bar
+  (`Containment: 96.2%` or `Containment: not applicable`).
+- Reproducible benchmark harness under `benchmarks/`. Three synthetic
+  scenarios paired with the example policies (PII leak, prompt
+  injection, cost runaway), JSON output reports, and a
+  `bench` Makefile target. `BENCHMARKS.md` documents methodology and
+  current numbers honestly.
+- Console metrics `RunSummary`, `OverviewSummary`, and
+  `EndpointSummary` expose `blocked_count` / `flagged_count` /
+  `error_count` so dashboards surface gateway runs honestly.
 - TypeScript types: `RunOutcome` union extended with `blocked` /
-  `flagged` / `error`; `OverviewSummary` gains the new fields; sidebar
-  + run-detail badges color the new outcomes correctly.
-- `tests/test_gateway.py` — 8 tests covering passthrough/enforce, config
-  errors, upstream errors, and the FastAPI surface.
+  `flagged` / `error`; `OverviewSummary` and `ConsoleRun` gain the new
+  fields; sidebar + run-detail badges color the new outcomes
+  correctly.
+- `tests/test_gateway.py`, `tests/test_policy_operators.py`,
+  `tests/test_example_policies.py`, `tests/test_metrics.py`,
+  `tests/test_integration_openai_agents.py`, and
+  `tests/test_benchmarks.py` add coverage of every new surface.
+- `mirage.__version__` exposed as a top-level attribute.
 
 ### Changed
 
-- `MirageEngine` now delegates policy evaluation to `PolicyEvaluator`.
+- `MirageEngine` delegates policy evaluation to `PolicyEvaluator`.
   Public API unchanged.
 - `mirage.config.load_policies_only()` helper added; the gateway uses it
   instead of double-loading the policies file as both mocks and policies.
-- README rewritten around the new mission. Differentiation block names
-  Salus, Playgent, the Microsoft Agent Governance Toolkit, Future AGI,
-  and the LLM-judge cohort explicitly.
-- `pyproject.toml` description and `docs/GITHUB_REPO_SETUP.md` aligned
-  with the new mission sentence.
+- README rewritten to lead with the production runtime gateway story.
+  CI mode is now described as the safe-adoption pre-merge gate. Five
+  new sections call out policy coverage, framework integrations,
+  benchmarks, and an updated 'How Mirage is different' block.
+- `pyproject.toml` description aligned with the new mission sentence;
+  `openai-agents` extra added.
 
 ### Security
 
-- New README "Gateway forwarding behavior" section documenting which
+- README "Gateway forwarding behavior" section documenting which
   request headers Mirage strips, which it forwards, and the operator's
   responsibility to point `--upstream` at the right host. The gateway
   forwards `Authorization`, `Cookie`, and other application headers
-  unchanged so upstream auth keeps working — pointing the gateway at an
+  unchanged so upstream auth keeps working; pointing the gateway at an
   unintended host would forward those credentials with the request.
 
 ## [0.1.3] - 2026-04-26
 
 Console redesign release. The Mirage review console (`ui/`) gets a full
 visual rewrite to a precision-instrument aesthetic. Internal package
-layout cleanup — no public API or behavior changes for `mirage-ci`
+layout cleanup; no public API or behavior changes for `mirage-ci`
 Python users since 0.1.2.
 
 Release notes: [docs/releases/v0.1.3.md](docs/releases/v0.1.3.md)
@@ -82,8 +129,8 @@ Release notes: [docs/releases/v0.1.3.md](docs/releases/v0.1.3.md)
 
 - `src/` package re-export shim. Tests, Dockerfile, and the CI smoke
   test now import from the `mirage` package directly. `pip install
-  mirage-ci` has always exposed `mirage` as the public import path —
-  no user-facing change.
+  mirage-ci` has always exposed `mirage` as the public import path,
+  so this is no user-facing change.
 
 ## [0.1.2] - 2026-04-23
 
