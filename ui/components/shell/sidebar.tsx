@@ -2,6 +2,7 @@
 
 import { Loader2, Play } from "lucide-react";
 
+import { ContainmentDashboard } from "@/components/containment-dashboard";
 import { cn } from "@/lib/utils";
 import type { ConsoleOverview, QueueFilter, RunListItem } from "@/types/console";
 
@@ -96,6 +97,9 @@ export function Sidebar({
 
   return (
     <aside className="relative z-10 flex w-[288px] shrink-0 flex-col overflow-hidden border-r border-[var(--line)] bg-[rgba(10,10,10,0.4)]">
+      {/* Containment dashboard widget: fleet rate over 24h / 7d / 30d */}
+      <ContainmentDashboard />
+
       {/* Section header */}
       <div className="flex shrink-0 items-baseline justify-between border-b border-[var(--line)] px-5 pb-3.5 pt-4">
         <div className="flex items-baseline gap-2">
@@ -198,7 +202,7 @@ export function Sidebar({
                   </p>
                 )}
                 <p className="mt-0.5 pl-3.5 font-mono text-[9.5px] tabular-nums text-[var(--paper-faint)]">
-                  {timeAgo(run.timestamp) ?? "—"}
+                  {timeAgo(run.timestamp) ?? "-"}
                   {run.eventCount > 0 ? ` · ${run.eventCount} ev` : ""}
                 </p>
               </button>

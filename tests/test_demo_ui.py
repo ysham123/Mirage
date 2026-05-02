@@ -689,6 +689,108 @@ def test_demo_ui_gateway_feed_respects_limit(tmp_path):
     assert body["count"] == 3
 
 
+def test_demo_ui_containment_windows_filters_by_timestamp(tmp_path):
+    artifact_root = tmp_path / "artifacts" / "traces"
+    from datetime import datetime, timedelta, timezone
+
+    now = datetime.now(timezone.utc)
+    very_recent = (now - timedelta(hours=1)).isoformat()
+    week_old = (now - timedelta(days=3)).isoformat()
+    month_old = (now - timedelta(days=20)).isoformat()
+    ancient = (now - timedelta(days=60)).isoformat()
+
+    _write_trace(
+        artifact_root,
+        "windowed",
+        [
+            # 24h: 2 blocked, 0 flagged
+            {
+                "timestamp": very_recent,
+                "run_id": "windowed",
+                "mode": "enforce",
+                "request": {"method": "POST", "path": "/v1/x", "payload": {}},
+                "outcome": "blocked",
+                "policy_passed": False,
+                "policy_decisions": [],
+                "response": {"status_code": 403, "body": {}},
+            },
+            {
+                "timestamp": very_recent,
+                "run_id": "windowed",
+                "mode": "enforce",
+                "request": {"method": "POST", "path": "/v1/x", "payload": {}},
+                "outcome": "blocked",
+                "policy_passed": False,
+                "policy_decisions": [],
+                "response": {"status_code": 403, "body": {}},
+            },
+            # 7d but not 24h: 1 blocked, 1 flagged
+            {
+                "timestamp": week_old,
+                "run_id": "windowed",
+                "mode": "passthrough",
+                "request": {"method": "POST", "path": "/v1/x", "payload": {}},
+                "outcome": "flagged",
+                "policy_passed": False,
+                "policy_decisions": [],
+                "response": {"status_code": 200, "body": {}},
+            },
+            {
+                "timestamp": week_old,
+                "run_id": "windowed",
+                "mode": "enforce",
+                "request": {"method": "POST", "path": "/v1/x", "payload": {}},
+                "outcome": "blocked",
+                "policy_passed": False,
+                "policy_decisions": [],
+                "response": {"status_code": 403, "body": {}},
+            },
+            # 30d but not 7d: 0 blocked, 1 flagged
+            {
+                "timestamp": month_old,
+                "run_id": "windowed",
+                "mode": "passthrough",
+                "request": {"method": "POST", "path": "/v1/x", "payload": {}},
+                "outcome": "flagged",
+                "policy_passed": False,
+                "policy_decisions": [],
+                "response": {"status_code": 200, "body": {}},
+            },
+            # Outside 30d: ignored entirely
+            {
+                "timestamp": ancient,
+                "run_id": "windowed",
+                "mode": "enforce",
+                "request": {"method": "POST", "path": "/v1/x", "payload": {}},
+                "outcome": "blocked",
+                "policy_passed": False,
+                "policy_decisions": [],
+                "response": {"status_code": 403, "body": {}},
+            },
+        ],
+    )
+
+    with TestClient(create_demo_app(artifact_root=artifact_root)) as client:
+        response = client.get("/api/metrics/containment_windows")
+
+    body = response.json()
+    assert response.status_code == 200
+    # 24h: 2 blocked / 2 total = 1.0
+    assert body["window_24h"] == 1.0
+    # 7d: 3 blocked / 4 total = 0.75
+    assert abs(body["window_7d"] - 0.75) < 1e-9
+    # 30d: 3 blocked / 5 total = 0.6
+    assert abs(body["window_30d"] - 0.6) < 1e-9
+
+
+def test_demo_ui_containment_windows_returns_none_when_no_decisions(tmp_path):
+    with TestClient(create_demo_app(artifact_root=tmp_path / "artifacts" / "traces")) as client:
+        response = client.get("/api/metrics/containment_windows")
+    assert response.status_code == 200
+    body = response.json()
+    assert body == {"window_24h": None, "window_7d": None, "window_30d": None}
+
+
 def test_demo_ui_can_suppress_side_effect(tmp_path):
     artifact_root = tmp_path / "artifacts" / "traces"
     _write_trace(
