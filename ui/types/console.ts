@@ -158,3 +158,24 @@ export interface StreamEvent {
   event: "status" | "message_delta" | "step" | "metric" | "complete";
   data: Record<string, unknown>;
 }
+
+export interface GatewayFeedEvent {
+  runId: string;
+  timestamp: string | null;
+  mode: "passthrough" | "enforce";
+  outcome: RunOutcome;
+  method: string | null;
+  path: string | null;
+  upstreamUrl: string | null;
+  upstreamStatus: number | null;
+  statusCode: number | null;
+  policyPassed: boolean;
+  timeToDecideUs: number | null;
+  failedDecisions: Array<{
+    name: string | null;
+    field: string | null;
+    operator: string | null;
+    message: string | null;
+  }>;
+  message: string | null;
+}

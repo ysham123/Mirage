@@ -6,11 +6,15 @@ import { Check, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ConsoleOverview } from "@/types/console";
 
+type ConsoleTab = "runs" | "gateway";
+
 interface TopBarProps {
   lastUpdated: Date | null;
   followLatest: boolean;
   // kept for forward-compat with the parent props contract
   overview: ConsoleOverview | null;
+  activeTab: ConsoleTab;
+  onTabChange: (tab: ConsoleTab) => void;
   onRefresh: () => void;
   onToggleFollowLatest: () => void;
 }
@@ -37,6 +41,8 @@ function useTimeSince(date: Date | null) {
 export function TopBar({
   lastUpdated,
   followLatest,
+  activeTab,
+  onTabChange,
   onRefresh,
   onToggleFollowLatest,
 }: TopBarProps) {
@@ -72,6 +78,31 @@ export function TopBar({
             local · port 5100
           </span>
         </div>
+
+        <nav className="ml-6 hidden items-center gap-5 border-l border-[var(--line)] pl-5 sm:flex">
+          {(["runs", "gateway"] as const).map((tab) => (
+            <button
+              key={tab}
+              type="button"
+              onClick={() => onTabChange(tab)}
+              className={cn(
+                "relative pb-3 pt-3 font-mono text-[10.5px] uppercase tracking-[0.22em] transition-colors",
+                activeTab === tab
+                  ? "text-[var(--paper)]"
+                  : "text-[var(--paper-mute)] hover:text-[var(--paper-soft)]",
+              )}
+              aria-pressed={activeTab === tab}
+            >
+              {tab}
+              {activeTab === tab && (
+                <span
+                  className="absolute -bottom-px left-0 right-0 h-[2px] bg-[var(--green)] shadow-[0_0_10px_var(--green-glow)]"
+                  aria-hidden
+                />
+              )}
+            </button>
+          ))}
+        </nav>
       </div>
 
       {/* Right cluster */}

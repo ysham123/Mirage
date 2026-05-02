@@ -6,9 +6,12 @@ import { adaptOverview, adaptRun } from "@/lib/adapters";
 import { fetchOverview, fetchRun, launchScenario as apiLaunchScenario, suppressSideEffect } from "@/lib/api";
 import type { ConsoleOverview, ConsoleRun, QueueFilter, RunListItem } from "@/types/console";
 
+import { GatewayFeed } from "@/components/gateway-feed";
 import { RunDetail } from "@/components/run-detail";
 import { Sidebar } from "@/components/shell/sidebar";
 import { TopBar } from "@/components/shell/top-bar";
+
+type ConsoleTab = "runs" | "gateway";
 
 export function ConsoleApp() {
   const [overview, setOverview] = useState<ConsoleOverview | null>(null);
@@ -20,6 +23,7 @@ export function ConsoleApp() {
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [loading, setLoading] = useState(false);
   const [launchingScenario, setLaunchingScenario] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<ConsoleTab>("runs");
 
   // Stale-response guard: ignore responses for superseded requests.
   const activeRunId = useRef<string | null>(null);
@@ -125,30 +129,38 @@ export function ConsoleApp() {
         followLatest={followLatest}
         lastUpdated={lastUpdated}
         overview={overview}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
         onRefresh={handleRefresh}
         onToggleFollowLatest={() => setFollowLatest((v) => !v)}
       />
       <div className="flex min-h-0 flex-1">
-        <Sidebar
-          filter={filter}
-          launchingScenario={launchingScenario}
-          overview={overview}
-          runs={filteredRuns}
-          search={search}
-          selectedRunId={selectedRunId}
-          onFilterChange={setFilter}
-          onLaunchScenario={handleLaunch}
-          onSearchChange={setSearch}
-          onSelectRun={handleSelectRun}
-        />
-        {/* key resets internal view state when run changes */}
-        <RunDetail
-          key={selectedRunId ?? "empty"}
-          loading={loading}
-          overview={overview}
-          run={run}
-          onSuppress={handleSuppress}
-        />
+        {activeTab === "runs" ? (
+          <>
+            <Sidebar
+              filter={filter}
+              launchingScenario={launchingScenario}
+              overview={overview}
+              runs={filteredRuns}
+              search={search}
+              selectedRunId={selectedRunId}
+              onFilterChange={setFilter}
+              onLaunchScenario={handleLaunch}
+              onSearchChange={setSearch}
+              onSelectRun={handleSelectRun}
+            />
+            {/* key resets internal view state when run changes */}
+            <RunDetail
+              key={selectedRunId ?? "empty"}
+              loading={loading}
+              overview={overview}
+              run={run}
+              onSuppress={handleSuppress}
+            />
+          </>
+        ) : (
+          <GatewayFeed />
+        )}
       </div>
     </div>
   );
