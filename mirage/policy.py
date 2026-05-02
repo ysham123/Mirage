@@ -18,6 +18,13 @@ from pydantic import BaseModel
 
 from .config import MirageConfig, PolicyConfig
 
+# Sequence operators are evaluated by `mirage.sequence.SequenceEvaluator`
+# because they require cross-call state. Listing the names here avoids a
+# module-level import of `mirage.sequence` and keeps `PolicyEvaluator`
+# pure: it just skips these policies and lets the gateway hand them to
+# the sequence evaluator.
+_SEQUENCE_OPERATOR_NAMES = frozenset({"rate_lte", "count_lte"})
+
 
 class PolicyDecision(BaseModel):
     name: str
@@ -56,6 +63,8 @@ class PolicyEvaluator:
         decisions: list[PolicyDecision] = []
 
         for policy in self._config.policies:
+            if policy.operator in _SEQUENCE_OPERATOR_NAMES:
+                continue
             if policy.method and policy.method.upper() != method_name:
                 continue
             if policy.path and not path_matches(policy.path, path):
