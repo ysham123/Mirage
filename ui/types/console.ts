@@ -29,6 +29,23 @@ export interface OverviewSummary {
   error: number;
   riskyRuns: number;
   suppressedActions: number;
+  containmentRate: number | null;
+}
+
+export interface ContainmentMetrics {
+  runId: string;
+  totalActions: number;
+  blockedCount: number;
+  flaggedCount: number;
+  allowedCount: number;
+  policyViolationCount: number;
+  containmentRate: number | null;
+  decisionLatencyP50Us: number | null;
+  decisionLatencyP95Us: number | null;
+  decisionLatencyP99Us: number | null;
+  timeToDecideP50Us: number | null;
+  timeToDecideP95Us: number | null;
+  timeToDecideP99Us: number | null;
 }
 
 export interface TopEndpoint {
@@ -127,6 +144,7 @@ export interface ConsoleRun {
   risk: RiskSnapshot;
   agentHealth: AgentHealth;
   messages: ChatMessage[];
+  containment: ContainmentMetrics | null;
 }
 
 export interface ConsoleOverview {

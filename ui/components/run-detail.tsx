@@ -98,18 +98,40 @@ function Stat({
   );
 }
 
+function ContainmentStat({ rate }: { rate: number | null }) {
+  const display =
+    rate === null || rate === undefined
+      ? "not applicable"
+      : `${(rate * 100).toFixed(1)}%`;
+  const tone = rate !== null && rate >= 0.95
+    ? "text-[var(--green)]"
+    : rate !== null && rate >= 0.8
+      ? "text-[var(--warn)]"
+      : "text-[var(--paper)]";
+  return (
+    <div className="relative flex flex-1 flex-col justify-between border-r border-[var(--line)] px-6 py-4 last:border-r-0">
+      <span className="label">Containment</span>
+      <div className="mt-2.5 flex items-baseline gap-1">
+        <span className={cn("numeral text-[24px] tabular-nums leading-[0.9]", tone)}>
+          {display}
+        </span>
+      </div>
+    </div>
+  );
+}
+
 /* ─── Overview tab ──────────────────────────────────────────────────────── */
 
 function OverviewPanel({ run, overview }: { run: ConsoleRun; overview: ConsoleOverview | null }) {
   const latestEffect = run.sideEffects.at(-1);
   const policyFailures = run.sideEffects.filter((e) => !e.policyPassed).length;
-  const primaryPolicy = overview?.topPolicyFailures[0]?.name ?? "—";
+  const primaryPolicy = overview?.topPolicyFailures[0]?.name ?? "-";
 
   const rows = [
     { label: "Final outcome", value: outcomeBadge(run.finalOutcome).label, mono: false },
     {
       label: "Latest action",
-      value: latestEffect ? `${latestEffect.method} ${latestEffect.path}` : "—",
+      value: latestEffect ? `${latestEffect.method} ${latestEffect.path}` : "-",
       mono: true,
     },
     { label: "Policy failures", value: String(policyFailures), mono: false },
@@ -445,6 +467,11 @@ export function RunDetail({ overview, run, loading, onSuppress }: RunDetailProps
           percent
           tone={riskRate > 20 ? "warn" : undefined}
         />
+        <ContainmentStat
+          rate={
+            run?.containment?.containmentRate ?? summary?.containmentRate ?? null
+          }
+        />
       </div>
 
       {/* Empty / loading state */}
@@ -463,7 +490,7 @@ export function RunDetail({ overview, run, loading, onSuppress }: RunDetailProps
         <>
           {/* Scrollable content */}
           <div className="flex-1 overflow-y-auto fade-in">
-            {/* Sticky context strip — persists while scrolling */}
+            {/* Sticky context strip; persists while scrolling */}
             <div className="sticky top-0 z-20 flex items-center justify-between gap-4 border-b border-[var(--line)] bg-[rgba(10,10,10,0.92)] px-7 py-3 backdrop-blur-xl">
               <div className="flex min-w-0 items-baseline gap-3">
                 <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-[var(--paper-mute)]">

@@ -17,6 +17,7 @@ class PolicyDecisionRecord:
     operator: str
     expected: Any = None
     actual: Any = None
+    decision_latency_us: int = 0
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -32,6 +33,7 @@ class RunEventRecord:
     policy_passed: bool
     response: dict[str, Any]
     policy_decisions: list[PolicyDecisionRecord]
+    time_to_decide_us: int | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -117,6 +119,54 @@ class OverviewSummary:
     error_count: int
     # Cross-mode rollup: any non-allowed final outcome counts as risky.
     risky_run_count: int
+    # Fleet-wide containment rate: blocked / max(1, blocked + policy_violation_count + flagged).
+    # `None` when no decisions exist across the fleet.
+    containment_rate: float | None = None
+
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)
+
+
+@dataclass(frozen=True)
+class ContainmentMetrics:
+    """Per-run containment and latency rollup.
+
+    `containment_rate` answers the operator question: of all the actions
+    Mirage believed to be policy-violating, what fraction were actually
+    prevented from reaching the upstream? It is computed as
+    `blocked / max(1, blocked + policy_violation_count + flagged)` so a
+    run with no violations resolves to `1.0`. Flagged actions count
+    against containment because they reached the upstream even though
+    policy said no (passthrough mode by design).
+
+    This metric does NOT measure false negatives. Mirage cannot label
+    actions it never saw, so any policy-violating action that escaped
+    the gateway entirely is invisible here. False-negative measurement
+    is a benchmark concern (see `benchmarks/`), not a runtime concern.
+
+    `decision_latency_*_us` percentiles describe per-policy evaluation
+    latency, captured by `PolicyEvaluator.evaluate`. `time_to_decide_*_us`
+    percentiles describe gateway end-to-end decision time, captured by
+    `MirageGateway.handle_request` from request entry to allow/block
+    decision (before upstream forwarding).
+
+    Percentile fields return `None` when no data is available for that
+    measurement; they do not return zero.
+    """
+
+    run_id: str
+    total_actions: int
+    blocked_count: int
+    flagged_count: int
+    allowed_count: int
+    policy_violation_count: int
+    containment_rate: float | None
+    decision_latency_p50_us: int | None
+    decision_latency_p95_us: int | None
+    decision_latency_p99_us: int | None
+    time_to_decide_p50_us: int | None
+    time_to_decide_p95_us: int | None
+    time_to_decide_p99_us: int | None
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -152,19 +202,28 @@ class TraceMetricsStore:
             if run is not None:
                 runs.append(run)
 
+        blocked_total = sum(run.summary.blocked_count for run in runs)
+        flagged_total = sum(run.summary.flagged_count for run in runs)
+        violation_total = sum(run.summary.policy_violation_count for run in runs)
+        containment_total = blocked_total + flagged_total + violation_total
+        fleet_containment = (
+            blocked_total / containment_total if containment_total > 0 else None
+        )
+
         overview = OverviewSummary(
             run_count=len(runs),
             action_count=sum(run.summary.event_count for run in runs),
             allowed_count=sum(run.summary.allowed_count for run in runs),
-            policy_violation_count=sum(run.summary.policy_violation_count for run in runs),
+            policy_violation_count=violation_total,
             unmatched_route_count=sum(run.summary.unmatched_route_count for run in runs),
             config_error_count=sum(run.summary.config_error_count for run in runs),
-            blocked_count=sum(run.summary.blocked_count for run in runs),
-            flagged_count=sum(run.summary.flagged_count for run in runs),
+            blocked_count=blocked_total,
+            flagged_count=flagged_total,
             error_count=sum(run.summary.error_count for run in runs),
             risky_run_count=sum(
                 1 for run in runs if _final_outcome_for_run(run) not in ("allowed", "unknown")
             ),
+            containment_rate=fleet_containment,
         )
 
         recent_runs = sorted(
@@ -252,6 +311,7 @@ class TraceMetricsStore:
                 operator=str(decision.get("operator", "")),
                 expected=decision.get("expected"),
                 actual=decision.get("actual"),
+                decision_latency_us=_coerce_non_negative_int(decision.get("decision_latency_us")),
             )
             for decision in decisions_raw
             if isinstance(decision, dict)
@@ -266,6 +326,7 @@ class TraceMetricsStore:
             policy_passed=bool(event.get("policy_passed", False)),
             response=response,
             policy_decisions=decisions,
+            time_to_decide_us=_coerce_optional_non_negative_int(event.get("time_to_decide_us")),
         )
 
     def _summarize_endpoints(self, runs: list[RunDetail], *, limit: int) -> list[EndpointSummary]:
@@ -369,6 +430,75 @@ def collect_dashboard_metrics(
     return TraceMetricsStore(artifact_root).snapshot(recent_limit=recent_limit, top_limit=top_limit)
 
 
+def compute_containment_metrics(
+    events: list[RunEventRecord], *, run_id: str
+) -> ContainmentMetrics:
+    """Roll up a list of trace events into a `ContainmentMetrics` snapshot.
+
+    Containment rate is computed as
+    `blocked / max(1, blocked + policy_violation + flagged)`.
+
+    Interpretation: of all the actions Mirage believed to be policy-
+    violating, what fraction were actually prevented from reaching the
+    upstream? `blocked` only happens in gateway enforce mode.
+    `policy_violation` only happens in CI mode (mock substitution).
+    `flagged` happens in gateway passthrough mode and reaches upstream
+    even though policy says no, so it counts against containment.
+
+    This metric does NOT measure false negatives. Mirage cannot label
+    actions it never saw, so any policy-violating action that escaped
+    the gateway entirely is invisible here.
+
+    Percentile fields return `None` when no data exists for that
+    measurement; they do not return zero.
+    """
+
+    counts = Counter(event.outcome for event in events)
+    blocked = counts.get("blocked", 0)
+    flagged = counts.get("flagged", 0)
+    allowed = counts.get("allowed", 0)
+    violations = counts.get("policy_violation", 0)
+    decision_pool = blocked + flagged + violations
+    containment_rate = blocked / decision_pool if decision_pool > 0 else None
+
+    decision_latencies: list[int] = [
+        decision.decision_latency_us
+        for event in events
+        for decision in event.policy_decisions
+        if decision.decision_latency_us is not None and decision.decision_latency_us > 0
+    ]
+    time_to_decide_values: list[int] = [
+        event.time_to_decide_us
+        for event in events
+        if event.time_to_decide_us is not None and event.time_to_decide_us > 0
+    ]
+
+    return ContainmentMetrics(
+        run_id=run_id,
+        total_actions=len(events),
+        blocked_count=blocked,
+        flagged_count=flagged,
+        allowed_count=allowed,
+        policy_violation_count=violations,
+        containment_rate=containment_rate,
+        decision_latency_p50_us=_percentile(decision_latencies, 50),
+        decision_latency_p95_us=_percentile(decision_latencies, 95),
+        decision_latency_p99_us=_percentile(decision_latencies, 99),
+        time_to_decide_p50_us=_percentile(time_to_decide_values, 50),
+        time_to_decide_p95_us=_percentile(time_to_decide_values, 95),
+        time_to_decide_p99_us=_percentile(time_to_decide_values, 99),
+    )
+
+
+def get_run_containment(
+    artifact_root: str | Path, run_id: str
+) -> ContainmentMetrics | None:
+    detail = get_run_metrics(artifact_root, run_id)
+    if detail is None:
+        return None
+    return compute_containment_metrics(detail.events, run_id=run_id)
+
+
 def get_run_metrics(artifact_root: str | Path, run_id: str) -> RunDetail | None:
     return TraceMetricsStore(artifact_root).get_run(run_id)
 
@@ -454,6 +584,38 @@ def _max_timestamp(values: Iterable[str | None]) -> str | None:
     if not parsed:
         return None
     return max(parsed, key=_parse_sort_timestamp)
+
+
+def _percentile(values: list[int], percentile: int) -> int | None:
+    if not values:
+        return None
+    if not 0 <= percentile <= 100:
+        raise ValueError("percentile must be between 0 and 100")
+    sorted_values = sorted(values)
+    if len(sorted_values) == 1:
+        return sorted_values[0]
+    rank = (percentile / 100) * (len(sorted_values) - 1)
+    lower_index = int(rank)
+    upper_index = min(lower_index + 1, len(sorted_values) - 1)
+    fraction = rank - lower_index
+    interpolated = sorted_values[lower_index] + fraction * (
+        sorted_values[upper_index] - sorted_values[lower_index]
+    )
+    return int(round(interpolated))
+
+
+def _coerce_non_negative_int(value: Any) -> int:
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return 0
+    return max(0, int(value))
+
+
+def _coerce_optional_non_negative_int(value: Any) -> int | None:
+    if value is None:
+        return None
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return None
+    return max(0, int(value))
 
 
 def _final_outcome_for_run(detail: RunDetail) -> str:

@@ -26,6 +26,7 @@ distinguish gateway events from legacy CI events.
 from __future__ import annotations
 
 import os
+import time
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from pathlib import Path
@@ -122,14 +123,18 @@ class MirageGateway:
         headers = headers or {}
         body = payload if payload is not None else {}
         resolved_run_id = self._resolve_run_id(run_id, headers)
+        request_start_ns = time.perf_counter_ns()
 
         try:
             config = load_policies_only(self.policies_path)
         except (FileNotFoundError, OSError, ValueError, ValidationError) as exc:
-            return self._handle_config_error(exc, resolved_run_id, method, path, body, headers)
+            return self._handle_config_error(
+                exc, resolved_run_id, method, path, body, headers, request_start_ns
+            )
 
         decisions = PolicyEvaluator(config).evaluate(method=method, path=path, payload=body)
         policy_passed = all(decision.passed for decision in decisions)
+        time_to_decide_us = max(0, (time.perf_counter_ns() - request_start_ns) // 1000)
 
         if not policy_passed and self.mode == "enforce":
             return self._handle_blocked(
@@ -139,6 +144,7 @@ class MirageGateway:
                 headers=headers,
                 run_id=resolved_run_id,
                 decisions=decisions,
+                time_to_decide_us=int(time_to_decide_us),
             )
 
         try:
@@ -152,6 +158,7 @@ class MirageGateway:
                 headers=headers,
                 run_id=resolved_run_id,
                 decisions=decisions,
+                time_to_decide_us=int(time_to_decide_us),
             )
 
         outcome: GatewayOutcome = "allowed" if policy_passed else "flagged"
@@ -174,6 +181,7 @@ class MirageGateway:
             outcome=outcome,
             message=message,
             upstream_status=upstream_response.status_code,
+            time_to_decide_us=int(time_to_decide_us),
         )
 
         return GatewayResult(
@@ -206,7 +214,7 @@ class MirageGateway:
         return self.upstream.request(
             method.upper(),
             path,
-            # Forward `{}`, `[]`, `0`, and `False` literally — only None means
+            # Forward `{}`, `[]`, `0`, and `False` literally; only None means
             # "no body." Anything else is a payload the agent meant to send.
             json=body if body is not None else None,
             headers=forward_headers,
@@ -221,6 +229,7 @@ class MirageGateway:
         headers: dict[str, Any],
         run_id: str,
         decisions: list[PolicyDecision],
+        time_to_decide_us: int,
     ) -> GatewayResult:
         message = build_policy_violation_message(decisions)
         response_body = {
@@ -241,6 +250,7 @@ class MirageGateway:
             outcome="blocked",
             message=message,
             upstream_status=None,
+            time_to_decide_us=time_to_decide_us,
         )
         return GatewayResult(
             status_code=403,
@@ -264,9 +274,11 @@ class MirageGateway:
         path: str,
         body: Any,
         headers: dict[str, Any],
+        request_start_ns: int,
     ) -> GatewayResult:
         message = f"Mirage gateway config error: {exc}"
         response_body = {"status": "error", "message": message}
+        time_to_decide_us = max(0, (time.perf_counter_ns() - request_start_ns) // 1000)
         trace_path = self._write_trace(
             run_id=run_id,
             method=method,
@@ -280,6 +292,7 @@ class MirageGateway:
             outcome="error",
             message=message,
             upstream_status=None,
+            time_to_decide_us=int(time_to_decide_us),
         )
         return GatewayResult(
             status_code=500,
@@ -305,6 +318,7 @@ class MirageGateway:
         headers: dict[str, Any],
         run_id: str,
         decisions: list[PolicyDecision],
+        time_to_decide_us: int,
     ) -> GatewayResult:
         message = f"Upstream request failed: {exc}"
         response_body = {"status": "error", "message": message}
@@ -321,6 +335,7 @@ class MirageGateway:
             outcome="error",
             message=message,
             upstream_status=None,
+            time_to_decide_us=time_to_decide_us,
         )
         return GatewayResult(
             status_code=502,
@@ -359,6 +374,7 @@ class MirageGateway:
         outcome: GatewayOutcome,
         message: str | None,
         upstream_status: int | None,
+        time_to_decide_us: int,
     ) -> Path:
         event = {
             "timestamp": datetime.now(timezone.utc).isoformat(),
@@ -375,6 +391,7 @@ class MirageGateway:
             "upstream_url": self.upstream_url,
             "upstream_status": upstream_status,
             "policy_passed": policy_passed,
+            "time_to_decide_us": time_to_decide_us,
             "policy_decisions": [decision.model_dump() for decision in decisions],
             "response": {
                 "status_code": response_status,

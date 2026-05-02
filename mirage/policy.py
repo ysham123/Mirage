@@ -10,6 +10,7 @@ else in the codebase calls into it.
 from __future__ import annotations
 
 import re
+import time
 from typing import Any
 from urllib.parse import urlsplit
 
@@ -26,6 +27,7 @@ class PolicyDecision(BaseModel):
     operator: str
     expected: Any = None
     actual: Any = None
+    decision_latency_us: int = 0
 
 
 class PolicyEvaluator:
@@ -59,6 +61,7 @@ class PolicyEvaluator:
             if policy.path and not path_matches(policy.path, path):
                 continue
 
+            start_ns = time.perf_counter_ns()
             actual, exists = extract_field(payload, policy.field)
             try:
                 passed = apply_operator(policy, actual, exists)
@@ -66,6 +69,7 @@ class PolicyEvaluator:
             except TypeError as exc:
                 passed = False
                 message = f"{policy.message} (policy evaluation failed: {exc})"
+            elapsed_us = max(0, (time.perf_counter_ns() - start_ns) // 1000)
 
             decisions.append(
                 PolicyDecision(
@@ -76,6 +80,7 @@ class PolicyEvaluator:
                     operator=policy.operator,
                     expected=policy.value,
                     actual=actual,
+                    decision_latency_us=int(elapsed_us),
                 )
             )
 
