@@ -73,6 +73,10 @@ export function fetchOverview() {
   return requestJson<Record<string, unknown>>("/api/metrics/overview");
 }
 
+export function fetchGatewayFeed(limit = 50) {
+  return requestJson<Record<string, unknown>>("/api/gateway/feed", undefined, { limit });
+}
+
 export function fetchRun(runId: string) {
   return requestJson<Record<string, unknown>>(`/api/metrics/runs/${encodeURIComponent(runId)}`);
 }

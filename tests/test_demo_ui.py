@@ -587,6 +587,108 @@ def test_demo_ui_overview_summary_exposes_fleet_containment_rate(tmp_path):
     assert body["summary"]["containment_rate"] == 0.5
 
 
+def test_demo_ui_gateway_feed_returns_only_gateway_events(tmp_path):
+    artifact_root = tmp_path / "artifacts" / "traces"
+    _write_trace(
+        artifact_root,
+        "run-gw",
+        [
+            {
+                "timestamp": "2026-04-02T10:00:00+00:00",
+                "run_id": "run-gw",
+                "mode": "enforce",
+                "request": {"method": "POST", "path": "/v1/x", "payload": {}},
+                "outcome": "blocked",
+                "policy_passed": False,
+                "policy_decisions": [
+                    {"name": "p", "passed": False, "field": "f", "operator": "lte", "message": "m"}
+                ],
+                "response": {"status_code": 403, "body": {}},
+                "upstream_url": "https://upstream",
+                "upstream_status": None,
+                "time_to_decide_us": 200,
+            },
+            {
+                "timestamp": "2026-04-02T10:00:01+00:00",
+                "run_id": "run-gw",
+                "mode": "passthrough",
+                "request": {"method": "GET", "path": "/v1/y", "payload": {}},
+                "outcome": "allowed",
+                "policy_passed": True,
+                "policy_decisions": [],
+                "response": {"status_code": 200, "body": {}},
+                "upstream_url": "https://upstream",
+                "upstream_status": 200,
+                "time_to_decide_us": 100,
+            },
+        ],
+    )
+    _write_trace(
+        artifact_root,
+        "run-ci",
+        [
+            {
+                "timestamp": "2026-04-02T10:00:02+00:00",
+                "run_id": "run-ci",
+                "request": {"method": "POST", "path": "/v1/submit_bid", "payload": {}},
+                "outcome": "allowed",
+                "matched_mock": "submit_bid",
+                "policy_passed": True,
+                "policy_decisions": [],
+                "response": {"status_code": 200, "body": {}},
+            }
+        ],
+    )
+
+    with TestClient(create_demo_app(artifact_root=artifact_root)) as client:
+        response = client.get("/api/gateway/feed")
+
+    body = response.json()
+    assert response.status_code == 200
+    assert body["count"] == 2
+    modes = {e["mode"] for e in body["events"]}
+    assert modes == {"passthrough", "enforce"}
+    paths = {e["path"] for e in body["events"]}
+    assert paths == {"/v1/x", "/v1/y"}
+    # Newest first.
+    assert body["events"][0]["timestamp"] >= body["events"][1]["timestamp"]
+
+
+def test_demo_ui_gateway_feed_empty_when_no_gateway_traces(tmp_path):
+    with TestClient(create_demo_app(artifact_root=tmp_path / "artifacts" / "traces")) as client:
+        response = client.get("/api/gateway/feed")
+    assert response.status_code == 200
+    assert response.json() == {"events": [], "count": 0}
+
+
+def test_demo_ui_gateway_feed_respects_limit(tmp_path):
+    artifact_root = tmp_path / "artifacts" / "traces"
+    _write_trace(
+        artifact_root,
+        "run-gw-many",
+        [
+            {
+                "timestamp": f"2026-04-02T10:{minute:02d}:00+00:00",
+                "run_id": "run-gw-many",
+                "mode": "passthrough",
+                "request": {"method": "POST", "path": "/v1/x", "payload": {}},
+                "outcome": "allowed",
+                "policy_passed": True,
+                "policy_decisions": [],
+                "response": {"status_code": 200, "body": {}},
+            }
+            for minute in range(10)
+        ],
+    )
+
+    with TestClient(create_demo_app(artifact_root=artifact_root)) as client:
+        response = client.get("/api/gateway/feed?limit=3")
+
+    body = response.json()
+    assert response.status_code == 200
+    assert body["count"] == 3
+
+
 def test_demo_ui_can_suppress_side_effect(tmp_path):
     artifact_root = tmp_path / "artifacts" / "traces"
     _write_trace(

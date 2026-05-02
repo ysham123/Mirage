@@ -172,6 +172,13 @@ def create_demo_app(*, artifact_root: str | Path | None = None) -> FastAPI:
             return JSONResponse(status_code=404, content={"error": f"Unknown run: {run_id}"})
         return metrics.to_dict()
 
+    @app.get("/api/gateway/feed")
+    async def gateway_feed(limit: int = Query(default=50, ge=1, le=500)):
+        events = _collect_gateway_events(
+            app.state.engine.trace_store.artifact_root, limit=limit
+        )
+        return {"events": events, "count": len(events)}
+
     @app.get("/api/chat/stream")
     async def chat_stream(run_id: str = Query(..., description="Mirage run ID to replay as a chat stream.")):
         payload = _build_run_payload(app, run_id)
@@ -668,6 +675,70 @@ def _stream_step_message(side_effect: dict[str, Any]) -> str:
 
 def _suppression_store(app: FastAPI) -> dict[str, dict[int, dict[str, Any]]]:
     return app.state.side_effect_suppressions
+
+
+def _collect_gateway_events(artifact_root: str | Path, *, limit: int) -> list[dict[str, Any]]:
+    """Return recent trace events whose `mode` is `passthrough` or `enforce`.
+
+    Sorted by timestamp descending (newest first), capped at `limit`.
+    Used by the console's Gateway tab to render a streaming decision
+    feed without surfacing CI-mode events.
+    """
+
+    root = Path(artifact_root)
+    if not root.exists():
+        return []
+    collected: list[dict[str, Any]] = []
+    for path in root.glob("*.json"):
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, ValueError, json.JSONDecodeError):
+            continue
+        if not isinstance(data, dict):
+            continue
+        events = data.get("events", [])
+        if not isinstance(events, list):
+            continue
+        for event in events:
+            if not isinstance(event, dict):
+                continue
+            mode = event.get("mode")
+            if mode not in ("passthrough", "enforce"):
+                continue
+            collected.append(_summarize_gateway_event(event, run_id=data.get("run_id") or path.stem))
+
+    collected.sort(key=lambda e: e.get("timestamp") or "", reverse=True)
+    return collected[:limit]
+
+
+def _summarize_gateway_event(event: dict[str, Any], *, run_id: str) -> dict[str, Any]:
+    request = event.get("request") if isinstance(event.get("request"), dict) else {}
+    response = event.get("response") if isinstance(event.get("response"), dict) else {}
+    decisions = event.get("policy_decisions") if isinstance(event.get("policy_decisions"), list) else []
+    failed = [d for d in decisions if isinstance(d, dict) and not d.get("passed")]
+    return {
+        "run_id": run_id,
+        "timestamp": event.get("timestamp"),
+        "mode": event.get("mode"),
+        "outcome": event.get("outcome"),
+        "method": request.get("method"),
+        "path": request.get("path"),
+        "upstream_url": event.get("upstream_url"),
+        "upstream_status": event.get("upstream_status"),
+        "status_code": response.get("status_code"),
+        "policy_passed": event.get("policy_passed", True),
+        "time_to_decide_us": event.get("time_to_decide_us"),
+        "failed_decisions": [
+            {
+                "name": d.get("name"),
+                "field": d.get("field"),
+                "operator": d.get("operator"),
+                "message": d.get("message"),
+            }
+            for d in failed
+        ],
+        "message": event.get("message"),
+    }
 
 
 def _normalize_suppression_reason(payload: dict[str, Any] | None, side_effect: dict[str, Any]) -> str:
