@@ -12,6 +12,9 @@ ui/.next/
 ui/playwright-report/
 ui/test-results/
 ui/tsconfig.tsbuildinfo
+cloud/node_modules/
+cloud/.next/
+cloud/tsconfig.tsbuildinfo
 *.tsbuildinfo
 .claude/
 session_*.md
