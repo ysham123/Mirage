@@ -3,7 +3,7 @@
 The policy layer is the load-bearing piece of Mirage's mission: same policy
 file, evaluated by rules, in CI mode (against mocks) and in gateway mode
 (against real upstreams). This module owns that evaluation. It deliberately
-has no dependency on mocks, traces, FastAPI, or the run mode — everything
+has no dependency on mocks, traces, FastAPI, or the run mode. Everything
 else in the codebase calls into it.
 """
 
@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import re
 from typing import Any
+from urllib.parse import urlsplit
 
 from pydantic import BaseModel
 
@@ -115,7 +116,72 @@ def apply_operator(policy: PolicyConfig, actual: Any, exists: bool) -> bool:
         return actual in expected
     if operator == "not_in":
         return actual not in expected
+    if operator == "regex_match":
+        if not isinstance(actual, str):
+            return False
+        return re.search(expected, actual) is not None
+    if operator == "not_regex_match":
+        if not isinstance(actual, str):
+            return False
+        return re.search(expected, actual) is None
+    if operator == "contains":
+        if isinstance(actual, str):
+            if not isinstance(expected, str):
+                return False
+            return expected in actual
+        if isinstance(actual, (list, tuple)):
+            return expected in actual
+        return False
+    if operator == "not_contains":
+        if isinstance(actual, str):
+            if not isinstance(expected, str):
+                return False
+            return expected not in actual
+        if isinstance(actual, (list, tuple)):
+            return expected not in actual
+        return False
+    if operator == "starts_with":
+        if not isinstance(actual, str):
+            return False
+        return actual.startswith(expected)
+    if operator == "not_starts_with":
+        if not isinstance(actual, str):
+            return False
+        return not actual.startswith(expected)
+    if operator == "ends_with":
+        if not isinstance(actual, str):
+            return False
+        return actual.endswith(expected)
+    if operator == "length_lte":
+        if not hasattr(actual, "__len__"):
+            return False
+        return len(actual) <= expected
+    if operator == "length_gte":
+        if not hasattr(actual, "__len__"):
+            return False
+        return len(actual) >= expected
+    if operator == "host_in":
+        host = _extract_host(actual)
+        if host is None:
+            return False
+        return host in expected
+    if operator == "host_not_in":
+        host = _extract_host(actual)
+        if host is None:
+            return False
+        return host not in expected
     raise ValueError(f"Unsupported operator: {operator}")
+
+
+def _extract_host(value: Any) -> str | None:
+    if not isinstance(value, str):
+        return None
+    try:
+        parsed = urlsplit(value)
+    except ValueError:
+        return None
+    host = parsed.hostname
+    return host if host else None
 
 
 _PARAM_RE = re.compile(r"\{([^{}/]+)\}")

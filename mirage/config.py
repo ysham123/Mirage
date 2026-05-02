@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 import json
 from pathlib import Path
@@ -25,7 +26,28 @@ class MockRouteConfig(BaseModel):
 class PolicyConfig(BaseModel):
     name: str
     field: str
-    operator: Literal["exists", "eq", "neq", "lt", "lte", "gt", "gte", "in", "not_in"]
+    operator: Literal[
+        "exists",
+        "eq",
+        "neq",
+        "lt",
+        "lte",
+        "gt",
+        "gte",
+        "in",
+        "not_in",
+        "regex_match",
+        "not_regex_match",
+        "contains",
+        "not_contains",
+        "starts_with",
+        "not_starts_with",
+        "ends_with",
+        "length_lte",
+        "length_gte",
+        "host_in",
+        "host_not_in",
+    ]
     message: str
     value: Any = None
     method: str | None = None
@@ -37,6 +59,35 @@ class PolicyConfig(BaseModel):
             raise ValueError(f"operator '{self.operator}' requires a numeric value.")
         if self.operator in {"in", "not_in"} and not isinstance(self.value, (list, tuple, set)):
             raise ValueError(f"operator '{self.operator}' requires a list, tuple, or set value.")
+        if self.operator in {"regex_match", "not_regex_match"}:
+            if not isinstance(self.value, str):
+                raise ValueError(
+                    f"operator '{self.operator}' requires a value that compiles as a regex."
+                )
+            try:
+                re.compile(self.value)
+            except re.error as exc:
+                raise ValueError(
+                    f"operator '{self.operator}' requires a value that compiles as a regex."
+                ) from exc
+        if self.operator in {"starts_with", "not_starts_with", "ends_with"} and not isinstance(
+            self.value, str
+        ):
+            raise ValueError(f"operator '{self.operator}' requires a string value.")
+        if self.operator in {"length_lte", "length_gte"}:
+            if not isinstance(self.value, int) or isinstance(self.value, bool) or self.value < 0:
+                raise ValueError(
+                    f"operator '{self.operator}' requires a non-negative integer value."
+                )
+        if self.operator in {"host_in", "host_not_in"}:
+            if not isinstance(self.value, (list, tuple)) or not self.value:
+                raise ValueError(
+                    f"operator '{self.operator}' requires a non-empty list of strings."
+                )
+            if not all(isinstance(item, str) for item in self.value):
+                raise ValueError(
+                    f"operator '{self.operator}' requires a non-empty list of strings."
+                )
         return self
 
 
@@ -115,7 +166,7 @@ def load_mirage_config(mocks_path: Path, policies_path: Path) -> MirageConfig:
 def load_policies_only(policies_path: Path) -> MirageConfig:
     """Load only the policy section from a policies file.
 
-    Used by the gateway, which never dispatches mocks — it forwards to a
+    Used by the gateway, which never dispatches mocks. It forwards to a
     real upstream. Returns a `MirageConfig` with an empty `mocks` list and
     populated `policies`, which lets `PolicyEvaluator` consume it without
     knowing whether the surrounding runtime is the CI engine or the gateway.
