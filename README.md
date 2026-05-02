@@ -232,8 +232,12 @@ tool calls through a Mirage gateway.
   [`docs/INTEGRATIONS_OPENAI_AGENTS_SDK.md`](docs/INTEGRATIONS_OPENAI_AGENTS_SDK.md)
   for the minimal example, the contrast to OpenAI's own model-graded
   guardrails, and the install command (`pip install mirage-ci[openai-agents]`).
-
-The LangChain adapter ships next; the wedge is the same.
+- **LangChain**: `mirage.integrations.langchain.wrap_with_mirage` wraps
+  a LangChain `AgentExecutor` so every tool call is policy-checked
+  first. Includes a configurable `payload_mapper` for matching custom
+  policy field shapes. See
+  [`docs/INTEGRATIONS_LANGCHAIN.md`](docs/INTEGRATIONS_LANGCHAIN.md)
+  and `pip install mirage-ci[langchain]`.
 
 ## Benchmarks
 
@@ -296,10 +300,9 @@ The deterministic policy runtime, both halves:
 
 ## What ships next (v0.3 and beyond)
 
-- LangChain adapter (mirroring the OpenAI Agents SDK adapter shape)
-- rate-limit and sequence-rule policy operators (cross-call state)
 - chaos-library testing harness: prove policies hold under hostile environments
-- console "Gateway" tab with a live decision feed and mode toggle
+- adversarial benchmark scenarios with realistic false-positive surfaces
+- async-native gating in the LangChain adapter
 
 The mission sentence is the contract: same policy file, production and CI,
 no LLM in the decision loop.
