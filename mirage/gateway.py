@@ -45,6 +45,7 @@ from .policy import (
     summarize_decision,
 )
 from .runtime_paths import resolve_artifact_root, resolve_config_path
+from .sequence import SEQUENCE_OPERATORS, SequenceEvaluator, SequenceTracker
 from .trace import TraceStore
 
 
@@ -99,6 +100,7 @@ class MirageGateway:
         )
         self.trace_store = TraceStore(resolve_artifact_root(artifact_root))
         self._upstream = upstream_client
+        self.sequence_tracker = SequenceTracker()
 
     @property
     def upstream(self) -> httpx.Client:
@@ -133,6 +135,10 @@ class MirageGateway:
             )
 
         decisions = PolicyEvaluator(config).evaluate(method=method, path=path, payload=body)
+        if any(policy.operator in SEQUENCE_OPERATORS for policy in config.policies):
+            decisions = decisions + SequenceEvaluator(config, self.sequence_tracker).evaluate(
+                method=method, path=path, payload=body, run_id=resolved_run_id
+            )
         policy_passed = all(decision.passed for decision in decisions)
         time_to_decide_us = max(0, (time.perf_counter_ns() - request_start_ns) // 1000)
 

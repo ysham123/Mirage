@@ -47,6 +47,8 @@ class PolicyConfig(BaseModel):
         "length_gte",
         "host_in",
         "host_not_in",
+        "count_lte",
+        "rate_lte",
     ]
     message: str
     value: Any = None
@@ -88,6 +90,10 @@ class PolicyConfig(BaseModel):
                 raise ValueError(
                     f"operator '{self.operator}' requires a non-empty list of strings."
                 )
+        if self.operator in {"count_lte", "rate_lte"}:
+            from .sequence import validate_sequence_value
+
+            validate_sequence_value(self)
         return self
 
 
