@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "mirage-ci"
 version = "0.2.0.dev0"
-description = "Deterministic policy runtime for AI agents — same policy file gates CI and enforces in production, no LLM in the decision loop."
+description = "Deterministic policy runtime for AI agents. Same policy file gates CI and enforces in production, with no LLM in the decision loop."
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "MIT" }
@@ -53,6 +53,9 @@ Issues = "https://github.com/ysham123/Mirage/issues"
 [project.optional-dependencies]
 dev = [
   "pytest>=8.0",
+]
+openai-agents = [
+  "openai-agents>=0.1.0",
 ]
 
 [project.scripts]

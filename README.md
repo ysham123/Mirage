@@ -206,19 +206,23 @@ The deterministic policy runtime, both halves:
   from gateway runs
 
 **Shared substrate**
-- `PolicyEvaluator` — pure, deterministic, mock-free; identical decisions in CI
+- `PolicyEvaluator`: pure, deterministic, mock-free; identical decisions in CI
   and gateway
 - review console over the trace store, both legacy HTML and a Next.js operator client
 - Python-first integration via `MirageSession` (CI) or any HTTP client (gateway);
   `httpx`-native, framework-agnostic
 - container-ready (Dockerfile + docker-compose)
 
+**Framework integrations**
+- OpenAI Agents SDK adapter (`mirage.integrations.openai_agents`); see
+  [`docs/INTEGRATIONS_OPENAI_AGENTS_SDK.md`](docs/INTEGRATIONS_OPENAI_AGENTS_SDK.md)
+  for the minimal example and the model-graded versus rule-graded comparison
+
 ## What ships next (v0.3 and beyond)
 
-- containment-rate / FNR / time-to-detect metrics surfaced in the console
-- first framework integration (target: OpenAI Agents SDK; LangChain to follow)
+- LangChain adapter (mirroring the OpenAI Agents SDK adapter shape)
 - rate-limit and sequence-rule policy operators (cross-call state)
-- chaos-library testing harness — prove policies hold under hostile environments
+- chaos-library testing harness: prove policies hold under hostile environments
 - console "Gateway" tab with a live decision feed and mode toggle
 
 The mission sentence is the contract: same policy file, CI and production,
