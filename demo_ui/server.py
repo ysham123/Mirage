@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import asyncio
 from contextlib import asynccontextmanager
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 import json
 import os
 from pathlib import Path
@@ -178,6 +178,12 @@ def create_demo_app(*, artifact_root: str | Path | None = None) -> FastAPI:
             app.state.engine.trace_store.artifact_root, limit=limit
         )
         return {"events": events, "count": len(events)}
+
+    @app.get("/api/metrics/containment_windows")
+    async def containment_windows():
+        return _compute_containment_windows(
+            app.state.engine.trace_store.artifact_root
+        )
 
     @app.get("/api/chat/stream")
     async def chat_stream(run_id: str = Query(..., description="Mirage run ID to replay as a chat stream.")):
@@ -675,6 +681,69 @@ def _stream_step_message(side_effect: dict[str, Any]) -> str:
 
 def _suppression_store(app: FastAPI) -> dict[str, dict[int, dict[str, Any]]]:
     return app.state.side_effect_suppressions
+
+
+def _compute_containment_windows(artifact_root: str | Path) -> dict[str, Any]:
+    """Compute fleet-wide containment rate over 24h, 7d, 30d windows.
+
+    Iterates trace files, filters events by timestamp into each
+    window, computes
+    `blocked / max(1, blocked + flagged + policy_violation)` per
+    window. Returns `None` for windows with no policy decisions.
+    """
+
+    now = datetime.now(timezone.utc)
+    windows = {
+        "window_24h": now - timedelta(days=1),
+        "window_7d": now - timedelta(days=7),
+        "window_30d": now - timedelta(days=30),
+    }
+    counts = {
+        key: {"blocked": 0, "flagged": 0, "policy_violation": 0}
+        for key in windows
+    }
+
+    root = Path(artifact_root)
+    if not root.exists():
+        return {key: None for key in windows}
+
+    for path in root.glob("*.json"):
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, ValueError, json.JSONDecodeError):
+            continue
+        if not isinstance(data, dict):
+            continue
+        events = data.get("events", [])
+        if not isinstance(events, list):
+            continue
+        for event in events:
+            if not isinstance(event, dict):
+                continue
+            outcome = event.get("outcome")
+            if outcome not in ("blocked", "flagged", "policy_violation"):
+                continue
+            ts = _parse_event_timestamp(event.get("timestamp"))
+            if ts is None:
+                continue
+            for key, cutoff in windows.items():
+                if ts >= cutoff:
+                    counts[key][outcome] += 1
+
+    result: dict[str, Any] = {}
+    for key, bucket in counts.items():
+        total = bucket["blocked"] + bucket["flagged"] + bucket["policy_violation"]
+        result[key] = bucket["blocked"] / total if total > 0 else None
+    return result
+
+
+def _parse_event_timestamp(value: Any) -> datetime | None:
+    if not isinstance(value, str):
+        return None
+    try:
+        return datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return None
 
 
 def _collect_gateway_events(artifact_root: str | Path, *, limit: int) -> list[dict[str, Any]]:

@@ -77,6 +77,10 @@ export function fetchGatewayFeed(limit = 50) {
   return requestJson<Record<string, unknown>>("/api/gateway/feed", undefined, { limit });
 }
 
+export function fetchContainmentWindows() {
+  return requestJson<Record<string, number | null>>("/api/metrics/containment_windows");
+}
+
 export function fetchRun(runId: string) {
   return requestJson<Record<string, unknown>>(`/api/metrics/runs/${encodeURIComponent(runId)}`);
 }
