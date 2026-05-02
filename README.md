@@ -639,6 +639,8 @@ The template and index live in [`docs/worklog/`](docs/worklog).
 - [`docs/FIRST_INTEGRATION.md`](docs/FIRST_INTEGRATION.md): 30-minute walkthrough for integrating your own `httpx` agent
 - [`docs/CI_INTEGRATION.md`](docs/CI_INTEGRATION.md): pytest and GitHub Actions gating recipes
 - [`docs/INTEGRATIONS_OPENAI_AGENTS_SDK.md`](docs/INTEGRATIONS_OPENAI_AGENTS_SDK.md): OpenAI Agents SDK adapter usage
+- [`docs/INTEGRATIONS_LANGCHAIN.md`](docs/INTEGRATIONS_LANGCHAIN.md): LangChain adapter usage
+- [`docs/INTEGRATIONS_DATABASE.md`](docs/INTEGRATIONS_DATABASE.md): SQLAlchemy event-hook pattern for DB-write policy enforcement
 - [`docs/OPEN_SOURCE_FAQ.md`](docs/OPEN_SOURCE_FAQ.md): practical guidance on MIT licensing and commercial use
 - [`examples/procurement_harness/README.md`](examples/procurement_harness/README.md): bundled end-to-end example workflow
 - [`examples/policies/README.md`](examples/policies/README.md): real-world example policies and how to load them
