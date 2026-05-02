@@ -1,3 +1,5 @@
+__version__ = "0.2.0"
+
 from .engine import MirageEngine, MirageResult
 from .gateway import (
     GatewayMode,
@@ -23,6 +25,7 @@ from .httpx_client import (
 from .policy import PolicyDecision, PolicyEvaluator
 
 __all__ = [
+    "__version__",
     "MirageEngine",
     "MirageResult",
     "PolicyDecision",
