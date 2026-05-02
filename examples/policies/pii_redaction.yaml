@@ -1,0 +1,30 @@
+# PII redaction policies.
+#
+# Block outbound payloads that contain personally identifiable information
+# in any string field. Three policies cover the most common shapes: US
+# Social Security numbers, payment card numbers, and email addresses.
+# These regexes are conservative pattern matches, not Luhn-checked or
+# locale-aware. They catch the obvious leaks before they reach a third
+# party. Use them as a baseline and tighten with custom policies as needed.
+policies:
+  - name: block_ssn_in_payload_text
+    method: POST
+    path: /v1/customer/profile
+    field: payload.text
+    operator: not_regex_match
+    value: "\\b\\d{3}-\\d{2}-\\d{4}\\b"
+    message: Payload contains a US SSN-shaped string.
+  - name: block_credit_card_in_payload_text
+    method: POST
+    path: /v1/customer/profile
+    field: payload.text
+    operator: not_regex_match
+    value: "\\b(?:\\d[ -]*?){13,16}\\b"
+    message: Payload contains a sequence that looks like a payment card number.
+  - name: block_email_in_payload_text
+    method: POST
+    path: /v1/customer/profile
+    field: payload.text
+    operator: not_regex_match
+    value: "[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}"
+    message: Payload contains an email address.

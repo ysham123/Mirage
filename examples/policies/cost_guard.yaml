@@ -1,0 +1,26 @@
+# Cost containment.
+#
+# Caps monetary fields on agent-emitted actions. Three policies cover
+# the most common shapes: bid amounts, refund amounts, and outbound
+# transfers. Adjust the limits to your domain. The point is to keep an
+# agent that misreads a prompt from spending six figures on a single
+# call.
+policies:
+  - name: cap_bid_amount
+    method: POST
+    field: bid_amount
+    operator: lte
+    value: 10000
+    message: Agents cannot submit bids above the approved threshold.
+  - name: cap_refund_amount
+    method: POST
+    field: refund_amount
+    operator: lte
+    value: 1000
+    message: Agents cannot issue refunds above the approved threshold.
+  - name: cap_transfer_amount
+    method: POST
+    field: transfer_amount
+    operator: lte
+    value: 5000
+    message: Agents cannot transfer more than the approved single-call limit.
