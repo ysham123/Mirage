@@ -1,8 +1,8 @@
 # Mirage benchmarks
 
-Mirage ships a reproducible benchmark harness so the headline numbers
-the README and pitch deck reference are grounded in measured runs, not
-vibes. Run `make bench` from a checkout to reproduce them.
+Mirage ships a reproducible benchmark harness so the numbers in the
+README come from measured runs. Run `make bench` from a checkout to
+reproduce them.
 
 ## Quick numbers
 
@@ -98,9 +98,8 @@ JSON reports land under `benchmarks/results/`:
 ## Limitations
 
 These benchmarks are synthetic and intentionally simple. They establish
-a reproducible methodology and a current scoring floor. Real-world
-numbers against production traffic are forthcoming as design partners
-begin pilots in May 2026.
+a reproducible methodology and a current scoring floor. They have not
+been measured against real production traffic.
 
 Specific limits to be aware of:
 
@@ -134,10 +133,9 @@ Specific limits to be aware of:
   fail on regression. CI gating on benchmark thresholds is on the
   v0.3 roadmap.
 
-## Design partners and real numbers
+## Real-traffic numbers
 
-If you are running an agent platform and want the real-traffic version
-of these numbers (containment rate against your own action stream,
-false-positive rate against your own payloads), open an issue at
-[github.com/ysham123/Mirage/issues](https://github.com/ysham123/Mirage/issues)
-and we will get a pilot scoped.
+If you run Mirage against your own action stream and want to compare
+containment or false-positive rates with these synthetic numbers, open
+an issue at
+[github.com/ysham123/Mirage/issues](https://github.com/ysham123/Mirage/issues).

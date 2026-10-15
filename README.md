@@ -1,145 +1,66 @@
+<div align="center">
+
 # Mirage
 
-**Mirage is the open-source policy gateway for AI agents in production. The same YAML policy file enforces the gateway at runtime and gates the CI build pre-merge. No LLM in the decision loop.**
-
-![Mirage review console and workflow preview](mirage-console-risky-run.png)
-
-_Screenshot: Mirage review console over a risky procurement run trace._
+**A deterministic policy gateway for AI agent actions.**<br>
+One YAML policy file enforces at runtime and gates CI before merge. No model in the decision loop.
 
 [![CI](https://github.com/ysham123/Mirage/actions/workflows/ci.yml/badge.svg)](https://github.com/ysham123/Mirage/actions/workflows/ci.yml)
 [![PyPI](https://img.shields.io/pypi/v/mirage-ci.svg)](https://pypi.org/project/mirage-ci/)
 [![Python](https://img.shields.io/pypi/pyversions/mirage-ci.svg)](https://pypi.org/project/mirage-ci/)
-[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![License: MIT](https://img.shields.io/badge/license-MIT-222222)](LICENSE)
 
-Mirage sits between an agent and the rest of the world. Every outbound action is evaluated against a portable policy DSL and decided deterministically: allow, block, or flag. The same `policies.yaml` enforces a runtime gateway in production and gates the CI build pre-merge.
+[Quick start](#quick-start) · [Policies](#policies-you-can-express) · [Benchmarks](#benchmarks) · [Integrate](#integrate-your-own-agent) · [Console](#action-review-console) · [Docs](#documentation)
 
-## Why Mirage exists
+</div>
 
-Agents do not just generate text. They submit bids, mutate billing systems, file
-tickets, push code, and call APIs that move money. A bad retry, hallucinated
-route, or out-of-policy payload can charge a customer twice, leak data across
-tenants, or ship a regression that only surfaces after deploy.
+---
 
-Existing safety tooling either grades outputs with an LLM judge (flaky,
-stochastic, and unsafe to fail-build a CI run on) or bundles into one
-framework or one cloud, with the lock-in that implies. Mirage is the
-deterministic, framework-agnostic layer underneath: a policy DSL that runs the
-same file in production and in CI, with no model in the decision loop.
+<p align="center">
+  <img src="mirage-console-risky-run.png" width="880" alt="Mirage review console showing a risky procurement run with its policy decisions">
+  <br><sub>The review console over a risky procurement run.</sub>
+</p>
 
-## Positioning
+## Why Mirage
 
-Mirage is the open-source policy gateway for AI agents. The same policy file
-runs in two modes:
+Agents don't just generate text. They submit bids, change billing records, file tickets, and call APIs that move money. A bad retry, a hallucinated route, or an out-of-policy payload can charge a customer twice or leak data, and it often only shows up after deploy.
 
-- **Gateway mode**: agent runs against real upstreams, every action evaluated,
-  deterministic trace emitted, configurable enforcement (passthrough+log or
-  hard-block on violation). This is the production runtime.
-- **CI mode**: agent runs against mocked responses, every action evaluated,
-  deterministic trace emitted, build fails on policy regression. This is the
-  pre-merge gate that lets a team adopt Mirage safely without touching
-  production traffic on day one.
+Mirage sits between an agent and the systems it acts on. Every outbound action is checked against a declarative policy and decided by rules, not by a model: **allowed**, **flagged**, or **blocked**. Because the decision is deterministic, the same policy file can fail a CI build before merge and enforce the same rules at runtime.
 
-One policy file. Two modes. The decision is rule-based; no LLM judges, no
-stochastic verdicts.
-
-## How Mirage is different
-
-The agent-safety landscape splits into three buckets. Mirage sits in a fourth.
-
-- **Quality eval** (LangSmith, Braintrust, Patronus, Galileo, Maxim, Arize, Future AGI):
-  graders that score whether a model's *output* was good. They run an LLM judge
-  in the loop. Useful for response quality. Cannot deterministically fail a CI
-  build, cannot ground a SOC2/HIPAA control. Mirage doesn't compete; it sits
-  one layer down: agent *actions*, not response quality, evaluated by *rules*,
-  not models.
-
-- **Observability** (Sentrial, Laminar, Helicone, Langfuse, Lucidic):
-  passive watching. Tells you what happened. Doesn't enforce. Mirage is
-  enforcement.
-
-- **Bundled framework guardrails** (Microsoft Agent Governance Toolkit,
-  OpenAI Agents SDK callbacks, NeMo Guardrails, LangChain callbacks):
-  shipped inside one framework or one cloud. Useful if you live entirely
-  inside that vendor's stack. Mirage is framework-agnostic: the same
-  `policies.yaml` runs against any agent that crosses an HTTP boundary you
-  control.
-
-- **Deterministic policy runtime**: the layer Mirage occupies. A portable
-  policy DSL, evaluated by rules, that runs the same file in production
-  (against real upstreams) and in CI (against mocks). No LLM in the decision
-  loop. This is the line none of the above can say.
-
-- **Production-tested**: Mirage ships a reproducible benchmark harness with
-  containment-rate, false-positive-rate, and decision-latency numbers. See
-  [`BENCHMARKS.md`](BENCHMARKS.md) for current scores and the methodology.
-
-### Direct comparisons
-
-- **Salus, Playgent, Cascade, Clam (YC agent-infra cohort)**: adjacent and
-  uncrowded, but each ships a different shape. Salus is a runtime engine that
-  wraps and checks actions; Mirage is the portable policy *language* that
-  sits above the engine. Playgent is sandbox+mocks for testing; Mirage runs
-  the same policy file in test and in production. Cascade learns from
-  observed failures; Mirage enforces declarative rules. Clam is a
-  network-layer firewall with prompt-injection scanning; Mirage is a policy
-  DSL one layer up.
-
-- **Microsoft Agent Governance Toolkit (April 2026, MIT)**: covers OWASP
-  Top 10 agentic risks with framework-bundled SDK helpers (LangChain,
-  CrewAI, LangGraph, OpenAI Agents SDK). Excellent if you live inside the
-  Azure/MSFT stack. Mirage is the framework-agnostic alternative: same
-  policy file, any framework, any cloud, deterministic decisions, exportable
-  policy artifacts that survive a stack migration.
-
-- **Future AGI**: closed-loop agent platform with simulation, eval,
-  observability, and "Protect" guardrails. Their evaluation surface is
-  LLM-judged (hallucination, factuality, toxicity scores). Mirage is the
-  opposite category: deterministic action policies, not LLM-graded outputs.
-  Different buyer, different decision class, different SLA shape.
-
-- **Runtime LLM-judge guards** (Llama Guard, policy agents that prompt a
-  model to decide allow/block): arbitrate via a model. Mirage arbitrates
-  via rules. CI can deterministically gate on rules; it can't on judges.
-
-### Dev-tool overlap
-
-Mirage's CI mode looks superficially like HTTP-mocking libraries. The wedge
-is run-scoped policy enforcement, not per-test response stubbing:
-
-- **pytest-httpx / respx**: per-test `httpx` mocking with response stubs.
-  Mirage is run-scoped: one `MirageSession` spans an entire agent run,
-  enforces a declarative policy file (not just response stubs), and writes a
-  trace you can gate CI on via `assert_clean()` or `mirage gate-run`.
-- **VCR.py**: record-and-replay cassettes. Mirage does not record; it
-  evaluates against a policy so a brand-new risky action is caught on its
-  *first* appearance, not only after a cassette exists.
-- **WireMock / mitmproxy**: general-purpose mock servers and intercepting
-  proxies. Mirage is narrower: declarative policy + deterministic decision +
-  trace, tuned for agent action review.
-
-### When not to use Mirage today
-
-- Your agent doesn't cross an HTTP boundary you control (direct DB writes,
-  filesystem mutation, subprocess calls; none of those go through Mirage
-  yet).
-- Your decision criteria are inherently subjective ("did the answer sound
-  right?"); that's an LLM-judge problem, not a policy-rule problem.
-- You have no CI step that can run the agent and no staging environment that
-  can route through a gateway. Mirage's value is enforcement at one of those
-  two boundaries.
-
-## See it in 60 seconds
-
-Two starting points. Pick whichever matches where you are today.
-
-### 60 seconds, production gateway
-
-```bash
-pip install mirage-ci
+```mermaid
+flowchart LR
+    A[Agent] -->|outbound action| M{"Mirage<br/>policies.yaml"}
+    M -->|"allowed (or flagged in passthrough)"| U[Upstream API]
+    M -->|"blocked in enforce mode"| R["HTTP 403 + failed decisions"]
+    M --> T[(Trace store)]
+    T --> C[Review console]
+    T --> G["mirage gate-run<br/>CI pass / fail"]
 ```
 
-In one terminal, start the gateway against a real upstream with the bundled
-PII-redaction example policy:
+## One policy file, two modes
+
+| | **Gateway mode** | **CI mode** |
+| --- | --- | --- |
+| Runs against | Real upstream traffic | Mocked responses (`mocks.yaml`) |
+| Entry point | `mirage gateway` | `mirage.proxy`, `MirageSession`, `mirage gate-run` |
+| Outcomes | `allowed`, `flagged`, `blocked`, `error` | `allowed`, `policy_violation`, `unmatched_route`, `config_error` |
+| Use it to | Log decisions in `passthrough`, then block in `enforce` | Fail the build when a run breaks policy |
+
+Both modes share one `PolicyEvaluator`: pure, deterministic, and identical in production and CI.
+
+## Quick start
+
+```bash
+pip install mirage-ci        # Python 3.11+, imports as `mirage`
+```
+
+<table>
+<tr>
+<td width="50%" valign="top">
+
+**Runtime gateway in 60 seconds**
+
+Start the gateway in front of an upstream with the bundled PII policy:
 
 ```bash
 mirage gateway \
@@ -148,7 +69,7 @@ mirage gateway \
   --policies-path examples/policies/pii_redaction.yaml
 ```
 
-In a second terminal, send a request with an SSN-shaped string in the body:
+Send a request with an SSN-shaped string:
 
 ```bash
 curl -X POST http://127.0.0.1:8001/v1/customer/profile \
@@ -156,24 +77,20 @@ curl -X POST http://127.0.0.1:8001/v1/customer/profile \
   -d '{"name": "Alice", "ssn": "123-45-6789"}'
 ```
 
-Mirage logs a `flagged` policy decision and forwards the request (the right
-default for a new deployment). Switch `--mode enforce` and the same request
-returns HTTP 403 with the failed policy decisions in the response body.
+Mirage logs a `flagged` decision and forwards the request. With `--mode enforce`, the same request returns HTTP 403 with the failed decisions in the body.
 
-### 60 seconds, CI gate
+</td>
+<td width="50%" valign="top">
 
-```bash
-pip install mirage-ci
-```
+**CI gate in 60 seconds**
 
-In one terminal, start the Mirage proxy with the bundled example mocks and
-policies:
+Start the proxy with the bundled mocks and policies:
 
 ```bash
 python -m uvicorn mirage.proxy:app --host 127.0.0.1 --port 8000
 ```
 
-In a second terminal, submit a bid above the policy limit and gate the run:
+Submit a bid above the policy limit, then gate the run:
 
 ```bash
 python <<'PY'
@@ -186,8 +103,11 @@ PY
 mirage gate-run --run-id sixty-second-demo
 ```
 
-Mirage flags the bid as a `policy_violation` and `gate-run` exits non-zero,
-the same signal that fails a CI build:
+`gate-run` exits non-zero, which is the same signal that fails a CI build.
+
+</td>
+</tr>
+</table>
 
 ```text
 Mirage run: sixty-second-demo
@@ -198,168 +118,66 @@ Risky actions:
   (bid_amount lte 10000, got 99999)
 ```
 
-For the bundled multi-step procurement harness (requires a repo checkout),
-see [`examples/procurement_harness/README.md`](examples/procurement_harness/README.md).
+If the `mirage` script is not on your `PATH`, use `python -m mirage.cli ...`. For a multi-step example, see the [procurement harness](examples/procurement_harness/README.md).
 
 ## Policies you can express
 
-Mirage ships five real-world example policies in
-[`examples/policies/`](examples/policies). Each is a starting point: copy
-one into your own policy file, narrow `path` and `method` to your endpoints,
-and tighten the regex or limits to your domain.
+A policy names an endpoint, a field, an operator, and a message:
+
+```yaml
+policies:
+  - name: enforce_bid_limit
+    method: POST
+    path: /v1/submit_bid
+    field: bid_amount
+    operator: lte
+    value: 10000
+    message: Agents cannot submit bids above the approved threshold.
+```
+
+Five starting policies ship in [`examples/policies/`](examples/policies):
 
 | File | What it prevents |
 | --- | --- |
-| `pii_redaction.yaml` | SSNs, payment-card numbers, and email addresses leaking into outbound payloads |
+| `pii_redaction.yaml` | SSNs, payment-card numbers, and email addresses in outbound payloads |
 | `prompt_injection.yaml` | Common prompt-injection markers in outbound payload text |
-| `outbound_allowlist.yaml` | Outbound HTTP traffic to hosts that are not on an allowlist |
-| `cost_guard.yaml` | Agents spending above approved per-call thresholds (bids, refunds, transfers) |
-| `output_length_cap.yaml` | Runaway agent text generation flooding downstream systems |
+| `outbound_allowlist.yaml` | Outbound traffic to hosts that are not on an allowlist |
+| `cost_guard.yaml` | Spending above approved per-call thresholds (bids, refunds, transfers) |
+| `output_length_cap.yaml` | Runaway text generation flooding downstream systems |
 
-Operator coverage in the policy DSL today: `exists`, `eq`, `neq`, `lt`, `lte`,
-`gt`, `gte`, `in`, `not_in`, `regex_match`, `not_regex_match`, `contains`,
-`not_contains`, `starts_with`, `not_starts_with`, `ends_with`, `length_lte`,
-`length_gte`, `host_in`, `host_not_in`. New operators land as v-minor releases.
-
-## Framework integrations
-
-Mirage's policy decisions are the same regardless of the framework an agent
-runs on. The integration adapters are thin glue that route framework-native
-tool calls through a Mirage gateway.
-
-- **OpenAI Agents SDK**: `mirage.integrations.openai_agents.wrap_with_mirage`
-  wraps an `Agent` so every tool call is policy-checked first. See
-  [`docs/INTEGRATIONS_OPENAI_AGENTS_SDK.md`](docs/INTEGRATIONS_OPENAI_AGENTS_SDK.md)
-  for the minimal example, the contrast to OpenAI's own model-graded
-  guardrails, and the install command (`pip install mirage-ci[openai-agents]`).
-- **LangChain**: `mirage.integrations.langchain.wrap_with_mirage` wraps
-  a LangChain `AgentExecutor` so every tool call is policy-checked
-  first. Includes a configurable `payload_mapper` for matching custom
-  policy field shapes. See
-  [`docs/INTEGRATIONS_LANGCHAIN.md`](docs/INTEGRATIONS_LANGCHAIN.md)
-  and `pip install mirage-ci[langchain]`.
+**Operators:** `exists`, `eq`, `neq`, `lt`, `lte`, `gt`, `gte`, `in`, `not_in`, `regex_match`, `not_regex_match`, `contains`, `not_contains`, `starts_with`, `not_starts_with`, `ends_with`, `length_lte`, `length_gte`, `host_in`, `host_not_in`.
 
 ## Benchmarks
 
-Run the benchmark suite with `make bench`. See
-[`BENCHMARKS.md`](BENCHMARKS.md) for the methodology, the synthetic
-scenarios, and current scoring numbers (containment rate, false-positive
-rate, decision-latency p50/p95/p99). Benchmarks are reproducible from the
-`benchmarks/` directory.
+`make bench` replays 100 labelled synthetic actions per scenario through the gateway in `enforce` mode against an in-process stub upstream.
 
-## Start here
+| Scenario | Containment | False-positive rate | Precision | Per-policy decision latency p50 / p95 / p99 |
+| --- | ---: | ---: | ---: | ---: |
+| `pii_leak` | 1.000 | 0.000 | 1.000 | 2 / 4 / 6 µs |
+| `prompt_injection` | 1.000 | 0.000 | 1.000 | 4 / 7 / 7 µs |
+| `cost_runaway` | 1.000 | 0.000 | 1.000 | 1 / 2 / 4 µs |
 
-- Want to understand the product quickly: read [`docs/README.md`](docs/README.md)
-- Want the current alpha snapshot: read [`docs/releases/v0.1.0.md`](docs/releases/v0.1.0.md)
-- Want to integrate Mirage into your own agent: read [`docs/FIRST_INTEGRATION.md`](docs/FIRST_INTEGRATION.md)
-- Want the framework-agnostic integration paths: read [`docs/INTEGRATION_PATTERNS.md`](docs/INTEGRATION_PATTERNS.md)
-- Want to wire Mirage into CI: read [`docs/CI_INTEGRATION.md`](docs/CI_INTEGRATION.md)
-- Want to try the bundled workflow first: read [`examples/procurement_harness/README.md`](examples/procurement_harness/README.md)
-- Want the straight licensing/commercial answer: read [`docs/OPEN_SOURCE_FAQ.md`](docs/OPEN_SOURCE_FAQ.md)
+> [!IMPORTANT]
+> These scenarios are synthetic, and the bad actions are built to match the policies. They establish a reproducible methodology and a latency floor. They say nothing yet about adversarial inputs that evade the patterns, or benign inputs that trip them. Adversarial scenarios are the next benchmark milestone. Full methodology and limits are in [`BENCHMARKS.md`](BENCHMARKS.md).
 
-## What ships today (v0.2.0)
+## How Mirage compares
 
-The deterministic policy runtime, both halves:
+| Category | What it does | Where Mirage differs |
+| --- | --- | --- |
+| LLM-judge evaluation | A model scores whether an *output* was good | Mirage checks *actions* with rules, so a CI build can fail deterministically |
+| Observability | Records what happened | Mirage decides before the action reaches the upstream |
+| Framework-bundled guardrails | Hooks inside one agent framework | The same `policies.yaml` covers any agent that crosses an HTTP boundary you control |
+| HTTP mocking and replay (`pytest-httpx`, `respx`, VCR.py) | Per-test stubs or recorded cassettes | Run-scoped policy and trace, so a new risky action is caught the first time it appears |
 
-**Gateway mode** (`mirage.gateway`, `mirage gateway`)
-- same `policies.yaml` evaluated against real upstream traffic
-- `passthrough` mode: forward every request, log policy decisions, do not block
-  (the right starting mode for a new deployment)
-- `enforce` mode: forward when policy passes, block with HTTP 403 when it fails
-- four outcomes per action: `allowed`, `flagged`, `blocked`, `error`
-- trace events carry a `mode` discriminator so dashboards can distinguish
-  gateway runs from CI runs
+**When not to use Mirage today**
 
-**CI mode** (`mirage.proxy`, `MirageSession`, `mirage gate-run`)
-- declarative policy DSL (`policies.yaml`)
-- mocked responses (`mocks.yaml`) for deterministic CI runs
-- run-scoped trace store with structured policy decisions
-- `mirage gate-run` exits non-zero on regression; drop-in fail-build for any CI
-- four outcomes per action: `allowed`, `policy_violation`, `unmatched_route`, `config_error`
+- Your agent's side effects don't cross an HTTP boundary you control (direct DB writes, filesystem changes, subprocess calls).
+- Your criteria are subjective ("did the answer sound right?"). That is an evaluation problem, not a policy rule.
+- You have neither a CI step that can run the agent nor a staging path that can route through a gateway.
 
-**Shared substrate**
-- `PolicyEvaluator`: pure, deterministic, mock-free; identical decisions in
-  gateway and CI
-- containment-rate, decision-latency, and time-to-decide metrics surfaced in
-  the console and the `/api/runs/{run_id}/containment` endpoint
-- review console over the trace store, both legacy HTML and a Next.js
-  operator client
-- Python-first integration via `MirageSession` (CI) or any HTTP client (gateway);
-  `httpx`-native, framework-agnostic
-- container-ready (Dockerfile + docker-compose)
+## Integrate your own agent
 
-**Framework integrations**
-- OpenAI Agents SDK adapter (`mirage.integrations.openai_agents`); see
-  [`docs/INTEGRATIONS_OPENAI_AGENTS_SDK.md`](docs/INTEGRATIONS_OPENAI_AGENTS_SDK.md)
-  for the minimal example and the model-graded versus rule-graded comparison
-
-**Benchmarks**
-- reproducible benchmark harness with three synthetic scenarios (PII leak,
-  prompt injection, cost runaway), containment rate, false-positive rate,
-  and decision-latency percentiles. See [`BENCHMARKS.md`](BENCHMARKS.md).
-
-## What ships next (v0.3 and beyond)
-
-- chaos-library testing harness: prove policies hold under hostile environments
-- adversarial benchmark scenarios with realistic false-positive surfaces
-- async-native gating in the LangChain adapter
-
-The mission sentence is the contract: same policy file, production and CI,
-no LLM in the decision loop.
-
-## Gateway forwarding behavior
-
-The gateway is a deliberate, in-line proxy. When you point `mirage gateway` at
-an upstream URL, every request the agent makes flows through it on the way to
-that upstream. A few load-bearing details, intentional but worth being explicit
-about:
-
-- **`Authorization`, `Cookie`, and other application headers are forwarded
-  unchanged.** Upstream auth has to keep working through the gateway, so the
-  gateway does not strip credentials. Pointing `--upstream` at an unintended
-  host would forward those credentials to the wrong destination.
-- **Mirage strips `X-Mirage-*` headers** before forwarding (so internal trace
-  metadata never leaks to the upstream) and **strips standard hop-by-hop
-  headers** (`Connection`, `Transfer-Encoding`, `Upgrade`, `Host`,
-  `Content-Length`, etc.) before forwarding so they do not interfere with the
-  outbound request.
-- **The gateway never holds plaintext secrets in the trace.** Request and
-  response bodies are stored verbatim in the trace store; if your payload
-  contains secrets, you are responsible for either redacting in policy or not
-  putting them in the body.
-- **Operator responsibility.** `--upstream` is the load-bearing config knob.
-  The right deployment posture is: bind the gateway to a private network,
-  scope the upstream URL to a single host you own, and start in `passthrough`
-  mode before flipping to `enforce`.
-- **Log-only first.** `passthrough` mode is the recommended starting state.
-  Run real traffic through it, watch the trace store fill with `flagged`
-  events, tune your policies, then switch to `enforce` once the containment
-  rate is at the floor you want.
-
-## Quickstart
-
-Requires Python 3.11+.
-
-```bash
-pip install mirage-ci
-```
-
-The package installs as `mirage-ci` on PyPI and imports as `mirage`:
-
-```python
-from mirage import MirageSession
-```
-
-It also exposes a `mirage` console script. If that script is not on your
-`PATH`, use `python -m mirage.cli ...` directly.
-
-For a development checkout (editable install from source), see
-[Contributing](#contributing).
-
-### Integrate your own agent
-
-The canonical Mirage integration is `MirageSession`. One run ID, an `httpx`
-client surface the agent uses directly, one assertion point for CI.
+`MirageSession` gives the agent an `httpx` client, one run ID, and one assertion point for CI:
 
 ```python
 from mirage import MirageSession
@@ -373,61 +191,25 @@ with MirageSession(run_id="demo-run") as mirage:
     print(summary.trace_path)
 ```
 
-For the full 30-minute walkthrough of pointing Mirage at your own agent, see
-[`docs/FIRST_INTEGRATION.md`](docs/FIRST_INTEGRATION.md). For CI gating
-recipes (pytest and GitHub Actions), see
-[`docs/CI_INTEGRATION.md`](docs/CI_INTEGRATION.md).
+**Framework adapters** route framework-native tool calls through Mirage with no change to the policy decisions:
 
-### Try the bundled procurement harness
+| Framework | Adapter | Install |
+| --- | --- | --- |
+| OpenAI Agents SDK | `mirage.integrations.openai_agents.wrap_with_mirage` | `pip install mirage-ci[openai-agents]` ([guide](docs/INTEGRATIONS_OPENAI_AGENTS_SDK.md)) |
+| LangChain | `mirage.integrations.langchain.wrap_with_mirage` | `pip install mirage-ci[langchain]` ([guide](docs/INTEGRATIONS_LANGCHAIN.md)) |
 
-If you want to see Mirage working on a realistic pre-built workflow before
-integrating your own agent:
-
-```bash
-make proxy-procurement
-```
-
-In a second terminal:
+**CI gating:**
 
 ```bash
-make procurement-demo-safe
-make test-procurement
+python -m mirage.cli summarize-run --run-id procurement-risky-demo
+python -m mirage.cli gate-run --run-id procurement-risky-demo     # non-zero on risky or missing runs
+python -m mirage.cli validate-config                               # non-zero on missing or malformed config
 ```
 
-Run with Docker:
+<details>
+<summary><strong>Per-response primitives and response headers</strong></summary>
 
-```bash
-docker compose up --build
-```
-
-That Docker path starts the Mirage proxy with the procurement harness config on `http://localhost:8000`.
-
-## MirageSession
-
-MirageSession is the recommended path for:
-
-- local developer runs
-- `pytest` integration tests
-- CI gates on risky actions
-
-For agent code that already expects a client-like object:
-
-```python
-from examples.procurement_harness.agent import ProcurementAgent
-from mirage import MirageSession
-
-with MirageSession(run_id="procurement-safe") as mirage:
-    agent = ProcurementAgent(mirage)
-    result = agent.run_compliant_bid_workflow()
-    summary = mirage.assert_clean()
-    print(result.action.mirage.outcome)
-    print(summary.to_text())
-```
-
-### Alternative: per-response primitives
-
-If you want per-response access instead of a run-level session, the lower-level
-`httpx` primitives remain available:
+If you want per-response access instead of a run-level session:
 
 ```python
 from mirage.httpx_client import (
@@ -446,231 +228,124 @@ with create_mirage_client(run_id="demo-run") as client:
     print(report.trace_path)
 ```
 
-Mirage adds response metadata headers so tests and agents can inspect what happened without changing the mocked response body:
+Mirage adds metadata headers so tests and agents can inspect a decision without changing the mocked body: `X-Mirage-Run-Id`, `X-Mirage-Outcome`, `X-Mirage-Policy-Passed`, `X-Mirage-Trace-Path`, `X-Mirage-Matched-Mock`, `X-Mirage-Message`, `X-Mirage-Decision-Summary`.
 
-- `X-Mirage-Run-Id`
-- `X-Mirage-Outcome`
-- `X-Mirage-Policy-Passed`
-- `X-Mirage-Trace-Path`
-- `X-Mirage-Matched-Mock`
-- `X-Mirage-Message`
-- `X-Mirage-Decision-Summary`
+For agent code that already expects a client-like object:
 
-## CI gating
+```python
+from examples.procurement_harness.agent import ProcurementAgent
+from mirage import MirageSession
 
-Mirage now has a run-level CLI for CI or shell workflows:
-
-```bash
-make mirage-summary RUN_ID=procurement-risky-demo
-make mirage-gate RUN_ID=procurement-risky-demo
+with MirageSession(run_id="procurement-safe") as mirage:
+    agent = ProcurementAgent(mirage)
+    result = agent.run_compliant_bid_workflow()
+    summary = mirage.assert_clean()
+    print(result.action.mirage.outcome)
+    print(summary.to_text())
 ```
 
-Equivalent direct commands:
+</details>
 
-```bash
-python -m mirage.cli summarize-run --run-id procurement-risky-demo
-python -m mirage.cli gate-run --run-id procurement-risky-demo
-python -m mirage.cli validate-config
-```
+<details>
+<summary><strong>If your agent doesn't use <code>httpx</code></strong></summary>
 
-`gate-run` exits non-zero when the run is risky or missing, so it can fail CI directly.
-`validate-config` exits non-zero when Mirage config is missing or malformed, so
-you can fail fast before starting the proxy.
+Mirage only needs the outbound action path to cross a client boundary you control.
 
-For complete GitHub Actions and pytest recipes, see
-[`docs/CI_INTEGRATION.md`](docs/CI_INTEGRATION.md).
+- If your SDK or framework lets you inject a base URL, transport, or HTTP client, point it at Mirage.
+- If your orchestration layer hides HTTP entirely, wrap the side-effecting calls in your own gateway and test that gateway with Mirage.
+- Start with writes: bids, orders, ticket creation, CRM updates, or billing actions.
 
-## If your agent does not already use `httpx`
+See [`docs/INTEGRATION_PATTERNS.md`](docs/INTEGRATION_PATTERNS.md) for concrete patterns, and [`docs/INTEGRATIONS_DATABASE.md`](docs/INTEGRATIONS_DATABASE.md) for a SQLAlchemy event-hook pattern for database writes.
 
-Mirage does not require your whole stack to be built directly on `httpx`. It
-only needs the outbound action path to cross a client boundary you control.
+</details>
 
-- If your SDK or framework lets you inject a base URL, transport, or HTTP
-  client, point that boundary at Mirage.
-- If your orchestration layer hides HTTP completely, wrap the side-effecting
-  calls in your own gateway and test that gateway with Mirage.
-- If you only need a starting point, intercept writes first: bids, orders,
-  ticket creation, CRM updates, or billing actions.
+<details>
+<summary><strong>Config and environment variables</strong></summary>
 
-See [`docs/INTEGRATION_PATTERNS.md`](docs/INTEGRATION_PATTERNS.md) for the
-concrete patterns.
+The onboarding config lives in [`examples/procurement_harness/mocks.yaml`](examples/procurement_harness/mocks.yaml) and [`examples/procurement_harness/policies.yaml`](examples/procurement_harness/policies.yaml). From a repo checkout, the root [`mocks.yaml`](mocks.yaml) and [`policies.yaml`](policies.yaml) are the default fallback, and the installed package ships bundled defaults so the CLI and proxy boot outside the source tree.
 
-## Config
+Optional environment variables: `MIRAGE_PROXY_URL`, `MIRAGE_RUN_ID`, `MIRAGE_MOCKS_PATH`, `MIRAGE_POLICIES_PATH`, `MIRAGE_ARTIFACT_ROOT`.
 
-The primary onboarding config now lives in:
+Validate config before a local run or CI job with `make mirage-validate-config`.
 
-- [`examples/procurement_harness/mocks.yaml`](examples/procurement_harness/mocks.yaml)
-- [`examples/procurement_harness/policies.yaml`](examples/procurement_harness/policies.yaml)
+</details>
 
-When you run Mirage from a repo checkout, local [`mocks.yaml`](mocks.yaml) and
-[`policies.yaml`](policies.yaml) remain the default fallback config. Installed
-Mirage also ships bundled example defaults, so the CLI and proxy still boot
-outside the source tree.
+## Gateway forwarding behavior
 
-Example policy:
+The gateway is an in-line proxy: every request the agent makes flows through it to the configured upstream.
 
-```yaml
-policies:
-  - name: enforce_bid_limit
-    method: POST
-    path: /v1/submit_bid
-    field: bid_amount
-    operator: lte
-    value: 10000
-    message: Agents cannot submit bids above the approved threshold.
-```
-
-Optional environment variables:
-
-- `MIRAGE_PROXY_URL`
-- `MIRAGE_RUN_ID`
-- `MIRAGE_MOCKS_PATH`
-- `MIRAGE_POLICIES_PATH`
-- `MIRAGE_ARTIFACT_ROOT`
-
-Validate config before a local run or CI job:
-
-```bash
-make mirage-validate-config
-```
-
-## Procurement harness
-
-The default onboarding path now lives in [`examples/procurement_harness/`](examples/procurement_harness).
-
-It gives one coherent workflow instead of isolated request demos:
-
-- look up an approved supplier
-- submit a compliant or risky bid
-- inspect Mirage outcomes and trace paths
-
-Primary commands:
-
-```bash
-make proxy-procurement
-make procurement-demo-safe
-make procurement-demo-risky
-make procurement-demo-unmatched
-make test-procurement
-```
-
-Harness docs:
-
-- [`examples/procurement_harness/README.md`](examples/procurement_harness/README.md)
+- **Application headers are forwarded unchanged**, including `Authorization` and `Cookie`, so upstream auth keeps working. Pointing `--upstream` at an unintended host would forward those credentials there.
+- **`X-Mirage-*` and hop-by-hop headers are stripped** before forwarding (`Connection`, `Transfer-Encoding`, `Upgrade`, `Host`, `Content-Length`, and similar).
+- **Bodies are stored verbatim in the trace.** If a payload contains secrets, redact them in policy or keep them out of the body.
+- **Recommended posture:** bind the gateway to a private network, scope `--upstream` to a single host you own, and start in `passthrough`. Tune policies against real traffic, then switch to `enforce`.
 
 ## Action review console
 
-Mirage currently ships two console surfaces over the same review backend:
+Two console surfaces read the same trace store:
 
-- `demo_ui/`: the shared FastAPI console API plus a zero-dependency legacy HTML shell
-- `ui/`: a richer Next.js operator client that consumes that API
+- [`demo_ui/`](demo_ui): the FastAPI console API plus a zero-dependency HTML shell (`make demo-ui`, then open `http://127.0.0.1:5100`)
+- [`ui/`](ui): a Next.js operator client over that API (`make ui-install && make ui-dev-local`, then open `http://127.0.0.1:3000`)
 
-Both read Mirage trace artifacts, show aggregate action metrics, surface recent
-risky runs, and let you drill into one run at a time.
+Both show aggregate action counts, a review queue of risky runs, top endpoints and policy failures, containment rate (fleet-wide and per run), and a per-run view of request, outcome, policy reasoning, and decision graph.
 
-The shared backend still supports the scenario launcher for founder demos, but
-the primary value of the console is now:
+## Examples
 
-- aggregate action counts across runs
-- review queue for recent runs that need attention
-- top endpoints by action volume
-- top policy failures
-- containment rate (fleet-wide and per-run)
-- overview-first run detail with request, outcome, policy reasoning, and trace
-- per-run graph view for decision flow review
+| Example | What it shows |
+| --- | --- |
+| [`examples/procurement_harness/`](examples/procurement_harness) | A full workflow: look up a supplier, submit a compliant or risky bid, inspect outcomes and traces (`make proxy-procurement`, then `make procurement-demo-safe`, `make procurement-demo-risky`, `make test-procurement`) |
+| [`examples/policies/`](examples/policies) | The five starting policies above |
+| [`examples/safe_agent.py`](examples/safe_agent.py) | A safe request that passes policy checks |
+| [`examples/rogue_agent.py`](examples/rogue_agent.py) | An unsafe request that is flagged while control flow continues |
+| [`examples/unmatched_route.py`](examples/unmatched_route.py) | An unmatched route that fails clearly |
 
-Start it with:
+Run everything in Docker with `docker compose up --build` (proxy with the procurement config on `http://localhost:8000`).
 
-```bash
-make demo-ui
-```
+## Roadmap
 
-Then open `http://127.0.0.1:5100`. Override the port with `PORT=5101 make demo-ui` if needed.
+- Adversarial benchmark scenarios with realistic false-positive surfaces
+- A chaos-testing harness to check that policies hold in hostile environments
+- Async-native gating in the LangChain adapter
+- Policy-file caching with an mtime check, and CI thresholds on benchmark results
 
-For the Next.js client:
+## Documentation
 
-```bash
-make ui-install
-make ui-dev-local
-```
+| Doc | Contents |
+| --- | --- |
+| [`docs/README.md`](docs/README.md) | Docs hub |
+| [`docs/FIRST_INTEGRATION.md`](docs/FIRST_INTEGRATION.md) | 30-minute walkthrough for your own `httpx` agent |
+| [`docs/CI_INTEGRATION.md`](docs/CI_INTEGRATION.md) | pytest and GitHub Actions gating recipes |
+| [`docs/INTEGRATION_PATTERNS.md`](docs/INTEGRATION_PATTERNS.md) | Framework-agnostic integration paths |
+| [`BENCHMARKS.md`](BENCHMARKS.md) | Benchmark methodology, numbers, and limits |
+| [`docs/OPEN_SOURCE_FAQ.md`](docs/OPEN_SOURCE_FAQ.md) | MIT licensing and commercial use |
 
-Then open `http://127.0.0.1:3000`.
+<details>
+<summary><strong>Repository layout</strong></summary>
 
-For live demos, use the terminal-first script in [`docs/live-demo-script.md`](docs/live-demo-script.md).
+| Path | Contents |
+| --- | --- |
+| [`mirage/engine.py`](mirage/engine.py) | Policy evaluation, outcomes, and trace writes |
+| [`mirage/gateway.py`](mirage/gateway.py) | Runtime gateway against real upstreams |
+| [`mirage/proxy.py`](mirage/proxy.py) | FastAPI CI-mode boundary and response headers |
+| [`mirage/httpx_client.py`](mirage/httpx_client.py) | `httpx` helper and response assertions |
+| [`mirage/integrations/`](mirage/integrations) | Framework adapters |
+| [`benchmarks/`](benchmarks) | Reproducible benchmark harness |
+| [`demo_ui/`](demo_ui), [`ui/`](ui) | Console API and clients |
+| [`tests/`](tests) | Engine, proxy, gateway, integration, and helper tests |
+| [`docs/worklog/`](docs/worklog) | Per-task review log (`make worklog TITLE="..."`) |
 
-## Example scenarios
-
-This repo ships three canonical example flows plus the policy library:
-
-- [`examples/policies/`](examples/policies): five real-world example policies (PII redaction, prompt injection, outbound allowlist, cost guard, output length cap)
-- [`examples/procurement_harness/`](examples/procurement_harness): realistic private-alpha procurement harness
-- [`examples/safe_agent.py`](examples/safe_agent.py): safe request passes policy checks
-- [`examples/rogue_agent.py`](examples/rogue_agent.py): unsafe request is flagged while control flow continues
-- [`examples/unmatched_route.py`](examples/unmatched_route.py): unmatched route fails clearly
-
-## Worklog
-
-Create a new implementation review entry with:
-
-```bash
-make worklog TITLE="Short Task Title"
-```
-
-The template and index live in [`docs/worklog/`](docs/worklog).
-
-## Repo structure
-
-- [`examples/policies/`](examples/policies): real-world example policies
-- [`examples/procurement_harness/`](examples/procurement_harness): primary private-alpha onboarding harness
-- [`benchmarks/`](benchmarks): reproducible benchmark harness
-- [`demo_ui/`](demo_ui): shared console API plus legacy HTML review shell
-- [`ui/`](ui): Next.js operator client over the `demo_ui` API
-- [`mirage/engine.py`](mirage/engine.py): policy evaluation, outcomes, and trace writes
-- [`mirage/proxy.py`](mirage/proxy.py): FastAPI CI-mode boundary and Mirage response headers
-- [`mirage/gateway.py`](mirage/gateway.py): runtime gateway against real upstreams
-- [`mirage/integrations/`](mirage/integrations): framework integration adapters
-- [`mirage/httpx_client.py`](mirage/httpx_client.py): Python `httpx` helper and response assertions
-- [`tests/`](tests): engine, proxy, gateway, integration, and `httpx` helper coverage
-- [`docs/worklog/`](docs/worklog): per-task review log for agentic development
-
-## Supporting docs
-
-- [`docs/README.md`](docs/README.md): docs hub for the main Mirage paths
-- [`docs/FIRST_INTEGRATION.md`](docs/FIRST_INTEGRATION.md): 30-minute walkthrough for integrating your own `httpx` agent
-- [`docs/CI_INTEGRATION.md`](docs/CI_INTEGRATION.md): pytest and GitHub Actions gating recipes
-- [`docs/INTEGRATIONS_OPENAI_AGENTS_SDK.md`](docs/INTEGRATIONS_OPENAI_AGENTS_SDK.md): OpenAI Agents SDK adapter usage
-- [`docs/INTEGRATIONS_LANGCHAIN.md`](docs/INTEGRATIONS_LANGCHAIN.md): LangChain adapter usage
-- [`docs/INTEGRATIONS_DATABASE.md`](docs/INTEGRATIONS_DATABASE.md): SQLAlchemy event-hook pattern for DB-write policy enforcement
-- [`docs/OPEN_SOURCE_FAQ.md`](docs/OPEN_SOURCE_FAQ.md): practical guidance on MIT licensing and commercial use
-- [`examples/procurement_harness/README.md`](examples/procurement_harness/README.md): bundled end-to-end example workflow
-- [`examples/policies/README.md`](examples/policies/README.md): real-world example policies and how to load them
-- [`BENCHMARKS.md`](BENCHMARKS.md): benchmark methodology and current numbers
-- [`ui/README.md`](ui/README.md): how the Next.js client consumes the shared console API
+</details>
 
 ## Contributing
 
-Bug reports and pull requests are welcome. See [`CONTRIBUTING.md`](CONTRIBUTING.md) for the local dev loop and expectations, [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md) for community standards, and [`SECURITY.md`](SECURITY.md) for private vulnerability reporting.
-
-### Source install
-
-For a development checkout:
+Bug reports and pull requests are welcome. See [`CONTRIBUTING.md`](CONTRIBUTING.md), [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md), and [`SECURITY.md`](SECURITY.md) for private vulnerability reporting.
 
 ```bash
 git clone https://github.com/ysham123/Mirage
 cd Mirage
 pip install setuptools wheel
-pip install -e '.[dev]'
+pip install -e '.[dev]'      # or: make install
 ```
-
-Or, with the bundled `Makefile`:
-
-```bash
-make install
-```
-
-The editable install exposes the `mirage` console script and the `mirage`
-Python package directly from your checkout.
 
 ## License
 
-Mirage is released under the [MIT License](LICENSE).
+[MIT](LICENSE)
